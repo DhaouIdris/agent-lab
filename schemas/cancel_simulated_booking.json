@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "booking_id": {
+      "pattern": "^[A-Za-z0-9_.:-]{1,100}$",
+      "title": "Booking Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "booking_id"
+  ],
+  "title": "BookingID",
+  "type": "object"
+}

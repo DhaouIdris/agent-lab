@@ -1,0 +1,143 @@
+{
+  "$defs": {
+    "Fact": {
+      "additionalProperties": false,
+      "properties": {
+        "entity_id": {
+          "pattern": "^[A-Za-z0-9_.:-]{1,100}$",
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "field": {
+          "enum": [
+            "name",
+            "category",
+            "district",
+            "wifi",
+            "start",
+            "end",
+            "location",
+            "inscription_year"
+          ],
+          "title": "Field",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "title": "Value"
+        },
+        "source_id": {
+          "pattern": "^[A-Za-z0-9_.:-]{1,100}$",
+          "title": "Source Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_id",
+        "field",
+        "value",
+        "source_id"
+      ],
+      "title": "Fact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "decision": {
+      "enum": [
+        "answer",
+        "clarify",
+        "partial",
+        "abstain",
+        "refuse"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "answer": {
+      "maxLength": 5000,
+      "minLength": 1,
+      "title": "Answer",
+      "type": "string"
+    },
+    "entity_ids": {
+      "default": [],
+      "items": {
+        "pattern": "^[A-Za-z0-9_.:-]{1,100}$",
+        "type": "string"
+      },
+      "maxItems": 10,
+      "title": "Entity Ids",
+      "type": "array"
+    },
+    "facts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Fact"
+      },
+      "maxItems": 20,
+      "title": "Facts",
+      "type": "array"
+    },
+    "warnings": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Warnings",
+      "type": "array"
+    },
+    "booking_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9_.:-]{1,100}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Booking Id"
+    },
+    "booking_status": {
+      "anyOf": [
+        {
+          "enum": [
+            "confirmed_simulated",
+            "cancelled_simulated"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Booking Status"
+    },
+    "simulation": {
+      "default": false,
+      "title": "Simulation",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "decision",
+    "answer"
+  ],
+  "title": "FinalAnswer",
+  "type": "object"
+}

@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "entity_id": {
+      "pattern": "^[A-Za-z0-9_.:-]{1,100}$",
+      "title": "Entity Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "entity_id"
+  ],
+  "title": "GetEntityDetails",
+  "type": "object"
+}

@@ -1,0 +1,53 @@
+test_approval_binds_actor (test_lab.Authorization.test_approval_binds_actor) ... ok
+test_approval_binds_exact_quote (test_lab.Authorization.test_approval_binds_exact_quote) ... ok
+test_approval_is_consumed (test_lab.Authorization.test_approval_is_consumed) ... ok
+test_cancel_idempotent_after_exact_approval (test_lab.Authorization.test_cancel_idempotent_after_exact_approval) ... ok
+test_cancel_requires_separate_approval (test_lab.Authorization.test_cancel_requires_separate_approval) ... ok
+test_concurrent_create_has_one_effect (test_lab.Authorization.test_concurrent_create_has_one_effect) ... ok
+test_create_idempotent (test_lab.Authorization.test_create_idempotent) ... ok
+test_expired_approval (test_lab.Authorization.test_expired_approval) ... ok
+test_expired_quote_even_with_valid_approval (test_lab.Authorization.test_expired_quote_even_with_valid_approval) ... ok
+test_lost_response_after_commit (test_lab.Authorization.test_lost_response_after_commit) ... ok
+test_missing_approval_has_no_effect (test_lab.Authorization.test_missing_approval_has_no_effect) ... ok
+test_other_user_and_unknown_indistinguishable (test_lab.Authorization.test_other_user_and_unknown_indistinguishable) ... ok
+test_scopes (test_lab.Authorization.test_scopes) ... ok
+test_unknown_tool_fails_closed (test_lab.Authorization.test_unknown_tool_fails_closed) ... ok
+test_all_nine_have_closed_schemas (test_lab.Contracts.test_all_nine_have_closed_schemas) ... ok
+test_boolean_is_not_integer_guests (test_lab.Contracts.test_boolean_is_not_integer_guests) ... ok
+test_duplicate_itinerary_stops (test_lab.Contracts.test_duplicate_itinerary_stops) ... ok
+test_forged_confirmation_argument (test_lab.Contracts.test_forged_confirmation_argument) ... ok
+test_naive_dates (test_lab.Contracts.test_naive_dates) ... ok
+test_nan_coords (test_lab.Contracts.test_nan_coords) ... ok
+test_numeric_string_is_rejected (test_lab.Contracts.test_numeric_string_is_rejected) ... ok
+test_radius_requires_coordinates (test_lab.Contracts.test_radius_requires_coordinates) ... ok
+test_reversed_dates (test_lab.Contracts.test_reversed_dates) ... ok
+test_call_cap (test_lab.EvidenceAndFaults.test_call_cap) ... ok
+test_citation_must_match_exposed_fact (test_lab.EvidenceAndFaults.test_citation_must_match_exposed_fact) ... ok
+test_empty_does_not_mean_outage (test_lab.EvidenceAndFaults.test_empty_does_not_mean_outage) ... ok
+test_event_end_is_exclusive (test_lab.EvidenceAndFaults.test_event_end_is_exclusive) ... ok
+test_expired_turn_deadline (test_lab.EvidenceAndFaults.test_expired_turn_deadline) ... ok
+test_false_booking_status_rejected (test_lab.EvidenceAndFaults.test_false_booking_status_rejected) ... ok
+test_free_text_is_explicitly_not_semantically_verified (test_lab.EvidenceAndFaults.test_free_text_is_explicitly_not_semantically_verified) ... ok
+test_haversine_independent_known_distance (test_lab.EvidenceAndFaults.test_haversine_independent_known_distance) ... ok
+test_retry_cap (test_lab.EvidenceAndFaults.test_retry_cap) ... ok
+test_unseen_entity_rejected (test_lab.EvidenceAndFaults.test_unseen_entity_rejected) ... ok
+test_wifi_unknown_is_not_true (test_lab.EvidenceAndFaults.test_wifi_unknown_is_not_true) ... ok
+test_wrong_source_rejected (test_lab.EvidenceAndFaults.test_wrong_source_rejected) ... ok
+test_agent_adapter_executes_tools_without_gold (test_lab.Harness.test_agent_adapter_executes_tools_without_gold) ... ok
+test_agent_round_cap (test_lab.Harness.test_agent_round_cap) ... ok
+test_all_40_gold_replays (test_lab.Harness.test_all_40_gold_replays) ... ok
+test_comparison_rejects_oracle_as_model (test_lab.Harness.test_comparison_rejects_oracle_as_model) ... ok
+test_endpoint_rejects_insecure_remote (test_lab.Harness.test_endpoint_rejects_insecure_remote) ... ok
+test_http_adapter_serialization_and_usage (test_lab.Harness.test_http_adapter_serialization_and_usage) ... ok
+test_injection_extra_mutation_is_detected_even_if_blocked (test_lab.Harness.test_injection_extra_mutation_is_detected_even_if_blocked) ... ok
+test_missing_search_is_detected (test_lab.Harness.test_missing_search_is_detected) ... ok
+test_multiturn_agent_host_confirmation_and_cancel (test_lab.Harness.test_multiturn_agent_host_confirmation_and_cancel) ... ok
+test_paired_comparison_uses_same_cases (test_lab.Harness.test_paired_comparison_uses_same_cases) ... ok
+test_provider_global_cap (test_lab.Harness.test_provider_global_cap) ... ok
+test_repeat_count_does_not_inflate_scenario_count (test_lab.Harness.test_repeat_count_does_not_inflate_scenario_count) ... ok
+test_wrong_year_is_detected (test_lab.Harness.test_wrong_year_is_detected) ... ok
+
+----------------------------------------------------------------------
+Ran 48 tests in 0.075s
+
+OK

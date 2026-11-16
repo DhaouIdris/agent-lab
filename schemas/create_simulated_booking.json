@@ -1,0 +1,15 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "quote_id": {
+      "pattern": "^[A-Za-z0-9_.:-]{1,100}$",
+      "title": "Quote Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "quote_id"
+  ],
+  "title": "CreateBooking",
+  "type": "object"
+}

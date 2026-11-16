@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "version": "0.1.0",
+    "reference_clock": "2026-11-16T12:00:00+00:00",
+    "purpose": "Tiny engineering fixture, NOT a representative Abidjan inventory",
+    "place_evidence": "Two real rows observed through data.gouv.ci JSON API earlier in this conversation; re-fetch on implementation day returned HTTP 503. No current operating status claimed.",
+    "simulation": "All offers, prices, opening windows added by tests, route durations and booking records are synthetic controlled fixtures. They are not claims about the real businesses."
+  },
+  "places": [
+    {"id":"P1","name":"Nuit de Saïgon","category":"restaurant","district":"Cocody","latitude":5.3714417,"longitude":-3.9905577,"wifi":null,"opening_hours":null,"price_xof":null,"source_id":"S_OSM","source_record_id":"way/118454622","source_updated_at":"2022-09-23","verified_at":null,"current_activity_verified":false,"description":"Observation historique ; horaires, prix et Wi-Fi inconnus."},
+    {"id":"P2","name":"Le Kirikou Bar","category":"bar","district":"","latitude":5.3966899,"longitude":-3.9919196,"wifi":null,"opening_hours":null,"price_xof":null,"source_id":"S_OSM","source_record_id":"way/118454620","source_updated_at":"2022-09-23","verified_at":null,"current_activity_verified":false,"description":"Observation historique ; commune non renseignée dans la ligne source."}
+  ],
+  "events": [
+    {"id":"E1","name":"SIREXE 2026","theme":"énergie mines hydrocarbures business conférence","start":"2026-11-18T00:00:00+00:00","end":"2026-11-23T00:00:00+00:00","location":"Abidjan","source_id":"S_SIREXE","verified_at":"2026-11-16","date_precision":"day","interval_convention":"exclusive_end_next_day_not_session_opening_time"},
+    {"id":"E2","name":"SIDE EVENT : SODEMI","theme":"mines business conférence","start":"2026-11-19T12:00:00+00:00","end":"2026-11-19T13:30:00+00:00","location":"Mines — programme SIREXE","source_id":"S_SIREXE","verified_at":"2026-11-16","conflicts":[{"field":"start","values":["12:00","12:30"],"source":"Programme affiche 12:00–13:30 ; intitulé 12h30–13h30"}],"time_status":"conflicting_do_not_confirm"}
+  ],
+  "documents": [
+    {"id":"D1","name":"Ville historique de Grand-Bassam","text":"La ville historique de Grand-Bassam est inscrite sur la Liste du patrimoine mondial de l'UNESCO depuis 2012.","inscription_year":2012,"source_id":"S_UNESCO","verified_at":"2026-11-16"},
+    {"id":"D2","name":"Dates du SIREXE 2026","text":"Le programme officiel annonce le SIREXE à Abidjan du 18 au 22 novembre 2026. Une date annoncée ne prouve pas une disponibilité à la réservation.","source_id":"S_SIREXE","verified_at":"2026-11-16"}
+  ],
+  "route_minutes": {},
+  "transport_cost_xof": null,
+  "bookings": {},
+  "sources": {
+    "S_OSM":{"url":"https://data.gouv.ci/data-fair/api/v1/datasets/hotels-et-restauration-en-cote-divoire/lines?size=2","origin":"OpenStreetMap contributors, via data.gouv.ci","license":"ODbL-1.0 origin; portal displays Licence Ouverte; no relicensing asserted","data_date":"2022-09-23"},
+    "S_SIREXE":{"url":"https://www.sirexe.ci/fr/programme/conference","origin":"SIREXE official programme","license":"No blanket redistribution permission verified; only minimal factual annotations included, not full page or images","retrieved_at":"2026-11-16"},
+    "S_UNESCO":{"url":"https://whc.unesco.org/en/list/1322","origin":"UNESCO World Heritage Centre","license":"No blanket redistribution permission asserted; minimal factual annotation only","retrieved_at":"2026-11-16"},
+    "S_TEST":{"origin":"AgentLab synthetic controlled perturbation","license":"Project-authored test values","real_world_claim":false}
+  }
+}

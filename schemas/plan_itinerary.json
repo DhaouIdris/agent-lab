@@ -1,0 +1,64 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "place_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9_.:-]{1,100}$",
+        "type": "string"
+      },
+      "maxItems": 4,
+      "minItems": 1,
+      "title": "Place Ids",
+      "type": "array"
+    },
+    "start": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Start",
+      "type": "string"
+    },
+    "end": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "End",
+      "type": "string"
+    },
+    "visit_minutes": {
+      "default": 60,
+      "maximum": 180,
+      "minimum": 15,
+      "title": "Visit Minutes",
+      "type": "integer"
+    },
+    "budget_xof": {
+      "anyOf": [
+        {
+          "maximum": 10000000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Budget Xof"
+    },
+    "mode": {
+      "default": "driving",
+      "enum": [
+        "walking",
+        "driving"
+      ],
+      "title": "Mode",
+      "type": "string"
+    }
+  },
+  "required": [
+    "place_ids",
+    "start",
+    "end"
+  ],
+  "title": "PlanItinerary",
+  "type": "object"
+}

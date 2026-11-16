@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "start": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Start",
+      "type": "string"
+    },
+    "end": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "End",
+      "type": "string"
+    },
+    "theme": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Theme"
+    },
+    "limit": {
+      "default": 5,
+      "maximum": 10,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "start",
+    "end"
+  ],
+  "title": "SearchEvents",
+  "type": "object"
+}

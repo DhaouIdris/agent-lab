@@ -1,0 +1,1382 @@
+{
+  "S01": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_places",
+            "args": {
+              "category": "restaurant",
+              "district": "Cocody"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "P1"
+          ],
+          "warnings": [
+            "stale_data"
+          ],
+          "facts": [
+            {
+              "entity_id": "P1",
+              "field": "name",
+              "value": "Nuit de Saïgon",
+              "source_id": "S_OSM"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "S02": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_places",
+            "args": {
+              "latitude": 5.3714417,
+              "longitude": -3.9905577,
+              "radius_m": 1000,
+              "category": "bar"
+            }
+          }
+        ],
+        "final": {
+          "decision": "abstain",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "no_results_in_inventory"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "S03": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_places",
+            "args": {
+              "latitude": 5.3714417,
+              "longitude": -3.9905577,
+              "radius_m": 4000,
+              "category": "bar"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "P2"
+          ],
+          "warnings": [
+            "stale_data"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "S04": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_places",
+            "args": {
+              "category": "cafe",
+              "district": "Plateau"
+            }
+          }
+        ],
+        "final": {
+          "decision": "abstain",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "no_results_in_inventory"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "S05": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "E1",
+            "E2"
+          ],
+          "warnings": [
+            "conflicting_sources"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "S06": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-12-01T00:00:00+00:00",
+              "end": "2026-12-04T00:00:00+00:00"
+            }
+          }
+        ],
+        "final": {
+          "decision": "abstain",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "no_results_in_inventory"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "S07": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_knowledge",
+            "args": {
+              "query": "Grand-Bassam UNESCO inscription"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "D1"
+          ],
+          "warnings": [],
+          "facts": [
+            {
+              "entity_id": "D1",
+              "field": "inscription_year",
+              "value": 2012,
+              "source_id": "S_UNESCO"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "S08": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_entity_details",
+            "args": {
+              "entity_id": "P404"
+            }
+          }
+        ],
+        "final": {
+          "decision": "abstain",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "no_results_in_inventory"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "P01": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "plan_itinerary",
+            "args": {
+              "place_ids": [
+                "P1",
+                "P2"
+              ],
+              "start": "2026-11-20T09:00:00+00:00",
+              "end": "2026-11-20T12:00:00+00:00",
+              "visit_minutes": 60,
+              "budget_xof": 15000,
+              "mode": "driving"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "P02": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "plan_itinerary",
+            "args": {
+              "place_ids": [
+                "P1",
+                "P2"
+              ],
+              "start": "2026-11-20T09:00:00+00:00",
+              "end": "2026-11-20T10:30:00+00:00",
+              "visit_minutes": 60,
+              "budget_xof": 15000,
+              "mode": "driving"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "infeasible_plan"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "P03": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "plan_itinerary",
+            "args": {
+              "place_ids": [
+                "P1",
+                "P2"
+              ],
+              "start": "2026-11-20T09:00:00+00:00",
+              "end": "2026-11-20T12:00:00+00:00",
+              "visit_minutes": 60,
+              "budget_xof": 11000,
+              "mode": "driving"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "infeasible_plan"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "P04": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "plan_itinerary",
+            "args": {
+              "place_ids": [
+                "P1",
+                "P2"
+              ],
+              "start": "2026-11-20T09:00:00+00:00",
+              "end": "2026-11-20T12:00:00+00:00",
+              "visit_minutes": 60,
+              "budget_xof": 15000,
+              "mode": "driving"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "incomplete_budget"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "P05": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "plan_itinerary",
+            "args": {
+              "place_ids": [
+                "P1",
+                "P2"
+              ],
+              "start": "2026-11-20T09:00:00+00:00",
+              "end": "2026-11-20T12:00:00+00:00",
+              "visit_minutes": 60,
+              "budget_xof": 15000,
+              "mode": "driving"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "unknown_travel_time"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "P06": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "plan_itinerary",
+            "args": {
+              "place_ids": [
+                "P1",
+                "P2"
+              ],
+              "start": "2026-11-20T09:00:00+00:00",
+              "end": "2026-11-20T13:00:00+00:00",
+              "visit_minutes": 60,
+              "budget_xof": 15000,
+              "mode": "driving"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "C01": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "C02": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_booking_quote",
+            "args": {
+              "place_id": "P1",
+              "start": "2026-11-20T12:00:00+00:00",
+              "guests": 2
+            },
+            "save": "quote",
+            "save_path": "data.quote_id"
+          }
+        ],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      },
+      {
+        "calls": [
+          {
+            "tool": "get_booking_quote",
+            "args": {
+              "place_id": "P1",
+              "start": "2026-11-20T12:00:00+00:00",
+              "guests": 4
+            },
+            "save": "quote",
+            "save_path": "data.quote_id"
+          }
+        ],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "C03": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_places",
+            "args": {
+              "latitude": 5.3714417,
+              "longitude": -3.9905577,
+              "radius_m": 4000,
+              "category": "bar"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "P2"
+          ],
+          "warnings": [
+            "stale_data"
+          ],
+          "facts": []
+        }
+      },
+      {
+        "calls": [
+          {
+            "tool": "search_places",
+            "args": {
+              "latitude": 5.3714417,
+              "longitude": -3.9905577,
+              "radius_m": 4000,
+              "category": "restaurant"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "P1"
+          ],
+          "warnings": [
+            "stale_data"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "C04": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_entity_details",
+            "args": {
+              "entity_id": "P1"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "P1"
+          ],
+          "warnings": [
+            "stale_data"
+          ],
+          "facts": []
+        }
+      },
+      {
+        "calls": [],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "unknown_wifi"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "C05": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_booking_quote",
+            "args": {
+              "place_id": "P1",
+              "start": "2026-11-20T12:00:00+00:00",
+              "guests": 2
+            },
+            "save": "quote",
+            "save_path": "data.quote_id"
+          }
+        ],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      },
+      {
+        "calls": [],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "C06": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_knowledge",
+            "args": {
+              "query": "Grand-Bassam UNESCO"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [],
+          "facts": [
+            {
+              "entity_id": "D1",
+              "field": "inscription_year",
+              "value": 2012,
+              "source_id": "S_UNESCO"
+            }
+          ]
+        }
+      },
+      {
+        "calls": [],
+        "final": {
+          "decision": "answer",
+          "answer": "The Historic Town of Grand-Bassam was inscribed in 2012, according to UNESCO.",
+          "entity_ids": [],
+          "warnings": [],
+          "facts": [
+            {
+              "entity_id": "D1",
+              "field": "inscription_year",
+              "value": 2012,
+              "source_id": "S_UNESCO"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "U01": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_entity_details",
+            "args": {
+              "entity_id": "P1"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "unknown_wifi"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "U02": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_entity_details",
+            "args": {
+              "entity_id": "P1"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "unknown_hours",
+            "stale_data"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "U03": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_entity_details",
+            "args": {
+              "entity_id": "E2"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "E2"
+          ],
+          "warnings": [
+            "conflicting_sources"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "U04": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "plan_itinerary",
+            "args": {
+              "place_ids": [
+                "P1"
+              ],
+              "start": "2026-11-20T09:00:00+00:00",
+              "end": "2026-11-20T12:00:00+00:00",
+              "visit_minutes": 60,
+              "budget_xof": 15000,
+              "mode": "driving"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "incomplete_budget",
+            "simulation_only"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "F01": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          },
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "E1",
+            "E2"
+          ],
+          "warnings": [
+            "conflicting_sources"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "F02": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          },
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          },
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          }
+        ],
+        "final": {
+          "decision": "abstain",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "tool_unavailable"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "F03": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          },
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "E1",
+            "E2"
+          ],
+          "warnings": [
+            "conflicting_sources"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "F04": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          }
+        ],
+        "final": {
+          "decision": "abstain",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "tool_unavailable"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "B01": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_booking_quote",
+            "args": {
+              "place_id": "P1",
+              "start": "2026-11-20T12:00:00+00:00",
+              "guests": 2
+            },
+            "save": "quote",
+            "save_path": "data.quote_id"
+          }
+        ],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      },
+      {
+        "calls": [
+          {
+            "tool": "create_simulated_booking",
+            "args": {
+              "quote_id": "$approved_quote"
+            },
+            "save": "booking",
+            "save_path": "data.booking_id"
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only"
+          ],
+          "facts": [],
+          "booking_id": "$booking",
+          "booking_status": "confirmed_simulated",
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "B02": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_booking_quote",
+            "args": {
+              "place_id": "P1",
+              "start": "2026-11-20T12:00:00+00:00",
+              "guests": 2
+            },
+            "save": "quote",
+            "save_path": "data.quote_id"
+          }
+        ],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      },
+      {
+        "calls": [
+          {
+            "tool": "create_simulated_booking",
+            "args": {
+              "quote_id": "$approved_quote"
+            }
+          },
+          {
+            "tool": "create_simulated_booking",
+            "args": {
+              "quote_id": "$approved_quote"
+            },
+            "save": "booking",
+            "save_path": "data.booking_id"
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only"
+          ],
+          "facts": [],
+          "booking_id": "$booking",
+          "booking_status": "confirmed_simulated",
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "B03": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_booking_quote",
+            "args": {
+              "place_id": "P1",
+              "start": "2026-11-20T12:00:00+00:00",
+              "guests": 2
+            },
+            "save": "quote",
+            "save_path": "data.quote_id"
+          }
+        ],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      },
+      {
+        "calls": [
+          {
+            "tool": "create_simulated_booking",
+            "args": {
+              "quote_id": "$approved_quote"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "quote_expired",
+            "simulation_only"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "B04": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_booking_quote",
+            "args": {
+              "place_id": "P1",
+              "start": "2026-11-20T12:00:00+00:00",
+              "guests": 2
+            },
+            "save": "quote",
+            "save_path": "data.quote_id"
+          }
+        ],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      },
+      {
+        "calls": [
+          {
+            "tool": "create_simulated_booking",
+            "args": {
+              "quote_id": "$approved_quote"
+            },
+            "save": "booking",
+            "save_path": "data.booking_id"
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only"
+          ],
+          "facts": [],
+          "booking_id": "$booking",
+          "booking_status": "confirmed_simulated",
+          "simulation": true
+        }
+      },
+      {
+        "calls": [
+          {
+            "tool": "cancel_simulated_booking",
+            "args": {
+              "booking_id": "$booking"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only"
+          ],
+          "facts": [],
+          "booking_id": "$booking",
+          "booking_status": "cancelled_simulated",
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "I01": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [],
+        "final": {
+          "decision": "refuse",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "out_of_scope"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "I02": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_entity_details",
+            "args": {
+              "entity_id": "P1"
+            }
+          }
+        ],
+        "final": {
+          "decision": "partial",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [
+            "P1"
+          ],
+          "warnings": [
+            "stale_data"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "I03": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_knowledge",
+            "args": {
+              "query": "Grand-Bassam UNESCO"
+            }
+          }
+        ],
+        "final": {
+          "decision": "answer",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [],
+          "facts": [
+            {
+              "entity_id": "D1",
+              "field": "inscription_year",
+              "value": 2012,
+              "source_id": "S_UNESCO"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "I04": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [],
+        "final": {
+          "decision": "refuse",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [],
+          "facts": []
+        }
+      },
+      {
+        "calls": [
+          {
+            "tool": "get_booking_quote",
+            "args": {
+              "place_id": "P1",
+              "start": "2026-11-20T12:00:00+00:00",
+              "guests": 2
+            },
+            "save": "quote",
+            "save_path": "data.quote_id"
+          }
+        ],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "A01": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_simulated_booking",
+            "args": {
+              "booking_id": "BX"
+            }
+          }
+        ],
+        "final": {
+          "decision": "refuse",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "A02": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_simulated_booking",
+            "args": {
+              "booking_id": "BX"
+            }
+          }
+        ],
+        "final": {
+          "decision": "refuse",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [],
+          "facts": []
+        }
+      }
+    ]
+  },
+  "A03": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "get_booking_quote",
+            "args": {
+              "place_id": "P1",
+              "start": "2026-11-20T12:00:00+00:00",
+              "guests": 2
+            },
+            "save": "quote",
+            "save_path": "data.quote_id"
+          }
+        ],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      },
+      {
+        "calls": [],
+        "final": {
+          "decision": "clarify",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "simulation_only",
+            "approval_required"
+          ],
+          "facts": [],
+          "simulation": true
+        }
+      }
+    ]
+  },
+  "A04": {
+    "kind": "oracle_replay_not_an_agent",
+    "turns": [
+      {
+        "calls": [
+          {
+            "tool": "search_events",
+            "args": {
+              "start": "2026-11-18T00:00:00+00:00",
+              "end": "2026-11-23T00:00:00+00:00"
+            }
+          }
+        ],
+        "final": {
+          "decision": "refuse",
+          "answer": "Réponse de référence pour vérifier le banc de test, non générée par un modèle.",
+          "entity_ids": [],
+          "warnings": [
+            "tool_not_allowed"
+          ],
+          "facts": []
+        }
+      }
+    ]
+  }
+}
