@@ -56,7 +56,7 @@ def main():
         dump(ROOT/"schemas/tool_response.json",ToolResponse.model_json_schema())
         dump(ROOT/"schemas/tools.openai.json",tool_specs())
         print("Exported 9 tool input contracts + final response + tool catalog.");return
-    cases=json.loads((ROOT/"data/scenarios.json").read_text())
+    cases=json.loads((ROOT/"data/scenarios.json").read_text(encoding="utf-8"))
     if args.command=="validate":
         from .validation import validate_corpus
         errors=validate_corpus(cases)
@@ -65,14 +65,14 @@ def main():
         print("40 development cases: metadata, oracle rules and reference replays validated. No model evaluated.");return
     if args.command=="compare":
         from .comparison import compare
-        report=compare(json.loads(Path(args.left).read_text()),json.loads(Path(args.right).read_text()))
+        report=compare(json.loads(Path(args.left).read_text(encoding="utf-8")),json.loads(Path(args.right).read_text(encoding="utf-8")))
         dump(Path(args.out),report);print(json.dumps(report,indent=2));return
     if not 1<=args.repeat<=20:p.error("repeat must be 1..20")
     if args.case:
         unknown=set(args.case)-{c["id"] for c in cases}
         if unknown:p.error("Unknown cases: "+str(sorted(unknown)))
         cases=[c for c in cases if c["id"] in args.case]
-    replay=json.loads((ROOT/"data/oracle_replays.json").read_text()) if args.command=="replay" else None
+    replay=json.loads((ROOT/"data/oracle_replays.json").read_text(encoding="utf-8")) if args.command=="replay" else None
     client=None
     if args.command=="run":
         if not 1<=args.max_provider_calls<=10000:p.error("max-provider-calls must be 1..10000")
