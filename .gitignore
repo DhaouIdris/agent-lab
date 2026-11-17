@@ -6,3 +6,5 @@ azure.json
 runs/
 *.egg-info/
 
+
+local_data/
