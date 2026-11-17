@@ -17,6 +17,9 @@ def dump(p,obj):
     p.parent.mkdir(parents=True,exist_ok=True)
     p.write_text(json.dumps(obj,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 
+def report_config(args):
+    return {k:v for k,v in vars(args).items() if k not in ("api_key_env","base_url","out")}
+
 def hashes():
     return {str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest()
             for directory in ("data","ci_agentlab") for p in sorted((ROOT/directory).glob("*")) if p.suffix in (".json",".py")}
@@ -88,7 +91,8 @@ def main():
     results=[]
     out=Path(args.out)
     out.mkdir(parents=True,exist_ok=True)
-    config={k:v for k,v in vars(args).items() if k not in ("api_key_env",)}
+    # Never persist endpoint host or local output path in shareable reports.
+    config=report_config(args)
     report={"kind":"oracle_replay_NOT_MODEL_PERFORMANCE" if replay else "model_automatic_evaluation_PENDING_HUMAN_REVIEW",
         "created_at":datetime.now(timezone.utc).isoformat(),"version":__version__,"python":platform.python_version(),
         "config":config,"hashes":hashes(),"run_seed":args.seed,"results":results}
@@ -120,5 +124,6 @@ def main():
     if replay:print("These are reference replays, NOT AI performance results.")
 
 if __name__=="__main__":main()
+
 
 
