@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import run_azure
 from ci_agentlab.evaluation import run_case
 from ci_agentlab.preflight import check_endpoint
-from ci_agentlab.providers import ChatClient, ProviderError
+from ci_agentlab.providers import ChatClient, ProviderError, ToolAgent
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -131,6 +131,14 @@ class AzureProtocol(unittest.TestCase):
         with patch('ci_agentlab.providers.time.monotonic',return_value=101),self.assertRaises(ProviderError):
             c.chat([],timeout=10)
         self.assertEqual(c.attempts,0);self.assertEqual(c.opener.open.call_count,0)
+
+    def test_agent_allows_longer_model_response_within_turn(self):
+        from ci_agentlab.tools import Engine
+        c=Mock();c.chat.return_value={'content':'{}'}
+        e=Engine();e.deadline_seconds=180
+        ToolAgent(c,e).turn('test')
+        self.assertGreater(c.chat.call_args.kwargs['timeout'], 89)
+        self.assertLessEqual(c.chat.call_args.kwargs['timeout'], 90)
 
     def test_spacing_is_applied_to_next_request(self):
         c=client([{'content':'{}'}]);c.min_interval_seconds=15;c.last_request_at=100
