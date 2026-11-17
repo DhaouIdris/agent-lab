@@ -19,6 +19,9 @@ def approve_create(e,q):e.approve("create_simulated_booking",{"quote_id":q})
 def create(e,q):return e.call("create_simulated_booking",{"quote_id":q})
 
 class Contracts(unittest.TestCase):
+    def test_fixture_preserves_accented_name(self):
+        self.assertEqual(Engine().call("get_entity_details", {"entity_id":"P1"})["data"]["name"], "Nuit de Saïgon")
+
     def test_all_nine_have_closed_schemas(self):
         self.assertEqual(len(TOOL_MODELS),9)
         for model in TOOL_MODELS.values():self.assertFalse(model.model_json_schema()["additionalProperties"])
