@@ -175,11 +175,14 @@ class ChatClient:
 class ToolAgent:
     def __init__(self,client,engine,max_rounds=6):
         self.client=client;self.engine=engine;self.max_rounds=max_rounds
+        self.message_diagnostics=[]
+        self.trusted_approval_indices=[]
         self.messages=[{"role":"system","content":SYSTEM+"\nClock: "+engine.now.isoformat()+
                         "\nSchema: "+json.dumps(FinalAnswer.model_json_schema())}]
 
     def host_approval(self,name,args):
         # Called only by the trusted harness/UI after Engine.approve succeeds.
+        self.trusted_approval_indices.append(len(self.messages))
         self.messages.append({"role":"system","content":"HOST_APPROVAL: "+json.dumps({"tool":name,"arguments":args})})
 
     def turn(self,user):
@@ -188,6 +191,11 @@ class ToolAgent:
         for _ in range(self.max_rounds):
             left=self.engine.deadline_seconds-(time.monotonic()-self.engine.started)
             if left<=0:raise ProviderError("Turn deadline exceeded")
+            # Structural metadata only: never persist message contents or arguments.
+            self.message_diagnostics.append({"request":len(self.message_diagnostics)+1,
+                "roles":[m.get("role") for m in self.messages],
+                "host_approval_indices":list(self.trusted_approval_indices),
+                "last_user_index":max((i for i,m in enumerate(self.messages) if m.get("role")=="user"),default=None)})
             msg=self.client.chat(self.messages,timeout=left)
             calls=msg.get("tool_calls") or []
             clean={"role":"assistant","content":msg.get("content")}
@@ -207,6 +215,7 @@ class ToolAgent:
                 result=self.engine.call(name,args)
                 self.messages.append({"role":"tool","tool_call_id":cid,"content":json.dumps(result,ensure_ascii=False)})
         raise ProviderError("Agent exhausted model-round budget")
+
 
 
 
