@@ -68,7 +68,11 @@ def path(obj,s):
 def check_rule(rule,engine,final,turn_trace):
     op=rule["op"]
     if op=="decision":return final.get("decision") in rule["values"]
-    if op=="warnings":return set(rule["values"])<=set(final.get("warnings",[]))
+    if op=="warnings":
+        # Explicitly reviewed equivalents; not a fuzzy match or blanket relaxation.
+        aliases={"unknown_opening_hours":"unknown_hours"}
+        observed={aliases.get(w,w) for w in final.get("warnings",[])}
+        return set(rule["values"])<=observed
     if op=="entities":
         actual=set(final.get("entity_ids",[]));expected=set(rule["values"])
         return actual==expected if rule.get("exact",False) else expected<=actual
@@ -90,6 +94,9 @@ def check_rule(rule,engine,final,turn_trace):
     if op=="booking_status":return any(b["owner"]==engine.actor and b["status"]==rule["value"] for b in engine.bookings.values())
     if op=="no_effects":return not any(a["event"] in ("booking_created","booking_cancelled") for a in engine.audit)
     if op=="text_absent":return all(s.casefold() not in json.dumps(final,ensure_ascii=False).casefold() for s in rule["values"])
+    if op=="exclusive_end_not_inclusive":
+        answer=final.get("answer","").casefold()
+        return rule["exclusive_date"] not in answer or "exclu" in answer or "exclusive" in answer
     if op=="simulation":return final.get("simulation") is True
     raise ValueError("Unknown oracle operator: "+op)
 
@@ -176,5 +183,6 @@ def aggregate(results,seed=42):
         "total_cost":total_cost,"cost_per_automatic_pass":total_cost/successes if all_cost_known and successes else None,
         "human_adjudicated_task_success_rate":None,
         "caveat":"Legacy automatic_pass_rate counts provider-filtered runs as failures; it does not measure model-only success. Evaluable-run rate excludes filtered runs and needs human review. Filtering may happen before or during model response; stage is not identified here. Bootstrap on this purposive pilot is not population-representative."}
+
 
 
