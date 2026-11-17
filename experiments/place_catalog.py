@@ -11,7 +11,7 @@ from pathlib import Path
 
 SOURCE="https://data.gouv.ci/datasets/hotels-et-restauration-en-cote-divoire"
 ATTRIBUTION="© OpenStreetMap contributors; ODbL 1.0, https://www.openstreetmap.org/copyright"
-CATEGORIES={"hotel":"hotel","hôtel":"hotel","cafe":"cafe","café":"cafe","restaurant":"restaurant","bar":"bar"}
+CATEGORIES={"hotel":"hotel","hôtel":"hotel","cafe":"cafe","café":"cafe","restaurant":"restaurant","bar":"bar", "fast-food":"fast_food", "ice-cream":"ice_cream"}
 
 def norm(text):
     return ''.join(c for c in unicodedata.normalize('NFKD',text.casefold()) if not unicodedata.combining(c))
@@ -108,11 +108,12 @@ def search(db_path,category=None,district=None,query=None,limit=10):
 def main():
     p=argparse.ArgumentParser(description=__doc__);s=p.add_subparsers(dest='cmd',required=True)
     a=s.add_parser('import-csv');a.add_argument('--csv',required=True);a.add_argument('--db',required=True)
-    a=s.add_parser('search');a.add_argument('--db',required=True);a.add_argument('--category',choices=['hotel','cafe','restaurant','bar']);a.add_argument('--district');a.add_argument('--query');a.add_argument('--limit',type=int,default=10)
+    a=s.add_parser('search');a.add_argument('--db',required=True);a.add_argument('--category',choices=sorted(set(CATEGORIES.values())));a.add_argument('--district');a.add_argument('--query');a.add_argument('--limit',type=int,default=10)
     a=s.add_parser('audit-csv');a.add_argument('--csv',required=True)
     a=p.parse_args()
     result=import_csv(a.csv,a.db) if a.cmd=='import-csv' else audit_csv(a.csv) if a.cmd=='audit-csv' else search(a.db,a.category,a.district,a.query,a.limit)
     print(json.dumps(result,ensure_ascii=False,indent=2))
 
 if __name__=='__main__':main()
+
 
