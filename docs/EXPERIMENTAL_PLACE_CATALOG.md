@@ -6,13 +6,16 @@ Source d'origine : https://data.gouv.ci/datasets/hotels-et-restauration-en-cote-
 
 **Le CSV complet n'a pas été téléchargé ni testé dans ce prototype.** Les tests portent sur des lignes synthétiques. Les 7 222 lignes ne signifient pas 7 222 fiches utilisables : nom, catégorie ou coordonnées peuvent manquer. Le script rejette les champs obligatoires absents, les catégories hors hôtel/café/restaurant/bar, les géométries non ponctuelles et les doublons d'identifiant ; un comptage est retourné. La qualité, la couverture, les doublons d'établissements portant des identifiants différents et le statut actuel ne sont pas vérifiés.
 
-La copie affiche la table et ses colonnes. Obtenir auprès de cette source un export CSV UTF-8 intégral avec `id`, `nom_de_l_etablissement`, `categorie`, `geometry` (GeoJSON Point), `ville_ou_commune`. Si l'export ne contient pas ces colonnes ou utilise un autre format, il faut adapter l'importeur ; il échoue explicitement. Les numéros de téléphone et autres champs ne sont volontairement pas importés.
+La copie propose un fichier Parquet ; la conversion CSV ci-dessous utilise pandas et pyarrow, installés seulement pour cette étape. Les colonnes attendues sont `id`, `nom_de_l_etablissement`, `categorie`, `geometry` (GeoJSON Point), `ville_ou_commune`. Si l'export ne contient pas ces colonnes ou utilise un autre format, il faut adapter l'importeur ; il échoue explicitement. Les numéros de téléphone et autres champs ne sont volontairement pas importés dans SQLite. Le chemin `main` peut évoluer ; on enregistre l'empreinte du fichier CSV effectivement utilisé.
 
 PowerShell, à la racine du dépôt :
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_place_catalog.py -v
 New-Item -ItemType Directory -Force local_data
+.\.venv\Scripts\python.exe -m pip install pandas pyarrow
+Invoke-WebRequest -Uri 'https://huggingface.co/datasets/electricsheepafrica/africa-cote-d-ivoire-hotels-et-restauration-en-cote-d-ivoire-2e09f9a1/resolve/main/data/train-00000-of-00001.parquet' -OutFile local_data/lieux.parquet
+.\.venv\Scripts\python.exe experiments/convert_parquet.py
 .\.venv\Scripts\python.exe experiments/place_catalog.py import-csv --csv local_data/lieux.csv --db local_data/lieux.sqlite
 .\.venv\Scripts\python.exe experiments/place_catalog.py search --db local_data/lieux.sqlite --category restaurant --district Cocody --limit 10
 ```
