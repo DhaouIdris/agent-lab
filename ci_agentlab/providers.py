@@ -43,6 +43,9 @@ State the number of retries only when supported by the trace.
 Use quote_id and booking_id from successful simulated tool responses only, with
 simulation=true. Quote facts may use source_id get_booking_quote, entity_id equal
 to the returned quote_id, and only exact supported fields and values.
+Do not attach quote facts to a booking_id or treat a place_id as a name. When a
+booking references a quote, cite quote details under that quote_id; only include
+facts whose exact fields are supported by the evidence and the final schema.
 """
 
 class ProviderError(RuntimeError):
@@ -132,7 +135,9 @@ class ChatClient:
         entry={"latency_seconds":0,"usage":{}}
         self.calls.append(entry)
         try:
-            with self.opener.open(req,timeout=max(.1,timeout)) as response:
+            # Each HTTP attempt has its own limit, separate from the total
+            # retry/turn budget passed to chat(). Spacing was already deducted.
+            with self.opener.open(req,timeout=max(.1,min(60,timeout))) as response:
                 raw=response.read(2000001)
             if len(raw)>2000000:raise ProviderError("Model response exceeded 2 MB")
             data=json.loads(raw)
@@ -183,7 +188,7 @@ class ToolAgent:
         for _ in range(self.max_rounds):
             left=self.engine.deadline_seconds-(time.monotonic()-self.engine.started)
             if left<=0:raise ProviderError("Turn deadline exceeded")
-            msg=self.client.chat(self.messages,timeout=min(90,left))
+            msg=self.client.chat(self.messages,timeout=left)
             calls=msg.get("tool_calls") or []
             clean={"role":"assistant","content":msg.get("content")}
             if calls:clean["tool_calls"]=calls
@@ -202,5 +207,6 @@ class ToolAgent:
                 result=self.engine.call(name,args)
                 self.messages.append({"role":"tool","tool_call_id":cid,"content":json.dumps(result,ensure_ascii=False)})
         raise ProviderError("Agent exhausted model-round budget")
+
 
 
