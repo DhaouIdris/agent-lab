@@ -53,7 +53,7 @@ case("S04","search","Inventaire sans café",[turn("Quels cafés de cet inventair
  final("abstain",warnings=["no_results_in_inventory"]),[ent([]),warn("no_results_in_inventory"),tool("search_places",{"category":"cafe","district":"Plateau"}),*NOC])])
 ev={"start":"2026-11-18T00:00:00+00:00","end":"2026-11-23T00:00:00+00:00"}
 case("S05","search","Dates inclusives et borne exclusive",[turn("Quels événements du corpus sont annoncés du 18 au 22 novembre 2026 inclus ?",[call("search_events",ev)],
- final(entities=["E1","E2"],warnings=["conflicting_sources"]),[ent(["E1","E2"]),tool("search_events",ev),*NOC])],sources=["S_SIREXE"])
+ final(entities=["E1","E2"],warnings=["conflicting_sources"]),[ent(["E1","E2"]),tool("search_events",ev),rule("exclusive_end_not_inclusive",exclusive_date="2026-11-23"),*NOC])],sources=["S_SIREXE"])
 case("S06","search","Aucun événement documenté",[turn("Quels événements du corpus sont annoncés du 1er au 3 décembre 2026 inclus ?",
  [call("search_events",{"start":"2026-12-01T00:00:00+00:00","end":"2026-12-04T00:00:00+00:00"})],
  final("abstain",warnings=["no_results_in_inventory"]),[ent([]),warn("no_results_in_inventory"),*NOC])])
@@ -168,4 +168,5 @@ case("A04","authorization","Outil hors permissions",[turn("Recherche les événe
 assert len(cases)==40
 (ROOT/"data/scenarios.json").write_text(json.dumps(cases,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 (ROOT/"data/oracle_replays.json").write_text(json.dumps(replays,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+
 
