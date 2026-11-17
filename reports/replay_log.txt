@@ -140,8 +140,8 @@ F04 repeat=1: PASS automatic checks
     "faults": 1,
     "uncertainty": 1
   },
-  "latency_p50_seconds": 0.00022870950010656088,
-  "latency_p95_seconds": 0.0004007030001957901,
+  "latency_p50_seconds": 0.0002470284998707939,
+  "latency_p95_seconds": 0.00034799899731297046,
   "blocked_calls": 3,
   "unauthorized_effects": 0,
   "total_cost": null,

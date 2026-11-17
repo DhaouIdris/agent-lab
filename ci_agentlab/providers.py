@@ -39,7 +39,8 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 class ChatClient:
     def __init__(self,base_url,model,api_key=None,api_version=None,max_output_tokens=2000,
-                 input_price=None,output_price=None,reasoning_effort=None,max_calls=240,auth_header="bearer"):
+                 input_price=None,output_price=None,reasoning_effort=None,max_calls=240,auth_header="bearer",
+                 token_parameter="max_tokens",min_interval_seconds=0):
         parsed=urllib.parse.urlsplit(base_url)
         if parsed.scheme not in ("http","https") or parsed.username or parsed.password or parsed.query or parsed.fragment:
             raise ValueError("Use a plain base URL without credentials/query/fragment")
@@ -54,13 +55,24 @@ class ChatClient:
         self.attempts=0
         if auth_header not in ("bearer","api-key"):raise ValueError("Unknown authentication header mode")
         self.auth_header=auth_header
+        if token_parameter not in ("max_tokens","max_completion_tokens"):raise ValueError("Unknown token limit parameter")
+        if not 0<=min_interval_seconds<=60:raise ValueError("Request spacing must be 0..60 seconds")
+        self.token_parameter=token_parameter
+        self.min_interval_seconds=min_interval_seconds
+        self.last_request_at=None
         self.opener=urllib.request.build_opener(NoRedirect)
 
-    def chat(self,messages,timeout=30):
+    def chat(self,messages,timeout=30,tools_override=None,tool_choice="auto",response_format=None):
         if self.attempts>=self.max_calls:raise ProviderError("Global provider-call cap reached")
+        if self.last_request_at is not None:
+            wait=max(0,self.min_interval_seconds-(time.monotonic()-self.last_request_at))
+            if wait>=timeout:raise ProviderError("Request spacing would exceed turn deadline")
+            if wait:time.sleep(wait);timeout-=wait
         self.attempts+=1
-        body={"model":self.model,"messages":messages,"tools":tool_specs(),"tool_choice":"auto",
-              "max_tokens":self.max_output_tokens}
+        self.last_request_at=time.monotonic()
+        body={"model":self.model,"messages":messages,"tools":tools_override if tools_override is not None else tool_specs(),"tool_choice":tool_choice,
+              self.token_parameter:self.max_output_tokens}
+        if response_format:body["response_format"]=response_format
         if self.reasoning_effort:body["reasoning_effort"]=self.reasoning_effort
         headers={"Content-Type":"application/json"}
         if self.api_key:
@@ -83,7 +95,7 @@ class ChatClient:
             # Do not log response body, request headers or keys.
             entry.update(latency_seconds=time.monotonic()-start,error="http")
             raise ProviderError(f"Endpoint HTTP {exc.code}; check endpoint/model compatibility") from None
-        except (OSError,ValueError,KeyError,IndexError) as exc:
+        except (OSError,ValueError,KeyError,IndexError,TypeError) as exc:
             entry.update(latency_seconds=time.monotonic()-start,error="transport_or_format")
             raise ProviderError("Transport or response-format error: "+type(exc).__name__) from None
         except ProviderError:

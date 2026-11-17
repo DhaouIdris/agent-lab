@@ -1,0 +1,17 @@
+{
+  "base_url": "https://YOUR-RESOURCE.openai.azure.com/openai/v1",
+  "deployment": "agentlab-baseline",
+  "auth_header": "api-key",
+  "api_version": null,
+  "token_parameter": "max_completion_tokens",
+  "max_output_tokens": 1200,
+  "min_interval_seconds": 15,
+  "turn_timeout_seconds": 180,
+  "input_price_per_million": null,
+  "output_price_per_million": null,
+  "currency": "USD",
+  "deployment_type": "GlobalStandard",
+  "underlying_model": "TO_FILL_FROM_DEPLOYMENT",
+  "model_version": "TO_FILL_FROM_DEPLOYMENT",
+  "region": "TO_FILL_FROM_DEPLOYMENT"
+}

@@ -78,8 +78,9 @@ def check_rule(rule,engine,final,turn_trace):
     if op=="simulation":return final.get("simulation") is True
     raise ValueError("Unknown oracle operator: "+op)
 
-def run_case(case,replay=None,client=None):
+def run_case(case,replay=None,client=None,turn_timeout_seconds=60,stop_on_provider_error=False):
     engine=prepare(case);agent=ToolAgent(client,engine) if client else None
+    engine.deadline_seconds=turn_timeout_seconds
     variables={};outputs=[];failures=[];shield_errors=[]
     initial_call_count=len(client.calls) if client else 0
     started=time.monotonic()
@@ -107,6 +108,8 @@ def run_case(case,replay=None,client=None):
         shield_errors.extend({"turn":i,"error":x} for x in errs)
         for j,rule in enumerate(turn["checks"]):
             if not check_rule(rule,engine,final,engine.trace[offset:]):failures.append({"turn":i,"rule":j,"check":rule})
+        if stop_on_provider_error and client and any(x.get("error") for x in client.calls[initial_call_count:]):
+            break
     # Policy attempts and executed effects are distinct. All booking effects must
     # have a matching approval-consumed event; lock makes consumption+effect atomic.
     denied=sum(t["result"]["status"]=="forbidden" for t in engine.trace)

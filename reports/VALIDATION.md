@@ -1,12 +1,13 @@
-# Validation du premier lot — 16 novembre 2026
+# Validation v0.2.0 — 16 novembre 2026
 
 ## Vérifié
 
-- 48 tests automatisés `unittest` réussis sur Python 3.12.14 / Pydantic 2.13.4.
+- 63 tests automatisés `unittest` réussis sur Python 3.12.14 / Pydantic 2.13.4.
 - 40 scénarios de développement validés : métadonnées, sources, règles de notation et comportements de référence.
 - Trois replays de référence par scénario, soit 120 exécutions, acceptés par les vérificateurs.
 - Schémas exportés : neuf entrées d'outils, une enveloppe de réponse, une réponse finale et un catalogue d'outils.
 - Adaptateur HTTP testé avec une réponse simulée ; parcours agentique multi-tour de création/annulation testé avec un client simulé.
+- Quinze tests Azure couvrent configuration, chemins, tarifs, absence de secrets dans les rapports, preflight en deux appels simulés, réponse fidèle au résultat, HTTP 429 sans retry, arrêt de conversation et espacement des appels.
 
 ## Portée des tests
 

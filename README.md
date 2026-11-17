@@ -1,7 +1,10 @@
-# Côte d'Ivoire AgentLab — v0.1.0
+# Côte d'Ivoire AgentLab — v0.2.0
 
 Un laboratoire Python pour construire et évaluer un agent à outils tourisme/business.
 **Le premier lot fonctionne hors ligne et ne fait aucune réservation réelle.**
+
+**PC léger + Azure for Students : commencer par [le guide Azure](docs/AZURE_STUDENT.md).**
+Le nouveau lanceur `run_azure.py` garde les outils et les tests sur le PC et délègue l'inférence à Azure. Il propose un contrôle de protocole en deux requêtes, puis des campagnes progressives. Aucun modèle ni ressource Azure n'a été utilisé pour valider ce lot ; les tests de transport emploient des réponses simulées.
 
 ## Ce qui est livré
 
@@ -73,6 +76,9 @@ L'adaptateur utilise par défaut `Authorization: Bearer ...`. Pour un endpoint q
 Options utiles :
 
 - `--max-output-tokens 2000` : plafond de génération par appel, sous réserve du contrat du fournisseur.
+- `--token-parameter max_completion_tokens` : nom du paramètre de plafond utilisé pour Azure v1.
+- `--min-interval-seconds 15` et `--turn-timeout-seconds 180` : espacement des requêtes et budget de temps par tour.
+- `--stop-on-provider-error` : arrêter la campagne au premier échec HTTP/réseau enregistré.
 - `--max-provider-calls 240` : plafond global de tentatives réseau de la campagne ; le modifier consciemment pour une campagne plus grande.
 - `--reasoning-effort low` : uniquement si l'endpoint accepte ce paramètre.
 - `--input-price ... --output-price ...` : prix par million de tokens, dans la même devise. Sans ces valeurs ou sans usage retourné, le coût est **inconnu**, jamais inventé.
@@ -122,6 +128,9 @@ Le planificateur vérifie l'ordre de visites fourni. Il ne cherche pas un ordre 
 | `docs/SECURITY.md` | Matrice de permissions et modèle de menace |
 | `docs/BENCHMARK.md` | Protocole, métriques et limites |
 | `tests/test_lab.py` | Tests unitaires et de régression |
+| `tests/test_azure.py` | Configuration Azure, protocole simulé et limites d'appels |
+| `run_azure.py`, `azure.example.json` | Lancement progressif sans SDK ni modèle local |
+| `docs/AZURE_STUDENT.md` | Installation Windows, déploiement et premier benchmark |
 | `reports/` | Preuves de validation de ce lot |
 
 ## Suite recommandée

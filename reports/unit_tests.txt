@@ -1,3 +1,18 @@
+test_dry_run_needs_no_key_or_network (test_azure.AzureConfiguration.test_dry_run_needs_no_key_or_network) ... ok
+test_incomplete_and_non_object_config_rejected (test_azure.AzureConfiguration.test_incomplete_and_non_object_config_rejected) ... ok
+test_prices_must_be_paired_finite_nonnegative (test_azure.AzureConfiguration.test_prices_must_be_paired_finite_nonnegative) ... ok
+test_progressive_call_budgets (test_azure.AzureConfiguration.test_progressive_call_budgets) ... ok
+test_provisioned_and_invalid_parameters_rejected (test_azure.AzureConfiguration.test_provisioned_and_invalid_parameters_rejected) ... ok
+test_secret_field_rejected_without_echo (test_azure.AzureConfiguration.test_secret_field_rejected_without_echo) ... ok
+test_unsafe_or_wrong_endpoints_rejected (test_azure.AzureConfiguration.test_unsafe_or_wrong_endpoints_rejected) ... ok
+test_valid_config_and_windows_bom (test_azure.AzureConfiguration.test_valid_config_and_windows_bom) ... ok
+test_fail_fast_stops_remaining_conversation_turns (test_azure.AzureProtocol.test_fail_fast_stops_remaining_conversation_turns) ... ok
+test_http_429_no_retry_or_secret_logging (test_azure.AzureProtocol.test_http_429_no_retry_or_secret_logging) ... ok
+test_spacing_honors_deadline_without_request (test_azure.AzureProtocol.test_spacing_honors_deadline_without_request) ... ok
+test_spacing_is_applied_to_next_request (test_azure.AzureProtocol.test_spacing_is_applied_to_next_request) ... ok
+test_two_call_preflight_and_azure_request_contract (test_azure.AzureProtocol.test_two_call_preflight_and_azure_request_contract) ... ok
+test_unfaithful_or_non_json_final_fails (test_azure.AzureProtocol.test_unfaithful_or_non_json_final_fails) ... ok
+test_wrong_tool_stops_before_second_call (test_azure.AzureProtocol.test_wrong_tool_stops_before_second_call) ... ok
 test_approval_binds_actor (test_lab.Authorization.test_approval_binds_actor) ... ok
 test_approval_binds_exact_quote (test_lab.Authorization.test_approval_binds_exact_quote) ... ok
 test_approval_is_consumed (test_lab.Authorization.test_approval_is_consumed) ... ok
@@ -48,6 +63,6 @@ test_repeat_count_does_not_inflate_scenario_count (test_lab.Harness.test_repeat_
 test_wrong_year_is_detected (test_lab.Harness.test_wrong_year_is_detected) ... ok
 
 ----------------------------------------------------------------------
-Ran 48 tests in 0.075s
+Ran 63 tests in 0.321s
 
 OK

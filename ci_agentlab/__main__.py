@@ -38,6 +38,10 @@ def main():
             c.add_argument("--api-version")
             c.add_argument("--api-key-env",default="AGENTLAB_API_KEY")
             c.add_argument("--auth-header",choices=["bearer","api-key"],default="bearer")
+            c.add_argument("--token-parameter",choices=["max_tokens","max_completion_tokens"],default="max_tokens")
+            c.add_argument("--min-interval-seconds",type=float,default=0)
+            c.add_argument("--turn-timeout-seconds",type=int,default=60)
+            c.add_argument("--stop-on-provider-error",action="store_true",help="Stop campaign after a transport/auth/quota/protocol error")
             c.add_argument("--max-output-tokens",type=int,default=2000)
             c.add_argument("--max-provider-calls",type=int,default=240)
             c.add_argument("--input-price",type=float,help="Currency units per million input tokens")
@@ -77,7 +81,8 @@ def main():
         if args.input_price is not None and min(args.input_price,args.output_price)<0:p.error("Prices must be nonnegative")
         client=ChatClient(args.base_url,args.model,os.getenv(args.api_key_env),args.api_version,
                           args.max_output_tokens,args.input_price,args.output_price,args.reasoning_effort,
-                          max_calls=args.max_provider_calls,auth_header=args.auth_header)
+                          max_calls=args.max_provider_calls,auth_header=args.auth_header,
+                          token_parameter=args.token_parameter,min_interval_seconds=args.min_interval_seconds)
     tasks=[(c,rep) for c in cases for rep in range(args.repeat)]
     random.Random(args.seed).shuffle(tasks)
     results=[]
@@ -88,12 +93,20 @@ def main():
         "created_at":datetime.now(timezone.utc).isoformat(),"version":__version__,"python":platform.python_version(),
         "config":config,"hashes":hashes(),"run_seed":args.seed,"results":results}
     for c,rep in tasks:
-        r=run_case(c,replay=replay[c["id"]] if replay else None,client=client)
+        r=run_case(c,replay=replay[c["id"]] if replay else None,client=client,
+                   turn_timeout_seconds=getattr(args,"turn_timeout_seconds",60),
+                   stop_on_provider_error=getattr(args,"stop_on_provider_error",False))
         r["repetition"]=rep;results.append(r)
         print(f'{c["id"]} repeat={rep+1}: {"PASS" if r["auto_pass"] else "FAIL"} automatic checks',flush=True)
         report["summary"]=aggregate(results,args.seed)
         report["campaign_complete"]=not any("Global provider-call cap reached" in f.get("detail","") for x in results for f in x["failures"])
         dump(out/"report.json",report)
+        if client and args.stop_on_provider_error and any(x.get("error") for x in r["provider_calls"]):
+            report["campaign_complete"]=False
+            report["stop_reason"]="Provider error: inspect authentication, quota, endpoint and model compatibility before retrying."
+            dump(out/"report.json",report)
+            print(report["stop_reason"])
+            break
     blind=[]
     for i,r in enumerate(results):
         c=next(c for c in cases if c["id"]==r["case_id"])

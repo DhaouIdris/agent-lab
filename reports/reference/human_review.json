@@ -35,7 +35,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.18
+        "latency_ms": 0.282
       }
     ],
     "rubric": [
@@ -105,7 +105,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.165
+        "latency_ms": 0.176
       },
       {
         "tool": "create_simulated_booking",
@@ -127,7 +127,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.044
+        "latency_ms": 0.064
       }
     ],
     "rubric": [
@@ -210,7 +210,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.094
+        "latency_ms": 0.135
       },
       {
         "tool": "create_simulated_booking",
@@ -232,7 +232,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.038
+        "latency_ms": 0.037
       },
       {
         "tool": "cancel_simulated_booking",
@@ -254,7 +254,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.032
+        "latency_ms": 0.028
       }
     ],
     "rubric": [
@@ -323,7 +323,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.096
+        "latency_ms": 0.139
       }
     ],
     "rubric": [
@@ -392,7 +392,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.115
+        "latency_ms": 0.13
       },
       {
         "tool": "create_simulated_booking",
@@ -407,7 +407,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.031
+        "latency_ms": 0.024
       }
     ],
     "rubric": [
@@ -482,7 +482,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.243
+        "latency_ms": 0.399
       }
     ],
     "rubric": [
@@ -565,7 +565,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.17
+        "latency_ms": 0.182
       },
       {
         "tool": "create_simulated_booking",
@@ -587,7 +587,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.037
+        "latency_ms": 0.038
       },
       {
         "tool": "cancel_simulated_booking",
@@ -609,7 +609,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.029
+        "latency_ms": 0.027
       }
     ],
     "rubric": [
@@ -679,7 +679,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.214
+        "latency_ms": 0.132
       },
       {
         "tool": "create_simulated_booking",
@@ -694,7 +694,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.041
+        "latency_ms": 0.04
       },
       {
         "tool": "create_simulated_booking",
@@ -716,7 +716,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.049
+        "latency_ms": 0.022
       }
     ],
     "rubric": [
@@ -784,7 +784,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.109
+        "latency_ms": 0.105
       }
     ],
     "rubric": [
@@ -853,7 +853,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.138
+        "latency_ms": 0.17
       },
       {
         "tool": "get_booking_quote",
@@ -880,7 +880,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.175
+        "latency_ms": 0.042
       }
     ],
     "rubric": [
@@ -927,7 +927,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.102
+        "latency_ms": 0.138
       },
       {
         "tool": "search_events",
@@ -981,7 +981,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.108
+        "latency_ms": 0.087
       }
     ],
     "rubric": [
@@ -1051,7 +1051,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.241
+        "latency_ms": 0.152
       },
       {
         "tool": "create_simulated_booking",
@@ -1066,7 +1066,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.042
+        "latency_ms": 0.037
       },
       {
         "tool": "create_simulated_booking",
@@ -1088,7 +1088,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.023
+        "latency_ms": 0.022
       }
     ],
     "rubric": [
@@ -1163,7 +1163,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.219
+        "latency_ms": 0.273
       }
     ],
     "rubric": [
@@ -1211,7 +1211,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.146
+        "latency_ms": 0.112
       }
     ],
     "rubric": [
@@ -1274,7 +1274,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.212
+        "latency_ms": 0.134
       }
     ],
     "rubric": [
@@ -1318,7 +1318,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.11
+        "latency_ms": 0.108
       }
     ],
     "rubric": [
@@ -1420,7 +1420,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.155
+        "latency_ms": 0.323
       }
     ],
     "rubric": [
@@ -1494,7 +1494,7 @@
             }
           ]
         },
-        "latency_ms": 0.176
+        "latency_ms": 0.256
       }
     ],
     "rubric": [
@@ -1566,7 +1566,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.289
+        "latency_ms": 0.275
       }
     ],
     "rubric": [
@@ -1629,7 +1629,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.147
+        "latency_ms": 0.211
       }
     ],
     "rubric": [
@@ -1697,7 +1697,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.089
+        "latency_ms": 0.13
       }
     ],
     "rubric": [
@@ -1769,7 +1769,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.286
+        "latency_ms": 0.301
       }
     ],
     "rubric": [
@@ -1845,7 +1845,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.166
+        "latency_ms": 0.238
       }
     ],
     "rubric": [
@@ -1892,7 +1892,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.091
+        "latency_ms": 0.14
       },
       {
         "tool": "search_events",
@@ -1946,7 +1946,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.093
+        "latency_ms": 0.084
       }
     ],
     "rubric": [
@@ -2016,7 +2016,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.185
+        "latency_ms": 0.161
       }
     ],
     "rubric": [
@@ -2088,7 +2088,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.181
+        "latency_ms": 0.203
       }
     ],
     "rubric": [
@@ -2135,7 +2135,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.081
+        "latency_ms": 0.135
       },
       {
         "tool": "search_events",
@@ -2189,7 +2189,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.128
+        "latency_ms": 0.085
       }
     ],
     "rubric": [
@@ -2232,7 +2232,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.106
+        "latency_ms": 0.102
       }
     ],
     "rubric": [
@@ -2307,7 +2307,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.11
+        "latency_ms": 0.173
       }
     ],
     "rubric": [
@@ -2379,7 +2379,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.267
+        "latency_ms": 0.157
       }
     ],
     "rubric": [
@@ -2463,7 +2463,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.162
+        "latency_ms": 0.163
       },
       {
         "tool": "search_places",
@@ -2579,7 +2579,7 @@
             }
           ]
         },
-        "latency_ms": 0.13
+        "latency_ms": 0.151
       }
     ],
     "rubric": [
@@ -2651,7 +2651,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.214
+        "latency_ms": 0.197
       }
     ],
     "rubric": [
@@ -2725,7 +2725,7 @@
             }
           ]
         },
-        "latency_ms": 0.15
+        "latency_ms": 0.14
       }
     ],
     "rubric": [
@@ -2800,7 +2800,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.205
+        "latency_ms": 0.168
       }
     ],
     "rubric": [
@@ -2863,7 +2863,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.495
+        "latency_ms": 0.146
       }
     ],
     "rubric": [
@@ -2938,7 +2938,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.168
+        "latency_ms": 0.167
       }
     ],
     "rubric": [
@@ -3013,7 +3013,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.429
+        "latency_ms": 0.266
       }
     ],
     "rubric": [
@@ -3078,7 +3078,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.12
+        "latency_ms": 0.111
       }
     ],
     "rubric": [
@@ -3122,7 +3122,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.096
+        "latency_ms": 0.159
       },
       {
         "tool": "search_events",
@@ -3138,7 +3138,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.027
+        "latency_ms": 0.031
       },
       {
         "tool": "search_events",
@@ -3154,7 +3154,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.063
+        "latency_ms": 0.019
       }
     ],
     "rubric": [
@@ -3197,7 +3197,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.104
+        "latency_ms": 0.124
       }
     ],
     "rubric": [
@@ -3261,7 +3261,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.108
+        "latency_ms": 0.125
       }
     ],
     "rubric": [
@@ -3325,7 +3325,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.202
+        "latency_ms": 0.146
       }
     ],
     "rubric": [
@@ -3368,7 +3368,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.11
+        "latency_ms": 0.105
       }
     ],
     "rubric": [
@@ -3440,7 +3440,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.168
+        "latency_ms": 0.203
       }
     ],
     "rubric": [
@@ -3505,7 +3505,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.186
+        "latency_ms": 0.122
       }
     ],
     "rubric": [
@@ -3546,7 +3546,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.196
+        "latency_ms": 0.088
       }
     ],
     "rubric": [
@@ -3618,7 +3618,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.251
+        "latency_ms": 0.242
       }
     ],
     "rubric": [
@@ -3690,7 +3690,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.175
+        "latency_ms": 0.156
       }
     ],
     "rubric": [
@@ -3755,7 +3755,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.124
+        "latency_ms": 0.128
       }
     ],
     "rubric": [
@@ -3839,7 +3839,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.023
+        "latency_ms": 0.024
       }
     ],
     "rubric": [
@@ -3901,7 +3901,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.193
+        "latency_ms": 0.214
       }
     ],
     "rubric": [
@@ -3985,7 +3985,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.232
+        "latency_ms": 0.215
       },
       {
         "tool": "search_places",
@@ -4027,7 +4027,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.068
+        "latency_ms": 0.067
       }
     ],
     "rubric": [
@@ -4071,7 +4071,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.101
+        "latency_ms": 0.078
       }
     ],
     "rubric": [
@@ -4172,7 +4172,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.173
+        "latency_ms": 0.204
       }
     ],
     "rubric": [
@@ -4232,7 +4232,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.246
+        "latency_ms": 0.237
       }
     ],
     "rubric": [
@@ -4279,7 +4279,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.115
+        "latency_ms": 0.119
       },
       {
         "tool": "search_events",
@@ -4333,7 +4333,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.08
+        "latency_ms": 0.158
       }
     ],
     "rubric": [
@@ -4380,7 +4380,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.18
+        "latency_ms": 0.13
       },
       {
         "tool": "search_events",
@@ -4434,7 +4434,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.085
+        "latency_ms": 0.081
       }
     ],
     "rubric": [
@@ -4509,7 +4509,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.187
+        "latency_ms": 0.158
       }
     ],
     "rubric": [
@@ -4578,7 +4578,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.281
+        "latency_ms": 0.131
       },
       {
         "tool": "get_booking_quote",
@@ -4605,7 +4605,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.057
+        "latency_ms": 0.038
       }
     ],
     "rubric": [
@@ -4680,7 +4680,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.189
+        "latency_ms": 0.159
       }
     ],
     "rubric": [
@@ -4729,7 +4729,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.125
+        "latency_ms": 0.132
       }
     ],
     "rubric": [
@@ -4776,7 +4776,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.162
+        "latency_ms": 0.121
       },
       {
         "tool": "search_events",
@@ -4830,7 +4830,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.148
+        "latency_ms": 0.082
       }
     ],
     "rubric": [
@@ -4878,7 +4878,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.201
+        "latency_ms": 0.157
       }
     ],
     "rubric": [
@@ -4953,7 +4953,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.233
+        "latency_ms": 0.225
       }
     ],
     "rubric": [
@@ -5004,7 +5004,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.33
+        "latency_ms": 0.217
       }
     ],
     "rubric": [
@@ -5079,7 +5079,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.169
+        "latency_ms": 0.206
       }
     ],
     "rubric": [
@@ -5173,7 +5173,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.145
+        "latency_ms": 0.168
       },
       {
         "tool": "get_booking_quote",
@@ -5200,7 +5200,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.053
+        "latency_ms": 0.039
       }
     ],
     "rubric": [
@@ -5285,7 +5285,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.7
+        "latency_ms": 0.192
       }
     ],
     "rubric": [
@@ -5369,7 +5369,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.208
+        "latency_ms": 0.191
       },
       {
         "tool": "search_places",
@@ -5411,7 +5411,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.067
+        "latency_ms": 0.062
       }
     ],
     "rubric": [
@@ -5476,7 +5476,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.157
+        "latency_ms": 0.186
       }
     ],
     "rubric": [
@@ -5517,7 +5517,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.108
+        "latency_ms": 0.106
       }
     ],
     "rubric": [
@@ -5561,7 +5561,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.06
+        "latency_ms": 0.103
       }
     ],
     "rubric": [
@@ -5626,7 +5626,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 1.824
+        "latency_ms": 0.131
       }
     ],
     "rubric": [
@@ -5688,7 +5688,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.262
+        "latency_ms": 0.202
       }
     ],
     "rubric": [
@@ -5758,7 +5758,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.168
+        "latency_ms": 0.17
       },
       {
         "tool": "create_simulated_booking",
@@ -5780,7 +5780,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.036
+        "latency_ms": 0.039
       }
     ],
     "rubric": [
@@ -5865,7 +5865,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.184
+        "latency_ms": 0.225
       }
     ],
     "rubric": [
@@ -5927,7 +5927,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.325
+        "latency_ms": 0.209
       }
     ],
     "rubric": [
@@ -6003,7 +6003,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.16
+        "latency_ms": 0.21
       }
     ],
     "rubric": [
@@ -6072,7 +6072,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.135
+        "latency_ms": 0.15
       }
     ],
     "rubric": [
@@ -6137,7 +6137,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.114
+        "latency_ms": 0.118
       }
     ],
     "rubric": [
@@ -6212,7 +6212,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.179
+        "latency_ms": 0.281
       }
     ],
     "rubric": [
@@ -6253,7 +6253,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.086
+        "latency_ms": 0.225
       }
     ],
     "rubric": [
@@ -6328,7 +6328,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.205
+        "latency_ms": 0.204
       }
     ],
     "rubric": [
@@ -6393,7 +6393,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.193
+        "latency_ms": 0.119
       }
     ],
     "rubric": [
@@ -6463,7 +6463,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.115
+        "latency_ms": 0.186
       },
       {
         "tool": "create_simulated_booking",
@@ -6478,7 +6478,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.037
+        "latency_ms": 0.039
       },
       {
         "tool": "create_simulated_booking",
@@ -6500,7 +6500,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.022
+        "latency_ms": 0.023
       }
     ],
     "rubric": [
@@ -6544,7 +6544,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.129
+        "latency_ms": 0.178
       }
     ],
     "rubric": [
@@ -6613,7 +6613,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.122
+        "latency_ms": 0.163
       },
       {
         "tool": "create_simulated_booking",
@@ -6628,7 +6628,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.023
+        "latency_ms": 0.024
       }
     ],
     "rubric": [
@@ -6700,7 +6700,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.223
+        "latency_ms": 0.167
       }
     ],
     "rubric": [
@@ -6770,7 +6770,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.142
+        "latency_ms": 0.191
       }
     ],
     "rubric": [
@@ -6830,7 +6830,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.216
+        "latency_ms": 0.231
       }
     ],
     "rubric": [
@@ -6874,7 +6874,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.098
+        "latency_ms": 0.113
       },
       {
         "tool": "search_events",
@@ -6890,7 +6890,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.068
+        "latency_ms": 0.026
       },
       {
         "tool": "search_events",
@@ -6906,7 +6906,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.023
+        "latency_ms": 0.019
       }
     ],
     "rubric": [
@@ -6970,7 +6970,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.106
+        "latency_ms": 0.174
       }
     ],
     "rubric": [
@@ -7045,7 +7045,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.152
+        "latency_ms": 0.174
       }
     ],
     "rubric": [
@@ -7120,7 +7120,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.14
+        "latency_ms": 0.224
       }
     ],
     "rubric": [
@@ -7185,7 +7185,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.105
+        "latency_ms": 0.113
       }
     ],
     "rubric": [
@@ -7229,7 +7229,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.055
+        "latency_ms": 0.067
       }
     ],
     "rubric": [
@@ -7280,7 +7280,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.142
+        "latency_ms": 0.159
       }
     ],
     "rubric": [
@@ -7345,7 +7345,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.12
+        "latency_ms": 0.145
       }
     ],
     "rubric": [
@@ -7389,7 +7389,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.154
+        "latency_ms": 0.128
       },
       {
         "tool": "search_events",
@@ -7405,7 +7405,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.071
+        "latency_ms": 0.028
       },
       {
         "tool": "search_events",
@@ -7421,7 +7421,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.022
+        "latency_ms": 0.02
       }
     ],
     "rubric": [
@@ -7470,7 +7470,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.175
+        "latency_ms": 0.121
       }
     ],
     "rubric": [
@@ -7540,7 +7540,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.149
+        "latency_ms": 0.195
       }
     ],
     "rubric": [
@@ -7581,7 +7581,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.086
+        "latency_ms": 0.179
       }
     ],
     "rubric": [
@@ -7651,7 +7651,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.17
+        "latency_ms": 0.186
       },
       {
         "tool": "create_simulated_booking",
@@ -7673,7 +7673,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.038
+        "latency_ms": 0.035
       }
     ],
     "rubric": [
@@ -7758,7 +7758,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.152
+        "latency_ms": 0.205
       }
     ],
     "rubric": [
@@ -7827,7 +7827,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.117
+        "latency_ms": 0.182
       }
     ],
     "rubric": [
@@ -7875,7 +7875,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.121
+        "latency_ms": 0.179
       }
     ],
     "rubric": [
@@ -7950,7 +7950,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.167
+        "latency_ms": 0.212
       }
     ],
     "rubric": [
@@ -8025,7 +8025,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.153
+        "latency_ms": 0.205
       }
     ],
     "rubric": [
@@ -8100,7 +8100,7 @@
           ],
           "conflicts": []
         },
-        "latency_ms": 0.165
+        "latency_ms": 0.174
       }
     ],
     "rubric": [
@@ -8183,7 +8183,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.121
+        "latency_ms": 0.171
       },
       {
         "tool": "create_simulated_booking",
@@ -8205,7 +8205,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.068
+        "latency_ms": 0.036
       },
       {
         "tool": "cancel_simulated_booking",
@@ -8278,7 +8278,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.184
+        "latency_ms": 0.278
       }
     ],
     "rubric": [
@@ -8363,7 +8363,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.191
+        "latency_ms": 0.228
       }
     ],
     "rubric": [
@@ -8407,7 +8407,7 @@
           "missing_fields": [],
           "conflicts": []
         },
-        "latency_ms": 0.107
+        "latency_ms": 0.224
       }
     ],
     "rubric": [
