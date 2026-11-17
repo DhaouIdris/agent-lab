@@ -242,10 +242,23 @@ class Engine:
         try: final=FinalAnswer.model_validate(payload)
         except (ValidationError,TypeError):return ["INVALID_FINAL_SCHEMA"]
         errors=[]
+        # Simulation steps are evidence only for the IDs and timestamps actually
+        # returned by the tool; they are not source documents about the places.
+        steps=[]
+        for t in self.trace:
+            result=t.get("result",{})
+            if t.get("tool")=="plan_itinerary" and result.get("status") in ("ok","partial"):
+                steps.extend((result.get("data") or {}).get("steps",[]))
+        simulated_ids={s.get("place_id") for s in steps}
         for eid in final.entity_ids:
-            if eid not in self.exposed:errors.append("UNSEEN_ENTITY:"+eid)
+            if eid not in self.exposed and eid not in simulated_ids:errors.append("UNSEEN_ENTITY:"+eid)
         for fact in final.facts:
             e=self.exposed.get(fact.entity_id)
+            if fact.source_id in ("plan_itinerary","functions.plan_itinerary") and fact.field in ("start","end"):
+                field={"start":"arrival","end":"departure"}[fact.field]
+                if not final.simulation or not any(s.get("place_id")==fact.entity_id and type(s.get(field)) is type(fact.value) and s.get(field)==fact.value for s in steps):
+                    errors.append("UNSUPPORTED_FACT")
+                continue
             if not e or fact.field not in e or e[fact.field]!=fact.value or type(e[fact.field])!=type(fact.value):
                 errors.append("UNSUPPORTED_FACT")
             elif e.get("field_sources",{}).get(fact.field,e.get("source_id"))!=fact.source_id:
@@ -258,3 +271,4 @@ class Engine:
                          for t in self.trace if isinstance(t["result"].get("data"),dict)):
                 errors.append("UNOBSERVED_BOOKING")
         return errors
+
