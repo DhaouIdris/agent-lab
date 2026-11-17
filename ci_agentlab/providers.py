@@ -125,7 +125,7 @@ class ToolAgent:
         for _ in range(self.max_rounds):
             left=self.engine.deadline_seconds-(time.monotonic()-self.engine.started)
             if left<=0:raise ProviderError("Turn deadline exceeded")
-            msg=self.client.chat(self.messages,timeout=min(30,left))
+            msg=self.client.chat(self.messages,timeout=min(90,left))
             calls=msg.get("tool_calls") or []
             clean={"role":"assistant","content":msg.get("content")}
             if calls:clean["tool_calls"]=calls
