@@ -88,9 +88,19 @@ def import_csv(csv_path,db_path):
         con.close();db_path.unlink(missing_ok=True);raise
     con.close();return meta
 
-def search(db_path,category=None,district=None,query=None,limit=10):
+def distance_m(lat1,lon1,lat2,lon2):
+    p1,p2=math.radians(lat1),math.radians(lat2)
+    dlat=math.radians(lat2-lat1);dlon=math.radians(lon2-lon1)
+    a=math.sin(dlat/2)**2+math.cos(p1)*math.cos(p2)*math.sin(dlon/2)**2
+    return 6371000*2*math.asin(min(1,math.sqrt(a)))
+
+def search(db_path,category=None,district=None,query=None,limit=10,latitude=None,longitude=None,radius_m=None):
     if not 1<=limit<=50:raise ValueError('limit must be 1..50')
     if category is not None and category not in set(CATEGORIES.values()):raise ValueError('unsupported category')
+    geo=(latitude,longitude,radius_m)
+    if any(x is not None for x in geo):
+        if not all(type(x) in (float,int) and math.isfinite(x) for x in geo):raise ValueError('latitude, longitude and radius_m must be supplied together as finite numbers')
+        if not (-90<=latitude<=90 and -180<=longitude<=180 and 1<=radius_m<=20000):raise ValueError('Coordinates or radius out of bounds')
     if not Path(db_path).is_file():raise ValueError('Database does not exist')
     con=sqlite3.connect(Path(db_path).resolve().as_uri()+'?mode=ro',uri=True)
     con.row_factory=sqlite3.Row
@@ -100,20 +110,29 @@ def search(db_path,category=None,district=None,query=None,limit=10):
         # Literal substring match; LIKE wildcards in user input have no special meaning.
         if district:clauses.append('instr(district_norm,?)>0');params.append(norm(district))
         if query:clauses.append('instr(name_norm,?)>0');params.append(norm(query))
-        sql='SELECT source_id,name,category,district,latitude,longitude FROM places'+(' WHERE '+' AND '.join(clauses) if clauses else '')+' ORDER BY name_norm,source_id LIMIT ?'
-        params.append(limit)
-        return {'items':[dict(x) for x in con.execute(sql,params)],'limit':limit,'current_status_verified':False,'warning':'Historical 2022 data; opening, availability and current activity are unverified; incomplete inventory.','source':SOURCE,'attribution':ATTRIBUTION}
+        sql='SELECT source_id,name,category,district,latitude,longitude FROM places'+(' WHERE '+' AND '.join(clauses) if clauses else '')+' ORDER BY name_norm,source_id'
+        if radius_m is None:
+            sql+=' LIMIT ?';params.append(limit);items=[dict(x) for x in con.execute(sql,params)]
+        else:
+            items=[]
+            for row in con.execute(sql,params):
+                d=distance_m(latitude,longitude,row['latitude'],row['longitude'])
+                if d<=radius_m:
+                    item=dict(row);item['distance_m']=round(d,1);items.append((d,item))
+            items=[item for _,item in sorted(items,key=lambda x:(x[0],x[1]['source_id']))[:limit]]
+        return {'items':items,'limit':limit,'distance_method':'haversine_straight_line' if radius_m is not None else None,'current_status_verified':False,'warning':'Historical 2022 data; opening, availability and current activity are unverified; incomplete inventory.','source':SOURCE,'attribution':ATTRIBUTION}
     finally:con.close()
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);s=p.add_subparsers(dest='cmd',required=True)
     a=s.add_parser('import-csv');a.add_argument('--csv',required=True);a.add_argument('--db',required=True)
-    a=s.add_parser('search');a.add_argument('--db',required=True);a.add_argument('--category',choices=sorted(set(CATEGORIES.values())));a.add_argument('--district');a.add_argument('--query');a.add_argument('--limit',type=int,default=10)
+    a=s.add_parser('search');a.add_argument('--db',required=True);a.add_argument('--category',choices=sorted(set(CATEGORIES.values())));a.add_argument('--district');a.add_argument('--query');a.add_argument('--limit',type=int,default=10);a.add_argument('--latitude',type=float);a.add_argument('--longitude',type=float);a.add_argument('--radius-m',type=float)
     a=s.add_parser('audit-csv');a.add_argument('--csv',required=True)
     a=p.parse_args()
-    result=import_csv(a.csv,a.db) if a.cmd=='import-csv' else audit_csv(a.csv) if a.cmd=='audit-csv' else search(a.db,a.category,a.district,a.query,a.limit)
+    result=import_csv(a.csv,a.db) if a.cmd=='import-csv' else audit_csv(a.csv) if a.cmd=='audit-csv' else search(a.db,a.category,a.district,a.query,a.limit,a.latitude,a.longitude,a.radius_m)
     print(json.dumps(result,ensure_ascii=False,indent=2))
 
 if __name__=='__main__':main()
+
 
 
