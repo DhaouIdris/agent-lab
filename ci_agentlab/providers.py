@@ -4,6 +4,10 @@ No paid or network requests are issued by replay/validate commands.
 """
 import json
 import os
+import random
+import socket
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 import time
 import urllib.error
 import urllib.parse
@@ -29,9 +33,25 @@ approval_required, infeasible_plan, unknown_travel_time, out_of_scope.
 Facts must contain entity_id, field, exact value and source_id from returned
 evidence, using the exact field name and the exact value and type from the same\nentity in the tool result. Do not combine latitude and longitude into a location\nfact, rename fields, or turn null into a string. The facts schema cannot represent\nnull: omit unknown values from facts; describe uncertainty in the answer and add\nthe appropriate warning instead. Include only facts relevant to the user's request.\nentity_ids must be IDs you actually retrieved. Do not invent citations.
 Never claim a booking unless a tool returned its ID/status; simulation must be true.
+Only simulated bookings exist; never describe a quote or confirmation as a real reservation.
+Event end times can be exclusive next-day boundaries: do not present them as inclusive end dates.
+State the number of retries only when supported by the trace.
 """
 
-class ProviderError(RuntimeError):pass
+class ProviderError(RuntimeError):
+    def __init__(self,message,retryable=False,retry_after=0):
+        super().__init__(message);self.retryable=retryable;self.retry_after=retry_after
+
+def safe_error_code(exc):
+    # Only fixed known classifications; never persist provider text or prompt.
+    try:
+        raw=exc.read(65537)
+        if len(raw)>65536:return None
+        error=json.loads(raw).get("error",{})
+        code=error.get("code")
+        allowed={"content_filter","content_policy_violation","ResponsibleAIPolicyViolation","DeploymentNotFound","DeploymentNotReady","InvalidRequest","invalid_request_error","rate_limit_exceeded","TooManyRequests"}
+        return code if code in allowed else None
+    except (ValueError,AttributeError,TypeError,OSError):return None
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):
@@ -63,6 +83,28 @@ class ChatClient:
         self.opener=urllib.request.build_opener(NoRedirect)
 
     def chat(self,messages,timeout=30,tools_override=None,tool_choice="auto",response_format=None):
+        deadline=time.monotonic()+timeout
+        previous_failure=None
+        for attempt in range(3):
+            remaining=deadline-time.monotonic()
+            if remaining<=0:raise ProviderError("Provider-call deadline exceeded")
+            before=self.attempts
+            try:
+                result=self._chat_once(messages,remaining,tools_override,tool_choice,response_format)
+                if previous_failure is not None and self.attempts>before:
+                    previous_failure["recovered_or_retried"]=True
+                return result
+            except ProviderError as exc:
+                if previous_failure is not None and self.attempts>before:
+                    previous_failure["recovered_or_retried"]=True
+                if not exc.retryable or attempt==2 or self.attempts>=self.max_calls:raise
+                wait=max(exc.retry_after,random.uniform(0,min(8,2**(attempt+1))))
+                if time.monotonic()+wait>=deadline:raise
+                self.calls[-1]["retry_delay_seconds"]=wait
+                previous_failure=self.calls[-1]
+                time.sleep(wait)
+
+    def _chat_once(self,messages,timeout=30,tools_override=None,tool_choice="auto",response_format=None):
         if self.attempts>=self.max_calls:raise ProviderError("Global provider-call cap reached")
         if self.last_request_at is not None:
             wait=max(0,self.min_interval_seconds-(time.monotonic()-self.last_request_at))
@@ -92,12 +134,21 @@ class ChatClient:
             if not isinstance(message,dict) or not isinstance(usage,dict):
                 raise ValueError("Invalid message or usage object")
         except urllib.error.HTTPError as exc:
-            # Do not log response body, request headers or keys.
-            entry.update(latency_seconds=time.monotonic()-start,error="http")
-            raise ProviderError(f"Endpoint HTTP {exc.code}; check endpoint/model compatibility") from None
+            code=safe_error_code(exc)
+            entry.update(latency_seconds=time.monotonic()-start,error="http",http_status=exc.code)
+            if code:entry["provider_error_code"]=code
+            try:
+                header=exc.headers.get("Retry-After",0)
+                try:retry_after=float(header)
+                except (ValueError,TypeError):
+                    retry_after=(parsedate_to_datetime(header)-datetime.now(timezone.utc)).total_seconds()
+            except (ValueError,TypeError,AttributeError,OverflowError):retry_after=0
+            retry_after=max(0,min(retry_after,86400))
+            raise ProviderError(f"Endpoint HTTP {exc.code}"+(f"; code={code}" if code else ""),
+                                retryable=exc.code in (429,500,502,503,504),retry_after=retry_after) from None
         except (OSError,ValueError,KeyError,IndexError,TypeError) as exc:
             entry.update(latency_seconds=time.monotonic()-start,error="transport_or_format")
-            raise ProviderError("Transport or response-format error: "+type(exc).__name__) from None
+            raise ProviderError("Transport or response-format error: "+type(exc).__name__,retryable=isinstance(exc,(TimeoutError,socket.timeout,ConnectionError))) from None
         except ProviderError:
             entry.update(latency_seconds=time.monotonic()-start,error="provider_guard")
             raise
@@ -144,3 +195,4 @@ class ToolAgent:
                 result=self.engine.call(name,args)
                 self.messages.append({"role":"tool","tool_call_id":cid,"content":json.dumps(result,ensure_ascii=False)})
         raise ProviderError("Agent exhausted model-round budget")
+
