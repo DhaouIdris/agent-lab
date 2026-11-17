@@ -101,7 +101,7 @@ def main():
         report["summary"]=aggregate(results,args.seed)
         report["campaign_complete"]=not any("Global provider-call cap reached" in f.get("detail","") for x in results for f in x["failures"])
         dump(out/"report.json",report)
-        if client and args.stop_on_provider_error and any(x.get("error") for x in r["provider_calls"]):
+        if client and args.stop_on_provider_error and any(x.get("error") and not x.get("recovered_or_retried") for x in r["provider_calls"]):
             report["campaign_complete"]=False
             report["stop_reason"]="Provider error: inspect authentication, quota, endpoint and model compatibility before retrying."
             dump(out/"report.json",report)
@@ -119,3 +119,4 @@ def main():
     if replay:print("These are reference replays, NOT AI performance results.")
 
 if __name__=="__main__":main()
+
