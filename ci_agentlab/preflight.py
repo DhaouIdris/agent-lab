@@ -24,6 +24,8 @@ def check_endpoint(client):
     second=client.chat(messages,tools_override=tools,tool_choice="none",response_format={"type":"json_object"})
     try:data=json.loads(second.get("content") or "")
     except (TypeError,ValueError):raise ProviderError("Preflight: final response is not JSON") from None
+
+    print("JSON retourné par le modèle :", json.dumps(data, ensure_ascii=False))
     if not isinstance(data,dict) or data.get("ok") is not True or data.get("entity_id")!="P1" or data.get("name")!="Nuit de Saïgon":
         raise ProviderError("Preflight: JSON does not faithfully reflect the tool result")
     return {"passed":True,"checks":["authentication_and_endpoint","forced_function_call","exact_arguments", "tool_result_roundtrip","json_object_output"],

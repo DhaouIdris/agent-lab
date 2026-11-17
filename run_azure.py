@@ -7,12 +7,16 @@ import math
 import os
 import subprocess
 import sys
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
-from ci_agentlab.providers import ChatClient,ProviderError
-from ci_agentlab.preflight import check_endpoint
 
+from dotenv import load_dotenv
+
+from ci_agentlab.preflight import check_endpoint
+from ci_agentlab.providers import ChatClient, ProviderError
+
+load_dotenv()
 ROOT=Path(__file__).parent
 
 def load_config(path):
@@ -50,8 +54,11 @@ def build_command(c,stage,out):
          "--turn-timeout-seconds",str(c["turn_timeout_seconds"]),"--stop-on-provider-error","--out",str(out)]
     caps={"smoke":24,"pilot":400,"benchmark":1200}
     cmd += ["--max-provider-calls",str(caps[stage]),"--repeat","3" if stage=="benchmark" else "1"]
+    
     if stage=="smoke":cmd += ["--case","S01","--case","U01"]
+    
     if c.get("api_version"):cmd += ["--api-version",c["api_version"]]
+    
     if c.get("input_price_per_million") is not None:
         cmd += ["--input-price",str(c["input_price_per_million"]),"--output-price",str(c["output_price_per_million"])]
     return cmd
@@ -63,8 +70,10 @@ def main():
     p.add_argument("--dry-run",action="store_true",help="No network request or key requested")
     p.add_argument("--out",help="Fresh run directory; defaults to timestamped path")
     args=p.parse_args()
+    
     try:c=load_config(args.config)
     except (OSError,ValueError,TypeError) as e:p.exit(2,"Configuration: "+str(e)+"\n")
+    
     if args.stage=="check":
         print("Configuration locale valide. Quota, crédit et disponibilité du déploiement non vérifiés.")
         print("Inférence Azure ; outils et benchmark locaux ; aucun poids téléchargé.")
@@ -74,17 +83,22 @@ def main():
     if args.stage not in ("check","preflight") and not args.dry_run and out.exists():
         p.exit(2,"Choisis un dossier de résultats neuf avec --out.\n")
     marker=ROOT/"runs/azure_preflight.json"
+    
     if args.dry_run:
         print(json.dumps({"stage":args.stage,"network_calls":0,"preflight_max_requests":2,
             "command":build_command(c,args.stage,out) if args.stage!="preflight" else "Two-call protocol check",
             "cost":"Unknown until deployment tariffs and usage are known"},ensure_ascii=False,indent=2));return
+    
     if args.stage!="preflight":
         try:prior=json.loads(marker.read_text())
         except (OSError,ValueError):p.exit(2,"Exécute d'abord : python run_azure.py preflight\n")
         if not prior.get("passed") or prior.get("config_fingerprint")!=fingerprint(c):
             p.exit(2,"Configuration modifiée ou preflight invalide : relance le preflight.\n")
     key=os.getenv("AGENTLAB_API_KEY") or getpass.getpass("Clé Azure (saisie masquée, non enregistrée) : ")
-    if not key:p.exit(2,"Clé absente. Aucun appel effectué.\n")
+    
+    if not key:
+        p.exit(2,"Clé absente. Aucun appel effectué.\n")
+    
     if args.stage=="preflight":
         client=ChatClient(c["base_url"],c["deployment"],api_key=key,api_version=c.get("api_version"),
             max_output_tokens=c["max_output_tokens"],input_price=c.get("input_price_per_million"),output_price=c.get("output_price_per_million"),
@@ -96,9 +110,12 @@ def main():
         print(json.dumps(report,ensure_ascii=False,indent=2));sys.exit(0 if report["passed"] else 1)
     env=os.environ.copy();env["AGENTLAB_API_KEY"]=key
     proc=subprocess.run(build_command(c,args.stage,out),cwd=ROOT,env=env)
+
     if proc.returncode:sys.exit(proc.returncode)
     (out/"azure_run_metadata.json").write_text(json.dumps({"config":c,"currency":c["currency"],"quota_verified":False},indent=2),encoding="utf-8")
     report=json.loads((out/"report.json").read_text())
-    if not report.get("campaign_complete",False):sys.exit(1)
+
+    if not report.get("campaign_complete",False):
+        sys.exit(1)
 
 if __name__=="__main__":main()
