@@ -17,7 +17,7 @@ from ci_agentlab.providers import ChatClient, ProviderError
 ROOT=Path(__file__).resolve().parents[1]
 
 def config():
-    c=json.loads((ROOT/'azure.example.json').read_text())
+    c=json.loads((ROOT/'azure.example.json').read_text(encoding="utf-8"))
     c['base_url']='https://example.openai.azure.com/openai/v1'
     return c
 
@@ -77,7 +77,7 @@ class AzureConfiguration(unittest.TestCase):
 
     def test_dry_run_needs_no_key_or_network(self):
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d)/'config.json';p.write_text(json.dumps(config()))
+            p=Path(d)/'config.json';p.write_text(json.dumps(config()),encoding='utf-8')
             r=subprocess.run([sys.executable,str(ROOT/'run_azure.py'),'smoke','--dry-run','--config',str(p)],
                 capture_output=True,text=True,timeout=10)
             self.assertEqual(r.returncode,0,r.stderr)
@@ -119,7 +119,7 @@ class AzureProtocol(unittest.TestCase):
         self.assertEqual(c.calls[0]['error'],'http')
 
     def test_fail_fast_stops_remaining_conversation_turns(self):
-        cases=json.loads((ROOT/'data/scenarios.json').read_text())
+        cases=json.loads((ROOT/'data/scenarios.json').read_text(encoding="utf-8"))
         case=next(c for c in cases if len(c['turns'])>1)
         c=client([]);c.opener.open.side_effect=urllib.error.HTTPError(c.url,429,'quota',{},None)
         r=run_case(case,client=c,stop_on_provider_error=True)
