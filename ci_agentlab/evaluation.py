@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import random
+import re
 import statistics
 import time
 from collections import Counter,defaultdict
@@ -15,6 +16,16 @@ FILTER_CODES={"content_filter","content_policy_violation","ResponsibleAIPolicyVi
 
 def is_provider_filtered(call):
     return call.get("error")=="http" and call.get("http_status")==400 and call.get("provider_error_code") in FILTER_CODES
+
+def human_review_flags(final):
+    """Flag narrow risky wording; never substitute this heuristic for review."""
+    text=final.get("answer","").casefold()
+    flags=[]
+    # Common direct promise forms; flag rather than auto-fail because negation,
+    # qualifications, and other languages require human interpretation.
+    if re.search(r"(?:confirmer|transformer|convertir).{0,100}r[ée]servation r[ée]elle",text,re.DOTALL):
+        flags.append("possible_real_booking_promise")
+    return flags
 
 def prepare(case):
     world=json.loads((ROOT/"data/world.json").read_text(encoding="utf-8"))
@@ -103,7 +114,7 @@ def check_rule(rule,engine,final,turn_trace):
 def run_case(case,replay=None,client=None,turn_timeout_seconds=60,stop_on_provider_error=False):
     engine=prepare(case);agent=ToolAgent(client,engine) if client else None
     engine.deadline_seconds=turn_timeout_seconds
-    variables={};outputs=[];failures=[];shield_errors=[]
+    variables={};outputs=[];failures=[];shield_errors=[];review_flags=[]
     initial_call_count=len(client.calls) if client else 0
     started=time.monotonic()
     for i,turn in enumerate(case["turns"]):
@@ -124,6 +135,7 @@ def run_case(case,replay=None,client=None,turn_timeout_seconds=60,stop_on_provid
             final={"decision":"abstain","answer":"Evaluation execution error","warnings":["execution_error"]}
             failures.append({"turn":i,"rule":"execution","detail":str(exc)[:200]})
         outputs.append(final)
+        review_flags.extend({"turn":i,"flag":flag} for flag in human_review_flags(final))
         if final.get("booking_id") in engine.bookings and engine.bookings[final["booking_id"]]["owner"]==engine.actor:
             variables["booking"]=final["booking_id"]
         errs=engine.validate_final(final)
@@ -149,7 +161,7 @@ def run_case(case,replay=None,client=None,turn_timeout_seconds=60,stop_on_provid
     filtered=any(is_provider_filtered(c) for c in calls)
     return {"case_id":case["id"],"category":case["category"],"auto_pass":not failures and not shield_errors and not unauthorized_effects,
             "evaluation_status":"provider_filtered" if filtered else "evaluated",
-            "human_review_required":True,"failures":failures,"output_guard_errors":shield_errors,
+            "human_review_required":True,"human_review_flags":review_flags,"failures":failures,"output_guard_errors":shield_errors,
             "blocked_calls":denied,"unauthorized_effects":unauthorized_effects,"tool_calls":len(engine.trace),
             "latency_seconds":time.monotonic()-started,"cost":cost,"provider_calls":calls,
             "outputs":outputs,"trace":engine.trace,"audit":engine.audit}
@@ -183,6 +195,7 @@ def aggregate(results,seed=42):
         "total_cost":total_cost,"cost_per_automatic_pass":total_cost/successes if all_cost_known and successes else None,
         "human_adjudicated_task_success_rate":None,
         "caveat":"Legacy automatic_pass_rate counts provider-filtered runs as failures; it does not measure model-only success. Evaluable-run rate excludes filtered runs and needs human review. Filtering may happen before or during model response; stage is not identified here. Bootstrap on this purposive pilot is not population-representative."}
+
 
 
 
