@@ -24,10 +24,18 @@ class CatalogueChatTests(unittest.TestCase):
                 if self.count==1:return {'tool_calls':[{'id':'1','type':'function','function':{'name':'search_catalogue','arguments':'{"category":"ice_cream"}'}}]}
                 self.evidence=json.loads(messages[-1]['content'])
                 return {'content':'Glacier Test — données historiques non vérifiées.'}
-        client=Fake();answer=ask(client,self.db,'Un glacier ?')
+        client=Fake();evidence=[];answer=ask(client,self.db,'Un glacier ?',evidence_log=evidence)
         self.assertIn('Glacier Test',answer)
         self.assertEqual(client.evidence['items'][0]['source_id'],'node/1')
         self.assertFalse(client.evidence['current_status_verified'])
+        self.assertEqual(evidence[0]['result'],client.evidence)
+        self.assertEqual(evidence[0]['arguments']['category'],'ice_cream')
+        self.assertNotIn('api_key',json.dumps(evidence))
+
+    def test_partial_coordinates_rejected(self):
+        class Fake:
+            def chat(self,*a,**kw):return {'tool_calls':[{'id':'1','function':{'name':'search_catalogue','arguments':'{"latitude":5.0}'}}]}
+        with self.assertRaises(ProviderError):ask(Fake(),self.db,'à proximité')
 
     def test_unknown_tool_or_extra_parameters_are_rejected(self):
         for name,args in [('execute_shell','{}'),('search_catalogue','{"category":"bar","admin":true}')]:
@@ -41,3 +49,4 @@ class CatalogueChatTests(unittest.TestCase):
         with self.assertRaises(ValueError):ask(Fake(),self.db.parent/'missing','question')
 
 if __name__=='__main__':unittest.main()
+
