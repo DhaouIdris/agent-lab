@@ -3,9 +3,24 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from experiments.place_catalog import import_csv,search,audit_csv
+from experiments.place_catalog import import_csv,search,audit_csv,distance_m
 
 class CatalogueTests(unittest.TestCase):
+    def test_distance_is_geodesic(self):
+        self.assertAlmostEqual(distance_m(0,0,0,1),111194.9,delta=1)
+    def test_radius_applies_before_limit_and_sorts_by_distance(self):
+        with self.csv.open('a',encoding='utf8',newline='') as f:
+            w=csv.writer(f)
+            w.writerow(['node/far','A far','Ice-Cream',json.dumps({'type':'Point','coordinates':[-4,5.34]}),''])
+            w.writerow(['node/near','Z near','Ice-Cream',json.dumps({'type':'Point','coordinates':[-4,5.301]}),''])
+        import_csv(self.csv,self.db)
+        r=search(self.db,category='ice_cream',latitude=5.3,longitude=-4,radius_m=10000,limit=1)
+        self.assertEqual(r['items'][0]['source_id'],'node/near')
+        self.assertEqual(r['distance_method'],'haversine_straight_line')
+        self.assertAlmostEqual(r['items'][0]['distance_m'],111.2,delta=1)
+        self.assertEqual(search(self.db,category='ice_cream',latitude=5.3,longitude=-4,radius_m=50)['items'],[])
+        for geo in ({'latitude':5.3},{'latitude':float('nan'),'longitude':-4,'radius_m':1},{'latitude':5.3,'longitude':-4,'radius_m':20001}):
+            with self.subTest(geo=geo),self.assertRaises(ValueError):search(self.db,**geo)
     def setUp(self):
         self.d=tempfile.TemporaryDirectory();self.addCleanup(self.d.cleanup)
         self.csv=Path(self.d.name)/'source.csv';self.db=Path(self.d.name)/'catalog.sqlite'
@@ -61,5 +76,6 @@ class CatalogueTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
 
 
