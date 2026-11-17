@@ -197,8 +197,35 @@ class AzureProtocol(unittest.TestCase):
         c=Mock();c.chat.return_value={'content':'{}'}
         e=Engine();e.deadline_seconds=180
         ToolAgent(c,e).turn('test')
-        self.assertGreater(c.chat.call_args.kwargs['timeout'], 89)
-        self.assertLessEqual(c.chat.call_args.kwargs['timeout'], 90)
+        self.assertGreater(c.chat.call_args.kwargs['timeout'], 179)
+        self.assertLessEqual(c.chat.call_args.kwargs['timeout'], 180)
+
+    def test_timeout_retry_has_separate_attempt_and_total_budgets(self):
+        clock=[0.0]; c=client([]); c.max_calls=3; c.min_interval_seconds=15
+        good=io.BytesIO(json.dumps({'choices':[{'message':{'content':'{}'}}], 'usage':{'prompt_tokens':1,'completion_tokens':1}}).encode())
+        def open_request(req,timeout):
+            if c.opener.open.call_count==1:
+                self.assertEqual(timeout,60)
+                clock[0]+=timeout
+                raise TimeoutError('simulated')
+            self.assertLessEqual(timeout,60)
+            return good
+        c.opener.open.side_effect=open_request
+        def sleep(seconds):clock[0]+=seconds
+        with patch('ci_agentlab.providers.time.monotonic',side_effect=lambda:clock[0]),patch('ci_agentlab.providers.time.sleep',side_effect=sleep),patch('ci_agentlab.providers.random.uniform',return_value=1):
+            self.assertEqual(c.chat([],timeout=180)['content'],'{}')
+        self.assertEqual(c.attempts,2)
+        self.assertTrue(c.calls[0]['recovered_or_retried'])
+
+    def test_timeout_retry_still_honors_global_deadline(self):
+        clock=[0.0];c=client([]);c.max_calls=3
+        def timeout(req,timeout):
+            clock[0]+=timeout
+            raise TimeoutError('simulated')
+        c.opener.open.side_effect=timeout
+        with patch('ci_agentlab.providers.time.monotonic',side_effect=lambda:clock[0]),patch('ci_agentlab.providers.time.sleep',side_effect=lambda seconds:clock.__setitem__(0,clock[0]+seconds)),patch('ci_agentlab.providers.random.uniform',return_value=1):
+            with self.assertRaises(ProviderError):c.chat([],timeout=60)
+        self.assertEqual(c.attempts,1)
 
     def test_spacing_is_applied_to_next_request(self):
         c=client([{'content':'{}'}]);c.min_interval_seconds=15;c.last_request_at=100
@@ -208,6 +235,7 @@ class AzureProtocol(unittest.TestCase):
         self.assertEqual(c.opener.open.call_args.kwargs['timeout'],16)
 
 if __name__=='__main__':unittest.main()
+
 
 
 
