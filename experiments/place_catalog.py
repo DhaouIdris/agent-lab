@@ -6,6 +6,7 @@ import json
 import math
 import sqlite3
 import unicodedata
+from collections import Counter
 from pathlib import Path
 
 SOURCE="https://data.gouv.ci/datasets/hotels-et-restauration-en-cote-divoire"
@@ -14,6 +15,41 @@ CATEGORIES={"hotel":"hotel","hôtel":"hotel","cafe":"cafe","café":"cafe","resta
 
 def norm(text):
     return ''.join(c for c in unicodedata.normalize('NFKD',text.casefold()) if not unicodedata.combining(c))
+
+def audit_csv(csv_path):
+    """Report overlapping rejection causes without changing the existing database."""
+    counts=Counter(); reasons=Counter(); categories=Counter(); accepted=Counter();seen=set()
+    digest=hashlib.sha256()
+    with Path(csv_path).open('rb') as f:
+        for chunk in iter(lambda:f.read(1024*1024),b''):digest.update(chunk)
+    with Path(csv_path).open(encoding='utf-8-sig',newline='') as f:
+        reader=csv.DictReader(f)
+        required={'id','nom_de_l_etablissement','categorie','geometry','ville_ou_commune'}
+        if not reader.fieldnames or not required.issubset(reader.fieldnames):raise ValueError('Unsupported CSV columns')
+        for row in reader:
+            counts['rows']+=1;flags=[]
+            source_id=(row['id'] or '').strip();name=(row['nom_de_l_etablissement'] or '').strip()
+            raw=(row['categorie'] or '').strip().casefold();category=CATEGORIES.get(raw)
+            categories[raw or '(missing)']+=1
+            if not source_id:flags.append('missing_id')
+            if not name:flags.append('missing_name')
+            if not category:flags.append('unsupported_category')
+            if not (row['ville_ou_commune'] or '').strip():counts['rows_missing_district']+=1
+            try:
+                geo=json.loads(row['geometry']);coords=geo['coordinates']
+                if geo.get('type')!='Point' or len(coords)!=2 or any(type(x) not in (float,int) or not math.isfinite(x) for x in coords):raise ValueError()
+                lon,lat=coords
+                if not (-90<=lat<=90 and -180<=lon<=180):raise ValueError()
+            except (ValueError,TypeError,KeyError,IndexError,AttributeError):flags.append('invalid_geometry')
+            if flags:
+                counts['rejected']+=1;reasons.update(flags);continue
+            if source_id in seen:counts['duplicates']+=1;continue
+            seen.add(source_id);counts['inserted']+=1;accepted[category]+=1
+            if not (row['ville_ou_commune'] or '').strip():counts['inserted_missing_district']+=1
+    for k in ('rows','inserted','rejected','duplicates','rows_missing_district','inserted_missing_district'):counts.setdefault(k,0)
+    return {'file_sha256':digest.hexdigest(),'counts':dict(counts),'rejection_reasons_overlapping':dict(reasons),
+            'source_categories':dict(categories),'accepted_categories':dict(accepted),
+            'note':'Causes may overlap; counts reproduce importer rules; no individual rows returned.'}
 
 def import_csv(csv_path,db_path):
     csv_path=Path(csv_path);db_path=Path(db_path)
@@ -41,7 +77,7 @@ def import_csv(csv_path,db_path):
                     lon,lat=coords
                     if not (-90<=lat<=90 and -180<=lon<=180) or not source_id or not name or not category:raise ValueError()
                     district=(row['ville_ou_commune'] or '').strip()
-                except (ValueError,TypeError,KeyError,IndexError,json.JSONDecodeError):
+                except (ValueError,TypeError,KeyError,IndexError,AttributeError):
                     counts['rejected']+=1;continue
                 cur=con.execute('INSERT OR IGNORE INTO places VALUES (?,?,?,?,?,?,?,?)',(source_id,name,category,district,lat,lon,norm(name),norm(district)))
                 counts['inserted' if cur.rowcount else 'duplicates']+=1
@@ -73,8 +109,10 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);s=p.add_subparsers(dest='cmd',required=True)
     a=s.add_parser('import-csv');a.add_argument('--csv',required=True);a.add_argument('--db',required=True)
     a=s.add_parser('search');a.add_argument('--db',required=True);a.add_argument('--category',choices=['hotel','cafe','restaurant','bar']);a.add_argument('--district');a.add_argument('--query');a.add_argument('--limit',type=int,default=10)
+    a=s.add_parser('audit-csv');a.add_argument('--csv',required=True)
     a=p.parse_args()
-    result=import_csv(a.csv,a.db) if a.cmd=='import-csv' else search(a.db,a.category,a.district,a.query,a.limit)
+    result=import_csv(a.csv,a.db) if a.cmd=='import-csv' else audit_csv(a.csv) if a.cmd=='audit-csv' else search(a.db,a.category,a.district,a.query,a.limit)
     print(json.dumps(result,ensure_ascii=False,indent=2))
 
 if __name__=='__main__':main()
+
