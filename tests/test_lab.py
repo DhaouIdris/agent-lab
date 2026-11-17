@@ -139,8 +139,8 @@ class EvidenceAndFaults(unittest.TestCase):
 class Harness(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.cases=json.loads((ROOT/"data/scenarios.json").read_text())
-        cls.replays=json.loads((ROOT/"data/oracle_replays.json").read_text())
+        cls.cases=json.loads((ROOT/"data/scenarios.json").read_text(encoding="utf-8"))
+        cls.replays=json.loads((ROOT/"data/oracle_replays.json").read_text(encoding="utf-8"))
     def test_all_40_gold_replays(self):
         self.assertEqual(validate_corpus(self.cases),[])
     def test_wrong_year_is_detected(self):
