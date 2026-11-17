@@ -69,7 +69,9 @@ def main():
     p.add_argument("--config",default="azure.json")
     p.add_argument("--dry-run",action="store_true",help="No network request or key requested")
     p.add_argument("--out",help="Fresh run directory; defaults to timestamped path")
+    p.add_argument("--case",action="append",help="Select development scenario(s), pilot stage only")
     args=p.parse_args()
+    if args.case and args.stage!="pilot":p.error("--case is supported with pilot only")
     
     try:c=load_config(args.config)
     except (OSError,ValueError,TypeError) as e:p.exit(2,"Configuration: "+str(e)+"\n")
@@ -85,8 +87,11 @@ def main():
     marker=ROOT/"runs/azure_preflight.json"
     
     if args.dry_run:
+        command=build_command(c,args.stage,out) if args.stage!="preflight" else "Two-call protocol check"
+        if args.case:
+            for case in args.case:command += ["--case",case]
         print(json.dumps({"stage":args.stage,"network_calls":0,"preflight_max_requests":2,
-            "command":build_command(c,args.stage,out) if args.stage!="preflight" else "Two-call protocol check",
+            "command":command,
             "cost":"Unknown until deployment tariffs and usage are known"},ensure_ascii=False,indent=2));return
     
     if args.stage!="preflight":
@@ -109,7 +114,10 @@ def main():
         marker.parent.mkdir(parents=True,exist_ok=True);marker.write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
         print(json.dumps(report,ensure_ascii=False,indent=2));sys.exit(0 if report["passed"] else 1)
     env=os.environ.copy();env["AGENTLAB_API_KEY"]=key
-    proc=subprocess.run(build_command(c,args.stage,out),cwd=ROOT,env=env)
+    command=build_command(c,args.stage,out)
+    if args.case:
+        for case in args.case:command += ["--case",case]
+    proc=subprocess.run(command,cwd=ROOT,env=env)
 
     if proc.returncode:sys.exit(proc.returncode)
     (out/"azure_run_metadata.json").write_text(json.dumps({"config":c,"currency":c["currency"],"quota_verified":False},indent=2),encoding="utf-8")
@@ -119,3 +127,4 @@ def main():
         sys.exit(1)
 
 if __name__=="__main__":main()
+
