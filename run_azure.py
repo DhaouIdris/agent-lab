@@ -22,7 +22,7 @@ ROOT=Path(__file__).parent
 def load_config(path):
     c=json.loads(Path(path).read_text(encoding="utf-8-sig"))
     if not isinstance(c,dict):raise ValueError("Configuration must be a JSON object")
-    allowed=set(json.loads((ROOT/"azure.example.json").read_text()))
+    allowed=set(json.loads((ROOT/"azure.example.json").read_text(encoding="utf-8")))
     if set(c)-allowed:raise ValueError("Unknown config fields; credentials must not be stored here")
     if allowed-set(c):raise ValueError("Missing fields: start from azure.example.json")
     if c["auth_header"] not in ("api-key","bearer"):raise ValueError("Invalid auth_header")
@@ -90,7 +90,7 @@ def main():
             "cost":"Unknown until deployment tariffs and usage are known"},ensure_ascii=False,indent=2));return
     
     if args.stage!="preflight":
-        try:prior=json.loads(marker.read_text())
+        try:prior=json.loads(marker.read_text(encoding="utf-8"))
         except (OSError,ValueError):p.exit(2,"Exécute d'abord : python run_azure.py preflight\n")
         if not prior.get("passed") or prior.get("config_fingerprint")!=fingerprint(c):
             p.exit(2,"Configuration modifiée ou preflight invalide : relance le preflight.\n")
@@ -113,7 +113,7 @@ def main():
 
     if proc.returncode:sys.exit(proc.returncode)
     (out/"azure_run_metadata.json").write_text(json.dumps({"config":c,"currency":c["currency"],"quota_verified":False},indent=2),encoding="utf-8")
-    report=json.loads((out/"report.json").read_text())
+    report=json.loads((out/"report.json").read_text(encoding="utf-8"))
 
     if not report.get("campaign_complete",False):
         sys.exit(1)
