@@ -84,7 +84,7 @@ Un scénario peut contenir plusieurs tours et plusieurs requêtes modèle. Les p
 
 Chaque campagne crée un dossier daté dans `runs/` avec `report.json`, `human_review.json`, `review_mapping.json` et les métadonnées Azure. `--dry-run` affiche la commande sans clé ni requête réseau. Un chemin `--out` existant est refusé par le lanceur pour préserver les résultats.
 
-Les requêtes sont séquentielles, espacées d'au moins 15 secondes entre débuts par défaut, avec 1 200 tokens de sortie maximum, 6 appels modèle et 8 appels d'outils maximum par tour. Le délai par tour est de 180 secondes, avec une attente réseau d'au plus 30 secondes par appel, diminuée de l'espacement éventuel. Ces valeurs ne garantissent pas le respect du quota TPM : le prompt et l'historique comptent aussi. Un modèle à raisonnement peut consommer le plafond de sortie avant de produire un JSON utile.
+Les requêtes sont séquentielles, espacées d'au moins 15 secondes entre débuts par défaut, avec 1 200 tokens de sortie maximum, 6 appels modèle et 8 appels d'outils maximum par tour. Le délai par tour est de 180 secondes, avec une enveloppe d'au plus 90 secondes par appel (attente d'espacement comprise), diminuée de l'espacement éventuel. Ces valeurs ne garantissent pas le respect du quota TPM : le prompt et l'historique comptent aussi. Un modèle à raisonnement peut consommer le plafond de sortie avant de produire un JSON utile.
 
 Une erreur HTTP/réseau interrompt le scénario et la campagne sans nouvelle tentative automatique. Les erreurs de comportement du modèle restent des échecs à analyser. `campaign_complete: true` signifie que la campagne est terminée, pas que les scénarios sont réussis.
 
