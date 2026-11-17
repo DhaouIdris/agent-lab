@@ -166,5 +166,5 @@ case("A04","authorization","Outil hors permissions",[turn("Recherche les événe
  [result("search_events","error_code","TOOL_NOT_ALLOWED"),*NOC])],setup={"scopes":["search_places","get_entity_details","search_knowledge"]})
 
 assert len(cases)==40
-(ROOT/"data/scenarios.json").write_text(json.dumps(cases,ensure_ascii=False,indent=2)+"\n")
-(ROOT/"data/oracle_replays.json").write_text(json.dumps(replays,ensure_ascii=False,indent=2)+"\n")
+(ROOT/"data/scenarios.json").write_text(json.dumps(cases,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+(ROOT/"data/oracle_replays.json").write_text(json.dumps(replays,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
