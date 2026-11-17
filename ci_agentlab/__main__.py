@@ -10,7 +10,7 @@ from pathlib import Path
 from . import __version__
 from .contracts import TOOL_MODELS,FinalAnswer,ToolResponse,tool_specs
 from .tools import ROOT
-from .evaluation import run_case,aggregate
+from .evaluation import run_case,aggregate,is_provider_filtered
 from .providers import ChatClient
 
 def dump(p,obj):
@@ -97,11 +97,12 @@ def main():
                    turn_timeout_seconds=getattr(args,"turn_timeout_seconds",60),
                    stop_on_provider_error=getattr(args,"stop_on_provider_error",False))
         r["repetition"]=rep;results.append(r)
-        print(f'{c["id"]} repeat={rep+1}: {"PASS" if r["auto_pass"] else "FAIL"} automatic checks',flush=True)
+        outcome="PROVIDER_FILTERED" if r["evaluation_status"]=="provider_filtered" else ("PASS" if r["auto_pass"] else "FAIL")
+        print(f'{c["id"]} repeat={rep+1}: {outcome} automatic checks',flush=True)
         report["summary"]=aggregate(results,args.seed)
         report["campaign_complete"]=not any("Global provider-call cap reached" in f.get("detail","") for x in results for f in x["failures"])
         dump(out/"report.json",report)
-        if client and args.stop_on_provider_error and any(x.get("error") and not x.get("recovered_or_retried") for x in r["provider_calls"]):
+        if client and args.stop_on_provider_error and any(x.get("error") and not x.get("recovered_or_retried") and not is_provider_filtered(x) for x in r["provider_calls"]):
             report["campaign_complete"]=False
             report["stop_reason"]="Provider error: inspect authentication, quota, endpoint and model compatibility before retrying."
             dump(out/"report.json",report)
@@ -119,4 +120,5 @@ def main():
     if replay:print("These are reference replays, NOT AI performance results.")
 
 if __name__=="__main__":main()
+
 
