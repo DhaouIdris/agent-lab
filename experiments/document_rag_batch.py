@@ -23,7 +23,8 @@ def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180):
         try:
             output=generate(client,case['question'],hits,timeout=turn_timeout)
             row['output']=output
-            row['behavior_match']=output['abstain']==(case['expected_behavior']=='abstain')
+            row['evaluation_status'] = output.get('guard_status', 'model_output' if hits else 'no_retrieval')
+            row['behavior_match'] = None if output.get('guard_status') else output['abstain']==(case['expected_behavior']=='abstain')
             row['retrieval_hit_at_k']=bool(set(case['relevant_ids']) & {x['id'] for x in hits}) if case['relevant_ids'] else None
             row['retrieval_recall_at_k']=len(set(case['relevant_ids']) & {x['id'] for x in hits})/len(set(case['relevant_ids'])) if case['relevant_ids'] else None
             row['error']=None
@@ -37,7 +38,9 @@ def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180):
     judged=[r for r in results if r['behavior_match'] is not None]
     retrieved=[r for r in results if r['retrieval_hit_at_k'] is not None]
     usage=[c.get('usage',{}) for r in results for c in r['provider_calls']]
-    summary={'cases_planned':len(cases),'cases_run':len(results),'cases_with_output':len(judged),
+    summary={'cases_planned':len(cases),'cases_run':len(results),'cases_with_output':sum(r['output'] is not None for r in results),
+             'guard_blocked_runs':sum(r.get('evaluation_status') == 'blocked_suspected_injection' for r in results),
+             'behavior_evaluable_runs':len(judged),
              'behavior_matches':sum(r['behavior_match'] for r in judged),
              'behavior_match_rate':sum(r['behavior_match'] for r in judged)/len(judged) if judged else None,
              'retrieval_hit_count':sum(r['retrieval_hit_at_k'] for r in retrieved),
