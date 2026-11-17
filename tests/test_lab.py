@@ -19,6 +19,41 @@ def approve_create(e,q):e.approve("create_simulated_booking",{"quote_id":q})
 def create(e,q):return e.call("create_simulated_booking",{"quote_id":q})
 
 class Contracts(unittest.TestCase):
+    def test_exclusive_date_answer_check(self):
+        from ci_agentlab.evaluation import check_rule
+        rule={'op':'exclusive_end_not_inclusive','exclusive_date':'2026-11-23'}
+        self.assertFalse(check_rule(rule,Engine(),{'answer':'Du 18 au 2026-11-23'},[]))
+        self.assertTrue(check_rule(rule,Engine(),{'answer':'Jusqu’au 22 inclus'},[]))
+        self.assertTrue(check_rule(rule,Engine(),{'answer':'Le 2026-11-23 est une borne exclusive'},[]))
+
+    def test_simulated_quote_evidence_is_trace_and_owner_bound(self):
+        e=Engine();q=quote(e)
+        answer={'decision':'answer','answer':'Offre simulée','simulation':True,'entity_ids':[q,'P1'],
+          'facts':[{'entity_id':q,'field':'start','value':QUOTE['start'],'source_id':'get_booking_quote'}]}
+        self.assertEqual(e.validate_final(answer),[])
+        forged=copy.deepcopy(answer);forged['facts'][0]['value']='2026-11-21T12:00:00+00:00'
+        self.assertIn('UNSUPPORTED_FACT',e.validate_final(forged))
+        forged=copy.deepcopy(answer);forged['entity_ids'].append('B999')
+        self.assertIn('UNSEEN_ENTITY:B999',e.validate_final(forged))
+        forged=copy.deepcopy(answer);forged['simulation']=False
+        self.assertIn('UNSUPPORTED_FACT',e.validate_final(forged))
+        e.actor='bob'
+        self.assertIn('UNSEEN_ENTITY:'+q,e.validate_final(answer))
+
+    def test_simulated_booking_id_requires_observed_result_and_owner(self):
+        e=Engine();q=quote(e);approve_create(e,q);bid=create(e,q)['data']['booking_id']
+        answer={'decision':'answer','answer':'Simulation','simulation':True,'entity_ids':[bid],
+                'booking_id':bid,'booking_status':'confirmed_simulated'}
+        self.assertEqual(e.validate_final(answer),[])
+        e.actor='bob'
+        self.assertIn('UNSEEN_ENTITY:'+bid,e.validate_final(answer))
+
+    def test_unknown_opening_hours_alias_does_not_relax_other_warnings(self):
+        from ci_agentlab.evaluation import check_rule
+        rule={'op':'warnings','values':['unknown_hours','stale_data']}
+        self.assertTrue(check_rule(rule,Engine(),{'warnings':['unknown_opening_hours','stale_data']},[]))
+        self.assertFalse(check_rule(rule,Engine(),{'warnings':['unknown_opening_hours']},[]))
+
     def test_equivalent_utc_times_and_strict_other_fields(self):
         from ci_agentlab.evaluation import same_argument
         self.assertTrue(same_argument('start','2026-11-20T12:00:00Z','2026-11-20T12:00:00+00:00'))
@@ -246,4 +281,5 @@ class Harness(unittest.TestCase):
         with self.assertRaises(ProviderError):c.chat([])
 
 if __name__=="__main__":unittest.main()
+
 
