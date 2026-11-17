@@ -83,7 +83,7 @@ Options utiles :
 - `--reasoning-effort low` : uniquement si l'endpoint accepte ce paramètre.
 - `--input-price ... --output-price ...` : prix par million de tokens, dans la même devise. Sans ces valeurs ou sans usage retourné, le coût est **inconnu**, jamais inventé.
 
-Le calcul tarifaire est simple : il ne modélise pas les remises cache, les paliers, les jetons facturés non déclarés ni la facturation GPU horaire. Le plafond d'appels n'est pas un plafond financier contractuel. Aucun nouvel essai HTTP automatique n'est effectué pour une réponse de fournisseur LLM en erreur.
+Le calcul tarifaire est simple : il ne modélise pas les remises cache, les paliers, les jetons facturés non déclarés ni la facturation GPU horaire. Le plafond d'appels n'est pas un plafond financier contractuel. Les erreurs transitoires sont réessayées au maximum deux fois avec backoff et jitter dans le délai et le budget d'appels ; 400, 401, 403 et 404 ne sont pas réessayées. Un timeout peut avoir été facturé même sans usage retourné.
 
 Si le plafond global interrompt la campagne, `campaign_complete` passe à `false` et la comparaison refuse ce rapport. Augmenter consciemment le budget ou réduire le lot, puis réexécuter les deux candidats dans les mêmes conditions.
 
@@ -145,3 +145,4 @@ La baseline à workflow fixe et le jeu de test indépendant ne sont pas inclus d
 ## Licence
 
 Le code original est sous licence MIT. Les données tierces conservent leurs droits propres : voir `data/NOTICE.md`. La licence du code ne change pas celle des sources.
+

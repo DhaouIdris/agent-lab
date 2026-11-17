@@ -86,7 +86,7 @@ Chaque campagne crée un dossier daté dans `runs/` avec `report.json`, `human_r
 
 Les requêtes sont séquentielles, espacées d'au moins 15 secondes entre débuts par défaut, avec 1 200 tokens de sortie maximum, 6 appels modèle et 8 appels d'outils maximum par tour. Le délai par tour est de 180 secondes, avec une enveloppe d'au plus 90 secondes par appel (attente d'espacement comprise), diminuée de l'espacement éventuel. Ces valeurs ne garantissent pas le respect du quota TPM : le prompt et l'historique comptent aussi. Un modèle à raisonnement peut consommer le plafond de sortie avant de produire un JSON utile.
 
-Une erreur HTTP/réseau interrompt le scénario et la campagne sans nouvelle tentative automatique. Les erreurs de comportement du modèle restent des échecs à analyser. `campaign_complete: true` signifie que la campagne est terminée, pas que les scénarios sont réussis.
+Les erreurs 429, 500, 502, 503, 504 et certains timeouts/coupures peuvent être réessayés au plus deux fois avec backoff et jitter, sous réserve du délai et du plafond d'appels. Un `Retry-After` valide est respecté ; si l'attente dépasse le délai disponible, l'exécution s'arrête. Une erreur persistante ou non réessayable interrompt la campagne. Les codes fournisseur reconnus sont journalisés sans message brut. Les erreurs de comportement du modèle restent des échecs à analyser. `campaign_complete: true` signifie que la campagne est terminée, pas que les scénarios sont réussis.
 
 ## 6. Lire les erreurs et contrôler le coût
 
@@ -116,3 +116,4 @@ Les annotations et les données sont limitées ; les réservations restent simul
 - Contrat REST v1 : https://learn.microsoft.com/en-us/rest/api/microsoft-foundry/azureopenai/chat
 
 La disponibilité propre à ta souscription n'a pas été vérifiée.
+

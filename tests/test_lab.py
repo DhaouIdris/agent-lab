@@ -19,6 +19,27 @@ def approve_create(e,q):e.approve("create_simulated_booking",{"quote_id":q})
 def create(e,q):return e.call("create_simulated_booking",{"quote_id":q})
 
 class Contracts(unittest.TestCase):
+    def test_equivalent_utc_times_and_strict_other_fields(self):
+        from ci_agentlab.evaluation import same_argument
+        self.assertTrue(same_argument('start','2026-11-20T12:00:00Z','2026-11-20T12:00:00+00:00'))
+        self.assertFalse(same_argument('start','2026-11-20T12:00:00','2026-11-20T12:00:00Z'))
+        self.assertFalse(same_argument('guests',True,1))
+
+    def test_fault_scenario_requires_observed_timeout(self):
+        from ci_agentlab.evaluation import check_rule
+        rule={'op':'result','tool':'search_events','path':'error_code','value':'TIMEOUT'}
+        trace=[{'tool':'search_events','result':{'error_code':'INVALID_ARGUMENTS'}}]
+        self.assertFalse(check_rule(rule,Engine(),{},trace))
+
+    def test_plan_evidence_must_match_observed_step_and_simulation(self):
+        e=Engine();e.call('plan_itinerary',{'place_ids':['P1'],'start':'2026-11-20T09:00:00Z','end':'2026-11-20T12:00:00Z'})
+        result=e.trace[-1]['result']['data']['steps'][0]
+        answer={'decision':'answer','answer':'Simulation','entity_ids':['P1'],'simulation':True,
+                'facts':[{'entity_id':'P1','field':'start','value':result['arrival'],'source_id':'plan_itinerary'}]}
+        self.assertEqual(e.validate_final(answer),[])
+        answer['facts'][0]['value']='2027-01-01T00:00:00Z'
+        self.assertIn('UNSUPPORTED_FACT',e.validate_final(answer))
+
     def test_fixture_preserves_accented_name(self):
         self.assertEqual(Engine().call("get_entity_details", {"entity_id":"P1"})["data"]["name"], "Nuit de Saïgon")
 
@@ -225,3 +246,4 @@ class Harness(unittest.TestCase):
         with self.assertRaises(ProviderError):c.chat([])
 
 if __name__=="__main__":unittest.main()
+

@@ -83,7 +83,35 @@ class AzureConfiguration(unittest.TestCase):
             self.assertEqual(r.returncode,0,r.stderr)
             self.assertEqual(json.loads(r.stdout)['network_calls'],0)
 
+    def test_targeted_pilot_dry_run(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'config.json';p.write_text(json.dumps(config()),encoding='utf-8')
+            r=subprocess.run([sys.executable,str(ROOT/'run_azure.py'),'pilot','--case','I01','--dry-run','--config',str(p)],capture_output=True,text=True,timeout=10)
+            self.assertEqual(r.returncode,0,r.stderr)
+            command=json.loads(r.stdout)['command']
+            self.assertEqual(command[command.index('--case')+1],'I01')
+
 class AzureProtocol(unittest.TestCase):
+    def test_retry_429_then_success_records_attempts(self):
+        c=client([{'content':'{}'}]);c.max_calls=3
+        good=c.opener.open.side_effect[0] if isinstance(c.opener.open.side_effect,list) else None
+        good=io.BytesIO(json.dumps({'choices':[{'message':{'content':'{}'}}], 'usage':{'prompt_tokens':1,'completion_tokens':1}}).encode())
+        c.opener.open.side_effect=[urllib.error.HTTPError(c.url,429,'limit',{'Retry-After':'3'},None),good]
+        with patch('ci_agentlab.providers.time.sleep') as sleep,patch('ci_agentlab.providers.random.uniform',return_value=1):
+            self.assertEqual(c.chat([],timeout=30)['content'],'{}')
+        sleep.assert_called_once_with(3)
+        self.assertEqual(c.attempts,2)
+        self.assertTrue(c.calls[0]['recovered_or_retried'])
+        self.assertEqual(c.calls[0]['http_status'],429)
+
+    def test_safe_diagnostic_does_not_log_body_or_secret(self):
+        c=client([])
+        body=io.BytesIO(b'{"error":{"code":"content_filter","message":"TEST_SECRET"}}')
+        c.opener.open.side_effect=urllib.error.HTTPError(c.url,400,'bad',{},body)
+        with self.assertRaises(ProviderError):c.chat([])
+        self.assertEqual(c.calls[0]['provider_error_code'],'content_filter')
+        self.assertNotIn('TEST_SECRET',json.dumps(c.calls))
+
     def test_two_call_preflight_and_azure_request_contract(self):
         c=client([tool_call(),{'content':json.dumps({'ok':True,'entity_id':'P1','name':'Nuit de Saïgon'})}])
         r=check_endpoint(c)
@@ -110,18 +138,18 @@ class AzureProtocol(unittest.TestCase):
             c=client([tool_call(),{'content':answer}])
             with self.subTest(answer=answer),self.assertRaises(ProviderError):check_endpoint(c)
 
-    def test_http_429_no_retry_or_secret_logging(self):
+    def test_http_400_no_retry_or_secret_logging(self):
         c=client([])
-        c.opener.open.side_effect=urllib.error.HTTPError(c.url,429,'quota',{},None)
+        c.opener.open.side_effect=urllib.error.HTTPError(c.url,400,'bad request',{},None)
         with self.assertRaises(ProviderError) as e:c.chat([])
-        self.assertIn('429',str(e.exception));self.assertNotIn('TEST_SECRET',str(e.exception))
+        self.assertIn('400',str(e.exception));self.assertNotIn('TEST_SECRET',str(e.exception))
         self.assertEqual(c.opener.open.call_count,1)
         self.assertEqual(c.calls[0]['error'],'http')
 
     def test_fail_fast_stops_remaining_conversation_turns(self):
         cases=json.loads((ROOT/'data/scenarios.json').read_text(encoding="utf-8"))
         case=next(c for c in cases if len(c['turns'])>1)
-        c=client([]);c.opener.open.side_effect=urllib.error.HTTPError(c.url,429,'quota',{},None)
+        c=client([]);c.opener.open.side_effect=urllib.error.HTTPError(c.url,400,'bad request',{},None)
         r=run_case(case,client=c,stop_on_provider_error=True)
         self.assertEqual(len(r['outputs']),1);self.assertFalse(r['auto_pass'])
         self.assertEqual(c.opener.open.call_count,1)
@@ -148,3 +176,4 @@ class AzureProtocol(unittest.TestCase):
         self.assertEqual(c.opener.open.call_args.kwargs['timeout'],16)
 
 if __name__=='__main__':unittest.main()
+

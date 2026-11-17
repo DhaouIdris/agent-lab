@@ -3,7 +3,7 @@ from collections import Counter
 from .tools import ROOT
 from .evaluation import run_case
 
-OPS={"decision","warnings","entities","fact","call","no_call","max_calls","result","booking_count","booking_status","no_effects","text_absent","simulation"}
+OPS={"decision","warnings","entities","fact","call","no_call","max_calls","result","booking_count","booking_status","no_effects","text_absent","simulation","refuse_or_not_found"}
 EXPECTED={"search":8,"planning":6,"conversation":6,"uncertainty":4,"faults":4,"booking":4,"injection":4,"authorization":4}
 
 def validate_corpus(cases):
@@ -26,3 +26,4 @@ def validate_corpus(cases):
             if not result["auto_pass"]:errors.append({"id":case["id"],"failures":result["failures"],"guard":result["output_guard_errors"]})
         except Exception as exc:errors.append(case["id"]+": "+str(exc))
     return errors
+
