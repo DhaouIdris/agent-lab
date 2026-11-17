@@ -11,8 +11,8 @@ def validate_corpus(cases):
     if len(cases)!=40:errors.append("Expected 40 development scenarios")
     if len({c["id"] for c in cases})!=len(cases):errors.append("Duplicate case IDs")
     if dict(Counter(c["category"] for c in cases))!=EXPECTED:errors.append("Category counts differ from specification")
-    replays=json.loads((ROOT/"data/oracle_replays.json").read_text())
-    sources=json.loads((ROOT/"data/world.json").read_text())["sources"]
+    replays=json.loads((ROOT/"data/oracle_replays.json").read_text(encoding="utf-8"))
+    sources=json.loads((ROOT/"data/world.json").read_text(encoding="utf-8"))["sources"]
     for case in cases:
         for key in ("ground_truth","source_ids","allowed_actions","human_rubric","annotation_status","reference_clock"):
             if not case.get(key):errors.append(f'{case["id"]}: missing {key}')
