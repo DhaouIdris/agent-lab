@@ -34,6 +34,16 @@ def tool_call():
         'name':'get_entity_details','arguments':'{"entity_id":"P1"}'}}]}
 
 class AzureConfiguration(unittest.TestCase):
+    def test_report_and_metadata_omit_endpoint_and_local_path(self):
+        import argparse
+        from ci_agentlab.__main__ import report_config
+        endpoint='https://private-resource.openai.azure.com/openai/v1'
+        cfg=report_config(argparse.Namespace(base_url=endpoint,out='C:/private/user/runs',api_key_env='SECRET_VAR',model='model'))
+        self.assertEqual(cfg,{'model':'model'})
+        meta=run_azure.public_config({**config(),'base_url':endpoint})
+        self.assertNotIn(endpoint,json.dumps(meta))
+        self.assertNotIn('base_url',meta)
+
     def load(self,c):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'azure.json';p.write_text(json.dumps(c),encoding='utf-8-sig')
@@ -90,6 +100,9 @@ class AzureConfiguration(unittest.TestCase):
             self.assertEqual(r.returncode,0,r.stderr)
             command=json.loads(r.stdout)['command']
             self.assertEqual(command[command.index('--case')+1],'I01')
+            self.assertEqual(command[command.index('--base-url')+1],'[REDACTED]')
+            self.assertEqual(command[command.index('--out')+1],'[REDACTED]')
+            self.assertNotIn(config()['base_url'],r.stdout)
 
 class AzureProtocol(unittest.TestCase):
     def test_content_filter_is_distinct_from_agent_refusal(self):
@@ -195,5 +208,6 @@ class AzureProtocol(unittest.TestCase):
         self.assertEqual(c.opener.open.call_args.kwargs['timeout'],16)
 
 if __name__=='__main__':unittest.main()
+
 
 
