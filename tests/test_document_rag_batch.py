@@ -6,6 +6,19 @@ from experiments.document_rag import load_corpus
 from experiments.document_rag_batch import run_batch,CASES
 
 class BatchTests(unittest.TestCase):
+    def test_recall_reports_missing_second_relevant_passage(self):
+        class Fake:
+            def __init__(self):self.calls=[]
+            def chat(self,messages,**kwargs):
+                self.calls.append({'usage':{'prompt_tokens':1,'completion_tokens':1}})
+                ids=[p['id'] for p in json.loads(messages[-1]['content'])['passages']]
+                return {'content':json.dumps({'answer':'inconnu','abstain':True,'citation_ids':ids[:1]})}
+        case={'id':'conflict','question':'Grand Bassam','expected_behavior':'abstain',
+              'relevant_ids':['CI_UNESCO_BASSAM','CI_UNESCO_TAI'],'human_expectation':'review'}
+        r=run_batch(Fake(),load_corpus(),[case],k=1)
+        self.assertTrue(r['results'][0]['retrieval_hit_at_k'])
+        self.assertEqual(r['results'][0]['retrieval_recall_at_k'],0.5)
+
     def setUp(self):
         self.docs=load_corpus();self.cases=json.loads(CASES.read_text(encoding='utf-8'))
 
@@ -46,3 +59,4 @@ class BatchTests(unittest.TestCase):
         self.assertTrue(r['results'][0]['output']['abstain']);self.assertEqual(r['summary']['provider_attempts'],0)
 
 if __name__=='__main__':unittest.main()
+
