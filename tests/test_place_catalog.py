@@ -34,7 +34,7 @@ class CatalogueTests(unittest.TestCase):
 
     def test_audit_counts_match_import_and_overlapping_reasons(self):
         with self.csv.open('a',encoding='utf8',newline='') as f:
-            csv.writer(f).writerow(['way/4','','Fast-Food','not-json',''])
+            csv.writer(f).writerow(['way/4','','Unmapped','not-json',''])
         audit=audit_csv(self.csv)
         self.assertEqual(audit['counts']['rejected'],2)
         self.assertEqual(audit['rejection_reasons_overlapping'],{'invalid_geometry':2,'missing_name':1,'unsupported_category':1})
@@ -44,6 +44,22 @@ class CatalogueTests(unittest.TestCase):
             self.assertEqual(audit['counts'][k],meta['counts'][k])
         self.assertEqual(audit['file_sha256'],meta['file_sha256'])
 
+    def test_fast_food_and_ice_cream_keep_distinct_categories(self):
+        with self.csv.open('a',encoding='utf8',newline='') as f:
+            w=csv.writer(f);geometry=json.dumps({'type':'Point','coordinates':[-4,5.3]})
+            w.writerow(['way/4','Le fast-food','Fast-Food',geometry,''])
+            w.writerow(['way/5','Le glacier','Ice-Cream',geometry,''])
+            w.writerow(['way/6','','Ice-Cream',geometry,''])
+        audit=audit_csv(self.csv)
+        self.assertEqual(audit['accepted_categories']['fast_food'],1)
+        self.assertEqual(audit['accepted_categories']['ice_cream'],1)
+        self.assertEqual(audit['rejection_reasons_overlapping']['missing_name'],1)
+        import_csv(self.csv,self.db)
+        self.assertEqual(search(self.db,category='fast_food')['items'][0]['source_id'],'way/4')
+        self.assertEqual(search(self.db,category='ice_cream')['items'][0]['source_id'],'way/5')
+        self.assertEqual(search(self.db,category='restaurant')['items'][0]['source_id'],'way/3')
+
 
 if __name__=='__main__':unittest.main()
+
 
