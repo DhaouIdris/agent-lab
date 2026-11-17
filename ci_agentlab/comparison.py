@@ -3,6 +3,8 @@ import statistics
 from collections import defaultdict
 
 def compare(left,right,seed=42):
+    if any(r.get("evaluation_status")=="provider_filtered" for report in (left,right) for r in report.get("results",[])):
+        raise ValueError("Provider-filtered scenarios require separate analysis; automatic comparison disabled")
     if not left.get("campaign_complete",True) or not right.get("campaign_complete",True):
         raise ValueError("Incomplete campaign: global call cap reached; rerun with a sufficient fixed budget")
     if not left["kind"].startswith("model_") or not right["kind"].startswith("model_"):
@@ -24,3 +26,4 @@ def compare(left,right,seed=42):
     return {"right_minus_left_automatic_pass":statistics.mean(differences),"paired_scenario_bootstrap_95":[samples[124],samples[4874]],
             "distinct_scenarios":len(differences),"human_success_comparison":None,
             "interpretation":"Exploratory paired result on development scenarios; not a production superiority claim. Check safety separately and adjudicate human reviews."}
+
