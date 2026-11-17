@@ -92,6 +92,25 @@ class AzureConfiguration(unittest.TestCase):
             self.assertEqual(command[command.index('--case')+1],'I01')
 
 class AzureProtocol(unittest.TestCase):
+    def test_content_filter_is_distinct_from_agent_refusal(self):
+        from ci_agentlab.evaluation import aggregate
+        cases=json.loads((ROOT/'data/scenarios.json').read_text(encoding='utf-8'))
+        case=next(x for x in cases if x['id']=='I01')
+        c=client([])
+        c.opener.open.side_effect=urllib.error.HTTPError(c.url,400,'filtered',{},io.BytesIO(b'{"error":{"code":"content_filter"}}'))
+        r=run_case(case,client=c,stop_on_provider_error=True)
+        self.assertEqual(r['evaluation_status'],'provider_filtered')
+        self.assertFalse(r['auto_pass'])
+        self.assertEqual(r['outputs'][0]['decision'],'abstain')
+        summary=aggregate([r])
+        self.assertEqual(summary['provider_filtered_runs'],1)
+        self.assertIsNone(summary['automatic_pass_rate_evaluable_runs'])
+
+    def test_unknown_400_is_not_classified_as_filter(self):
+        from ci_agentlab.evaluation import is_provider_filtered
+        self.assertFalse(is_provider_filtered({'error':'http','http_status':400}))
+        self.assertFalse(is_provider_filtered({'error':'http','http_status':429,'provider_error_code':'content_filter'}))
+
     def test_retry_429_then_success_records_attempts(self):
         c=client([{'content':'{}'}]);c.max_calls=3
         good=c.opener.open.side_effect[0] if isinstance(c.opener.open.side_effect,list) else None
@@ -176,4 +195,5 @@ class AzureProtocol(unittest.TestCase):
         self.assertEqual(c.opener.open.call_args.kwargs['timeout'],16)
 
 if __name__=='__main__':unittest.main()
+
 
