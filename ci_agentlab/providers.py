@@ -122,8 +122,10 @@ class ChatClient:
             if wait:time.sleep(wait);timeout-=wait
         self.attempts+=1
         self.last_request_at=time.monotonic()
-        body={"model":self.model,"messages":messages,"tools":tools_override if tools_override is not None else tool_specs(),"tool_choice":tool_choice,
-              self.token_parameter:self.max_output_tokens}
+        body={"model":self.model,"messages":messages,self.token_parameter:self.max_output_tokens}
+        selected_tools=tools_override if tools_override is not None else tool_specs()
+        if selected_tools:
+            body["tools"]=selected_tools;body["tool_choice"]=tool_choice
         if response_format:body["response_format"]=response_format
         if self.reasoning_effort:body["reasoning_effort"]=self.reasoning_effort
         headers={"Content-Type":"application/json"}
@@ -215,6 +217,7 @@ class ToolAgent:
                 result=self.engine.call(name,args)
                 self.messages.append({"role":"tool","tool_call_id":cid,"content":json.dumps(result,ensure_ascii=False)})
         raise ProviderError("Agent exhausted model-round budget")
+
 
 
 
