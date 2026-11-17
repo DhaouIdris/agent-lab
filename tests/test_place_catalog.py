@@ -3,7 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from experiments.place_catalog import import_csv,search
+from experiments.place_catalog import import_csv,search,audit_csv
 
 class CatalogueTests(unittest.TestCase):
     def setUp(self):
@@ -32,4 +32,18 @@ class CatalogueTests(unittest.TestCase):
         with self.assertRaises(ValueError):import_csv(self.csv,self.db)
         self.assertFalse(self.db.exists())
 
+    def test_audit_counts_match_import_and_overlapping_reasons(self):
+        with self.csv.open('a',encoding='utf8',newline='') as f:
+            csv.writer(f).writerow(['way/4','','Fast-Food','not-json',''])
+        audit=audit_csv(self.csv)
+        self.assertEqual(audit['counts']['rejected'],2)
+        self.assertEqual(audit['rejection_reasons_overlapping'],{'invalid_geometry':2,'missing_name':1,'unsupported_category':1})
+        self.assertEqual(audit['accepted_categories'],{'cafe':1,'restaurant':1})
+        meta=import_csv(self.csv,self.db)
+        for k in ('rows','inserted','duplicates','rejected'):
+            self.assertEqual(audit['counts'][k],meta['counts'][k])
+        self.assertEqual(audit['file_sha256'],meta['file_sha256'])
+
+
 if __name__=='__main__':unittest.main()
+
