@@ -30,7 +30,7 @@ def reply(status="ok", data=None, code=None, retryable=False, missing=None, conf
 class Engine:
     def __init__(self, world=None, actor="alice", now="2026-11-16T12:00:00+00:00", scopes=None,
                  max_calls=8, deadline_seconds=60):
-        self.world=copy.deepcopy(world or json.loads((ROOT/"data/world.json").read_text()))
+        self.world=copy.deepcopy(world or json.loads((ROOT/"data/world.json").read_text(encoding="utf-8")))
         self.actor=actor
         self.now=aware(now)
         self.scopes=set(TOOL_MODELS) if scopes is None else set(scopes)
