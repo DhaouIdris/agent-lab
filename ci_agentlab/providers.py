@@ -27,7 +27,7 @@ Warnings use concise codes, for example unknown_wifi, stale_data, incomplete_bud
 conflicting_sources, tool_unavailable, no_results_in_inventory, simulation_only,
 approval_required, infeasible_plan, unknown_travel_time, out_of_scope.
 Facts must contain entity_id, field, exact value and source_id from returned
-evidence. entity_ids must be IDs you actually retrieved. Do not invent citations.
+evidence, using the exact field name and the exact value and type from the same\nentity in the tool result. Do not combine latitude and longitude into a location\nfact, rename fields, or turn null into a string. The facts schema cannot represent\nnull: omit unknown values from facts; describe uncertainty in the answer and add\nthe appropriate warning instead. Include only facts relevant to the user's request.\nentity_ids must be IDs you actually retrieved. Do not invent citations.
 Never claim a booking unless a tool returned its ID/status; simulation must be true.
 """
 
