@@ -245,6 +245,10 @@
             }
           },
           {
+            "op": "exclusive_end_not_inclusive",
+            "exclusive_date": "2026-11-23"
+          },
+          {
             "op": "no_effects"
           }
         ]
