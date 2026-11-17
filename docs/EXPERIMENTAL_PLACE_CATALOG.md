@@ -4,7 +4,7 @@ Ce prototype importe un CSV au format de la copie Hugging Face du jeu « Hôtels
 
 Source d'origine : https://data.gouv.ci/datasets/hotels-et-restauration-en-cote-divoire (7 222 lignes annoncées, mise à jour indiquée : 23 septembre 2022). Copie consultée : https://huggingface.co/datasets/electricsheepafrica/africa-cote-d-ivoire-hotels-et-restauration-en-cote-d-ivoire-2e09f9a1 . Le portail mentionne une licence ouverte ; les données sont attribuées à OpenStreetMap : créditer © OpenStreetMap contributors, vérifier ODbL et les conditions exactes avant redistribution. https://www.openstreetmap.org/copyright
 
-**Le CSV complet n'a pas été téléchargé ni testé dans ce prototype.** Les tests portent sur des lignes synthétiques. Les 7 222 lignes ne signifient pas 7 222 fiches utilisables : nom, catégorie ou coordonnées peuvent manquer. Le script rejette les champs obligatoires absents, les catégories hors hôtel/café/restaurant/bar, les géométries non ponctuelles et les doublons d'identifiant ; un comptage est retourné. La qualité, la couverture, les doublons d'établissements portant des identifiants différents et le statut actuel ne sont pas vérifiés.
+Les 7 222 lignes ne signifient pas 7 222 fiches utilisables : nom, catégorie ou coordonnées peuvent manquer. Le script rejette les champs obligatoires absents, les catégories hors hôtel/café/restaurant/bar/fast-food/glacier, les géométries non ponctuelles et les doublons d'identifiant ; un comptage est retourné. La qualité, la couverture, les doublons d'établissements portant des identifiants différents et le statut actuel ne sont pas vérifiés.
 
 La copie propose un fichier Parquet ; la conversion CSV ci-dessous utilise pandas et pyarrow, installés seulement pour cette étape. Les colonnes attendues sont `id`, `nom_de_l_etablissement`, `categorie`, `geometry` (GeoJSON Point), `ville_ou_commune`. Si l'export ne contient pas ces colonnes ou utilise un autre format, il faut adapter l'importeur ; il échoue explicitement. Les numéros de téléphone et autres champs ne sont volontairement pas importés dans SQLite. Le chemin `main` peut évoluer ; on enregistre l'empreinte du fichier CSV effectivement utilisé.
 
@@ -30,5 +30,16 @@ Pour auditer le même CSV sans modifier la base existante :
 
 L'audit compte les motifs de rejet, catégories et communes manquantes. Un enregistrement peut avoir plusieurs motifs ; leur somme peut dépasser le nombre de lignes rejetées. L'audit ne renvoie aucune ligne individuelle.
 
+Les catégories `Fast-Food` et `Ice-Cream` sont conservées séparément sous les noms `fast_food` et `ice_cream`. Une fiche sans nom reste rejetée. Pour mesurer le gain et comparer avec le premier import, exécuter l'audit sur le même CSV ; puis construire une nouvelle base sans écraser l'ancienne :
+
+```powershell
+.\.venv\Scripts\python.exe experiments/place_catalog.py audit-csv --csv local_data/lieux.csv
+.\.venv\Scripts\python.exe experiments/place_catalog.py import-csv --csv local_data/lieux.csv --db local_data/lieux_v2.sqlite
+.\.venv\Scripts\python.exe experiments/place_catalog.py search --db local_data/lieux_v2.sqlite --category ice_cream --limit 10
+```
+
+Comparer les chiffres uniquement si le SHA-256 du CSV correspond. Les anciens résultats de la base restent inchangés. Cette modification ne branche pas encore le catalogue à l'agent et ne modifie pas la fixture de benchmark.
+
 Suite avant intégration à l'agent : auditer le fichier réel, répartir les rejets par cause, mesurer couverture par catégorie/commune et duplications, concevoir l'identifiant et la provenance jusqu'aux citations, prévoir pagination, fraîcheur et gestion d'échec. Figer une copie séparée de la fixture d'évaluation. Pour les documents, ajouter ensuite un corpus autorisé, extraction avec provenance, recherche lexicale puis hybride et un jeu de pertinence indépendant. Ne pas confondre RAG documentaire et base structurée des lieux.
+
 
