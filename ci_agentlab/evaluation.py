@@ -11,6 +11,11 @@ from .tools import Engine,ROOT,WRITES
 from .contracts import aware
 from .providers import ToolAgent,ProviderError
 
+FILTER_CODES={"content_filter","content_policy_violation","ResponsibleAIPolicyViolation"}
+
+def is_provider_filtered(call):
+    return call.get("error")=="http" and call.get("http_status")==400 and call.get("provider_error_code") in FILTER_CODES
+
 def prepare(case):
     world=json.loads((ROOT/"data/world.json").read_text(encoding="utf-8"))
     setup=case.get("setup",{})
@@ -118,6 +123,8 @@ def run_case(case,replay=None,client=None,turn_timeout_seconds=60,stop_on_provid
         shield_errors.extend({"turn":i,"error":x} for x in errs)
         for j,rule in enumerate(turn["checks"]):
             if not check_rule(rule,engine,final,engine.trace[offset:]):failures.append({"turn":i,"rule":j,"check":rule})
+        if client and any(is_provider_filtered(x) for x in client.calls[initial_call_count:]):
+            break
         if stop_on_provider_error and client and any(x.get("error") and not x.get("recovered_or_retried") for x in client.calls[initial_call_count:]):
             break
     # Policy attempts and executed effects are distinct. All booking effects must
@@ -132,7 +139,9 @@ def run_case(case,replay=None,client=None,turn_timeout_seconds=60,stop_on_provid
     cost=None
     if client and client.input_price is not None and client.output_price is not None and all("prompt_tokens" in c["usage"] and "completion_tokens" in c["usage"] for c in calls):
         cost=sum((c["usage"]["prompt_tokens"]*client.input_price+c["usage"]["completion_tokens"]*client.output_price)/1e6 for c in calls)
+    filtered=any(is_provider_filtered(c) for c in calls)
     return {"case_id":case["id"],"category":case["category"],"auto_pass":not failures and not shield_errors and not unauthorized_effects,
+            "evaluation_status":"provider_filtered" if filtered else "evaluated",
             "human_review_required":True,"failures":failures,"output_guard_errors":shield_errors,
             "blocked_calls":denied,"unauthorized_effects":unauthorized_effects,"tool_calls":len(engine.trace),
             "latency_seconds":time.monotonic()-started,"cost":cost,"provider_calls":calls,
@@ -151,7 +160,11 @@ def aggregate(results,seed=42):
     total_cost=sum(r["cost"] for r in results) if all_cost_known else None
     successes=sum(r["auto_pass"] for r in results)
     repetitions=sorted(set(len(rs) for rs in groups.values()))
+    filtered=[r for r in results if r.get("evaluation_status")=="provider_filtered"]
+    evaluated=[r for r in results if r.get("evaluation_status")!="provider_filtered"]
     return {"distinct_scenarios":len(groups),"runs":len(results),"repetitions_per_case":repetitions,
+        "provider_filtered_runs":len(filtered),"evaluable_runs":len(evaluated),
+        "automatic_pass_rate_evaluable_runs":statistics.mean(r["auto_pass"] for r in evaluated) if evaluated else None,
         "automatic_pass_rate":statistics.mean(means) if means else None,
         "bootstrap_95_by_scenario":[boot[49],boot[1949]] if boot else None,
         "all_repetitions_pass_rate":statistics.mean(all(r["auto_pass"] for r in rs) for rs in groups.values()) if groups else None,
@@ -162,5 +175,6 @@ def aggregate(results,seed=42):
         "unauthorized_effects":sum(r["unauthorized_effects"] for r in results),
         "total_cost":total_cost,"cost_per_automatic_pass":total_cost/successes if all_cost_known and successes else None,
         "human_adjudicated_task_success_rate":None,
-        "caveat":"Automatic checks only; free-text faithfulness, usefulness and over-refusal require independent human adjudication. Bootstrap on this purposive pilot does not establish population representativeness."}
+        "caveat":"Legacy automatic_pass_rate counts provider-filtered runs as failures; it does not measure model-only success. Evaluable-run rate excludes filtered runs and needs human review. Filtering may happen before or during model response; stage is not identified here. Bootstrap on this purposive pilot is not population-representative."}
+
 
