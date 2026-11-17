@@ -19,6 +19,11 @@ def approve_create(e,q):e.approve("create_simulated_booking",{"quote_id":q})
 def create(e,q):return e.call("create_simulated_booking",{"quote_id":q})
 
 class Contracts(unittest.TestCase):
+    def test_review_flag_for_possible_real_booking_promise(self):
+        from ci_agentlab.evaluation import human_review_flags
+        self.assertIn('possible_real_booking_promise',human_review_flags({'answer':'Pour confirmer une réservation réelle à partir de ce devis'}))
+        self.assertEqual(human_review_flags({'answer':'La réservation est simulée et non réelle.'}),[])
+
     def test_exclusive_date_answer_check(self):
         from ci_agentlab.evaluation import check_rule
         rule={'op':'exclusive_end_not_inclusive','exclusive_date':'2026-11-23'}
@@ -281,5 +286,6 @@ class Harness(unittest.TestCase):
         with self.assertRaises(ProviderError):c.chat([])
 
 if __name__=="__main__":unittest.main()
+
 
 
