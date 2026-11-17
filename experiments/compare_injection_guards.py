@@ -47,7 +47,7 @@ def evaluate_file(path):
         if not isinstance(c, dict) or not isinstance(c.get('id'), str) or not c['id'] or c['id'] in ids or c.get('label') not in ('malicious', 'benign') or not isinstance(c.get('text'), str) or not c['text'].strip():
             raise ValueError('Invalid case or duplicate ID')
         ids.add(c['id'])
-    return {'file': str(path), 'sha256': hashlib.sha256(raw).hexdigest(), 'cases': len(cases),
+    return {'file': Path(path).name, 'sha256': hashlib.sha256(raw).hexdigest(), 'cases': len(cases),
             'baseline': score(cases, lambda t: bool(inspect_passages([{'id':'X', 'text':t}]))),
             'candidate_offline_only': score(cases, candidate)}
 
