@@ -22,4 +22,13 @@ Invoke-WebRequest -Uri 'https://huggingface.co/datasets/electricsheepafrica/afri
 
 La base cible ne doit pas déjà exister. Le résultat de l'import indique le nombre accepté/rejeté, l'empreinte SHA-256 du fichier source et la provenance. Les résultats sont historiquement datés et ne prouvent pas que les lieux sont ouverts ; aucune disponibilité, réservation, note ou prix actuel n'est fourni. La recherche accent-insensible est une correspondance littérale et la commune peut manquer. Garder le CSV et la base hors Git.
 
+Pour auditer le même CSV sans modifier la base existante :
+
+```powershell
+.\.venv\Scripts\python.exe experiments/place_catalog.py audit-csv --csv local_data/lieux.csv
+```
+
+L'audit compte les motifs de rejet, catégories et communes manquantes. Un enregistrement peut avoir plusieurs motifs ; leur somme peut dépasser le nombre de lignes rejetées. L'audit ne renvoie aucune ligne individuelle.
+
 Suite avant intégration à l'agent : auditer le fichier réel, répartir les rejets par cause, mesurer couverture par catégorie/commune et duplications, concevoir l'identifiant et la provenance jusqu'aux citations, prévoir pagination, fraîcheur et gestion d'échec. Figer une copie séparée de la fixture d'évaluation. Pour les documents, ajouter ensuite un corpus autorisé, extraction avec provenance, recherche lexicale puis hybride et un jeu de pertinence indépendant. Ne pas confondre RAG documentaire et base structurée des lieux.
+
