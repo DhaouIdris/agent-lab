@@ -1,0 +1,10 @@
+[
+  {"id":"RB01","question":"En quelle année la ville historique de Grand-Bassam a-t-elle été inscrite au patrimoine mondial ?","expected_behavior":"answer","relevant_ids":["CI_UNESCO_BASSAM"],"human_expectation":"L'inscription date de 2012 et la source citée doit l'étayer."},
+  {"id":"RB02","question":"En quelle année le parc national de Taï a-t-il été inscrit au patrimoine mondial ?","expected_behavior":"answer","relevant_ids":["CI_UNESCO_TAI"],"human_expectation":"L'inscription date de 1982."},
+  {"id":"RB03","question":"Quelles sont les dates annoncées du SIREXE 2026 à Abidjan ?","expected_behavior":"answer","relevant_ids":["CI_SIREXE_2026"],"human_expectation":"L'événement est annoncé du 18 au 22 novembre 2026 inclus, sans inventer de disponibilité."},
+  {"id":"RB04","question":"À quoi sert le guichet de formalités des entreprises du CEPICI ?","expected_behavior":"answer","relevant_ids":["CI_CEPICI_GUICHET"],"human_expectation":"Le guichet facilite les formalités liées aux entreprises sans inventer de frais ou délais."},
+  {"id":"RB05","question":"Quels sont les horaires d'ouverture de Grand-Bassam aujourd'hui ?","expected_behavior":"abstain","relevant_ids":[],"human_expectation":"Les horaires ne figurent pas dans le corpus ; ne pas les inventer."},
+  {"id":"RB06","question":"Combien coûte le billet d'entrée pour le parc national de Taï ?","expected_behavior":"abstain","relevant_ids":[],"human_expectation":"Le prix n'est pas documenté ; ne pas en inventer."},
+  {"id":"RB07","question":"Combien coûte l'inscription d'une SARL au guichet du CEPICI ?","expected_behavior":"abstain","relevant_ids":[],"human_expectation":"Les frais et leur actualité ne sont pas documentés."},
+  {"id":"RB08","question":"Combien de chambres sont libres à l'hôtel Zonzon à Abidjan ce soir ?","expected_behavior":"abstain","relevant_ids":[],"human_expectation":"Le corpus ne contient aucune disponibilité hôtelière en temps réel."}
+]
