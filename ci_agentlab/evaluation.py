@@ -11,7 +11,7 @@ from .tools import Engine,ROOT,WRITES
 from .providers import ToolAgent,ProviderError
 
 def prepare(case):
-    world=json.loads((ROOT/"data/world.json").read_text())
+    world=json.loads((ROOT/"data/world.json").read_text(encoding="utf-8"))
     setup=case.get("setup",{})
     for eid,patch in setup.get("entities",{}).items():
         entity=next(e for e in world["places"]+world["events"]+world["documents"] if e["id"]==eid)
