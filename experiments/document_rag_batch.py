@@ -1,12 +1,13 @@
 """Opt-in sequential RAG development batch. Requires Azure configuration and credits."""
 import argparse
+import hashlib
 import getpass
 import json
 import os
 from datetime import datetime,timezone
 from pathlib import Path
 from ci_agentlab.providers import ChatClient,ProviderError
-from experiments.document_rag import ROOT,load_corpus,retrieve,generate
+from experiments.document_rag import ROOT,CORPUS,load_corpus,retrieve,generate
 from run_azure import load_config
 
 CASES=ROOT/'data/rag_batch_dev.json'
@@ -24,9 +25,10 @@ def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180):
             row['output']=output
             row['behavior_match']=output['abstain']==(case['expected_behavior']=='abstain')
             row['retrieval_hit_at_k']=bool(set(case['relevant_ids']) & {x['id'] for x in hits}) if case['relevant_ids'] else None
+            row['retrieval_recall_at_k']=len(set(case['relevant_ids']) & {x['id'] for x in hits})/len(set(case['relevant_ids'])) if case['relevant_ids'] else None
             row['error']=None
         except (ProviderError,ValueError) as exc:
-            row.update(output=None,behavior_match=None,retrieval_hit_at_k=None,error=type(exc).__name__+': '+str(exc)[:180])
+            row.update(output=None,behavior_match=None,retrieval_hit_at_k=None,retrieval_recall_at_k=None,error=type(exc).__name__+': '+str(exc)[:180])
             complete=False
         row['provider_calls']=client.calls[start:]
         results.append(row)
@@ -39,6 +41,7 @@ def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180):
              'behavior_matches':sum(r['behavior_match'] for r in judged),
              'behavior_match_rate':sum(r['behavior_match'] for r in judged)/len(judged) if judged else None,
              'retrieval_hit_count':sum(r['retrieval_hit_at_k'] for r in retrieved),
+             'mean_retrieval_recall_at_k':sum(r['retrieval_recall_at_k'] for r in retrieved)/len(retrieved) if retrieved else None,
              'retrieval_cases_with_labels':len(retrieved),
              'provider_attempts':len(usage),'prompt_tokens_reported':sum(u.get('prompt_tokens',0) for u in usage),
              'completion_tokens_reported':sum(u.get('completion_tokens',0) for u in usage),
@@ -50,8 +53,13 @@ def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--config',default='azure.json');p.add_argument('--out')
-    p.add_argument('--k',type=int,default=3);a=p.parse_args()
-    docs=load_corpus();cases=json.loads(CASES.read_text(encoding='utf-8'))
+    p.add_argument('--k',type=int,default=3);p.add_argument('--corpus',default=str(CORPUS));p.add_argument('--cases',default=str(CASES));a=p.parse_args()
+    corpus_path=Path(a.corpus);cases_path=Path(a.cases)
+    docs=load_corpus(corpus_path);cases=json.loads(cases_path.read_text(encoding='utf-8'))
+    if not isinstance(cases,list) or not 1<=len(cases)<=20:p.error('Cases must contain 1..20 examples')
+    required=('id','question','expected_behavior','human_expectation','relevant_ids')
+    if any(not isinstance(c,dict) or any(k not in c for k in required) or c['expected_behavior'] not in ('answer','abstain') or not isinstance(c['relevant_ids'],list) for c in cases):
+        p.error('Invalid case metadata')
     if type(a.k)!=int or not 1<=a.k<=10:p.error('k must be 1..10')
     out=Path(a.out) if a.out else ROOT/'runs'/('rag_batch_'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
     if out.exists():p.error('Result directory exists; choose a new path')
@@ -68,9 +76,11 @@ def main():
         temp.write_text(json.dumps(partial,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         temp.replace(out/'report.json')
     report=run_batch(client,docs,cases,k=a.k,on_progress=checkpoint,turn_timeout=cfg['turn_timeout_seconds'])
-    report['config']={'model':cfg['underlying_model'],'deployment':cfg['deployment'],'model_version':cfg['model_version'],'k':a.k,'max_provider_calls':3*len(cases)}
+    report['config']={'model':cfg['underlying_model'],'deployment':cfg['deployment'],'model_version':cfg['model_version'],'k':a.k,'max_provider_calls':3*len(cases),
+        'corpus_sha256':hashlib.sha256(corpus_path.read_bytes()).hexdigest(),'cases_sha256':hashlib.sha256(cases_path.read_bytes()).hexdigest()}
     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(report['summary'],ensure_ascii=False,indent=2));print('Rapport :',out/'report.json')
     if not report['campaign_complete']:p.exit(1,'Campagne interrompue ; consulter le rapport partiel.\n')
 
 if __name__=='__main__':main()
+
