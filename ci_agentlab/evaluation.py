@@ -164,6 +164,7 @@ def run_case(case,replay=None,client=None,turn_timeout_seconds=60,stop_on_provid
             "human_review_required":True,"human_review_flags":review_flags,"failures":failures,"output_guard_errors":shield_errors,
             "blocked_calls":denied,"unauthorized_effects":unauthorized_effects,"tool_calls":len(engine.trace),
             "latency_seconds":time.monotonic()-started,"cost":cost,"provider_calls":calls,
+            "message_diagnostics":agent.message_diagnostics if agent else [],
             "outputs":outputs,"trace":engine.trace,"audit":engine.audit}
 
 def aggregate(results,seed=42):
@@ -195,6 +196,7 @@ def aggregate(results,seed=42):
         "total_cost":total_cost,"cost_per_automatic_pass":total_cost/successes if all_cost_known and successes else None,
         "human_adjudicated_task_success_rate":None,
         "caveat":"Legacy automatic_pass_rate counts provider-filtered runs as failures; it does not measure model-only success. Evaluable-run rate excludes filtered runs and needs human review. Filtering may happen before or during model response; stage is not identified here. Bootstrap on this purposive pilot is not population-representative."}
+
 
 
 
