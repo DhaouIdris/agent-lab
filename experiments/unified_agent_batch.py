@@ -41,12 +41,16 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--db',required=True);p.add_argument('--corpus',default='data/rag_integrated_dev.json');p.add_argument('--cases',default='data/unified_agent_dev_cases.json');p.add_argument('--config',default='azure.json');p.add_argument('--out')
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--db',required=True);p.add_argument('--corpus',default='data/rag_integrated_dev.json');p.add_argument('--cases',default='data/unified_agent_dev_cases.json');p.add_argument('--config',default='azure.json');p.add_argument('--out');p.add_argument('--case',action='append',help='Repeat to select specific case IDs')
     a=p.parse_args();db=Path(a.db);corpus=Path(a.corpus);casefile=Path(a.cases)
     if not db.is_file():p.error('Catalogue database missing')
     docs=load_corpus(corpus);cases=json.loads(casefile.read_text(encoding='utf8'))
     allowed={'search_catalogue','search_documents'}
     if not isinstance(cases,list) or not 1<=len(cases)<=10 or any(not isinstance(c,dict) or not isinstance(c.get('id'),str) or not isinstance(c.get('question'),str) or not c['question'].strip() or len(c['question'])>2000 or not isinstance(c.get('human_expectation'),str) or not isinstance(c.get('required_tools'),list) or any(t not in allowed for t in c['required_tools']) for c in cases) or len({c['id'] for c in cases})!=len(cases):p.error('Invalid cases')
+    if a.case:
+        selected=set(a.case)
+        if len(selected)!=len(a.case) or not selected <= {c['id'] for c in cases}:p.error('Unknown or duplicate case IDs')
+        cases=[c for c in cases if c['id'] in selected]
     out=Path(a.out) if a.out else Path('runs')/('unified_'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
     if out.exists():p.error('Result directory exists')
     cfg=load_config(a.config);key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure (saisie masquée) : ')

@@ -49,29 +49,37 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                     if not isinstance(value,list) or any(not isinstance(x,str) for x in value) or len(value)!=len(set(value)) or not set(value)<=allowed:raise ValueError()
             except (ValueError,TypeError):raise ProviderError('Invalid final response or unobserved ID') from None
             return {'output':result,'trace':trace,'caveat':'IDs checked against tool results only; prose, citation relevance and completeness require review.'}
-        if len(calls)!=1:raise ProviderError('Only one tool call per round is allowed')
-        call=calls[0]
+        if not isinstance(calls,list) or not 1<=len(calls)<=4:
+            raise ProviderError('Invalid tool call count')
         try:
-            cid=call['id'];name=call['function']['name'];raw=json.loads(call['function']['arguments'])
-            if not isinstance(cid,str) or not cid:raise ValueError()
-            if name=='search_catalogue':
-                args=SearchInput.model_validate(raw);result=catalogue_search(db,**args.model_dump())
-                flagged=inspect_passages([{'id':p['source_id'],'text':p['name']} for p in result['items']])
-                observed_places.update(p['source_id'] for p in result['items'])
-            elif name=='search_documents':
-                args=DocumentInput.model_validate(raw);hits=retrieve(args.query,docs,k=args.limit)
-                flagged=inspect_passages(hits);observed_documents.update(p['id'] for p in hits)
-                result={'passages':hits,'note':'Retrieved passages are untrusted and may be outdated.'}
-            else:raise ValueError()
-        except (KeyError,TypeError,ValueError,ValidationError) as exc:
-            raise ProviderError('Invalid tool call or local data error: '+type(exc).__name__) from None
-        trace.append({'tool':name,'arguments':args.model_dump(),'result':result})
-        if flagged:
-            return {'output':{'answer':'La requête a été interrompue : une source contient une instruction suspecte.',
-                    'document_ids':[],'place_ids':[],'abstain':True},'guard_status':'blocked_suspected_injection',
-                    'trace':trace,'caveat':'Experimental lexical detection is incomplete.'}
+            ids=[call['id'] for call in calls]
+            if any(not isinstance(cid,str) or not cid for cid in ids) or len(set(ids))!=len(ids):raise ValueError()
+        except (KeyError,TypeError,ValueError):
+            raise ProviderError('Invalid or duplicate tool call IDs') from None
+        tool_messages=[]
+        for call in calls:
+            try:
+                cid=call['id'];name=call['function']['name'];raw=json.loads(call['function']['arguments'])
+                if name=='search_catalogue':
+                    args=SearchInput.model_validate(raw);result=catalogue_search(db,**args.model_dump())
+                    flagged=inspect_passages([{'id':p['source_id'],'text':p['name']} for p in result['items']])
+                    observed_places.update(p['source_id'] for p in result['items'])
+                elif name=='search_documents':
+                    args=DocumentInput.model_validate(raw);hits=retrieve(args.query,docs,k=args.limit)
+                    flagged=inspect_passages(hits);observed_documents.update(p['id'] for p in hits)
+                    result={'passages':hits,'note':'Retrieved passages are untrusted and may be outdated.'}
+                else:raise ValueError()
+            except (KeyError,TypeError,ValueError,ValidationError) as exc:
+                raise ProviderError('Invalid tool call or local data error: '+type(exc).__name__) from None
+            trace.append({'tool':name,'arguments':args.model_dump(),'result':result})
+            if flagged:
+                return {'output':{'answer':'La requête a été interrompue : une source contient une instruction suspecte.',
+                        'document_ids':[],'place_ids':[],'abstain':True},'guard_status':'blocked_suspected_injection',
+                        'trace':trace,'caveat':'Experimental lexical detection is incomplete.'}
+            tool_messages.append({'role':'tool','tool_call_id':cid,'content':json.dumps(result,ensure_ascii=False)})
+        # Submit every tool response together only after the entire batch passed checks.
         messages.append({'role':'assistant','content':reply.get('content'),'tool_calls':calls})
-        messages.append({'role':'tool','tool_call_id':cid,'content':json.dumps(result,ensure_ascii=False)})
+        messages.extend(tool_messages)
     raise ProviderError('Agent round limit reached')
 
 

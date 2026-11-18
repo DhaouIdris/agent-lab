@@ -13,3 +13,11 @@ Le pilote contient quatre questions, dont une nécessite les deux outils. La com
 Adapter `--db` à l'emplacement réel de la base importée, sans réimporter le CSV. Pour quatre cas, maximum 20 tentatives fournisseur (retries inclus), sans plafond financier ; l'espacement et les paramètres Azure sont ceux du fichier de configuration. En cas d'erreur, le lot s'arrête et sauvegarde un rapport partiel. Si un outil est bloqué localement, ce cas reste séparé du résultat du modèle.
 
 La métrique automatique vérifie seulement que les outils attendus ont été utilisés ; elle ne détecte pas une citation inadéquate, une hallucination, un faux horaire ou une distance inventée. Les questions sont de développement, non indépendantes, et le corpus documentaire de 12 passages reste très petit. Revue humaine et futurs tests d'injection et d'autorisation nécessaires avant toute utilisation réelle. Les tests locaux utilisent un fournisseur et un catalogue simulés ; aucun appel Azure n'a été effectué par l'auteur.
+
+Si une campagne a été interrompue après UA02, `--case` peut être répété pour ne relancer que les cas restants :
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.unified_agent_batch --db local_data/lieux.sqlite --case UA03 --case UA04
+```
+
+Pour ces deux cas, le plafond est de dix tentatives chat au total, retries inclus. Les résultats de l'ancien rapport restent dans leur dossier ; la commande crée un nouveau rapport distinct. L'agent accepte jusqu'à quatre appels d'outils par réponse du modèle et les exécute séquentiellement. Les sorties ne sont transmises au modèle qu'après le contrôle de tous les résultats du lot. Cela ne rend pas le détecteur lexical complet ; une injection non détectée reste possible.
