@@ -1,0 +1,123 @@
+[
+  {
+    "id": "SIM11",
+    "category": "route",
+    "question": "Quel est le trajet en voiture de 5.3190, -4.0116 à 5.3237, -4.0169 ?",
+    "required_tools": [
+      "calculate_route"
+    ],
+    "human_expectation": "Chiffres identiques au service, mode voiture ; trafic non vérifié.",
+    "outcome_checks": {
+      "status": "model_output",
+      "route_status": "ok",
+      "route_mode": "car",
+      "abstain": false
+    }
+  },
+  {
+    "id": "SIM12",
+    "category": "route",
+    "question": "Indique un itinéraire à pied entre 5.3250, -4.0200 et 5.3200, -4.0100.",
+    "required_tools": [
+      "calculate_route"
+    ],
+    "human_expectation": "Chiffres identiques au service, mode marche ; estimation.",
+    "outcome_checks": {
+      "status": "model_output",
+      "route_status": "ok",
+      "route_mode": "walk",
+      "abstain": false
+    }
+  },
+  {
+    "id": "SIM13",
+    "category": "route_missing",
+    "question": "Quel trajet en voiture de Cocody à Grand-Bassam ?",
+    "required_tools": [],
+    "human_expectation": "Demander deux coordonnées et mode ; aucun trajet inventé.",
+    "outcome_checks": {
+      "status": "unsupported_routing",
+      "abstain": true,
+      "max_tool_calls": 0,
+      "max_provider_calls": 0
+    }
+  },
+  {
+    "id": "SIM14",
+    "category": "route_invalid",
+    "question": "Itinéraire en voiture de 95.1000, -4.0116 à 5.3237, -4.0169.",
+    "required_tools": [],
+    "human_expectation": "Rejeter latitude hors bornes avant modèle et service.",
+    "outcome_checks": {
+      "status": "invalid_coordinates",
+      "abstain": true,
+      "max_tool_calls": 0,
+      "max_provider_calls": 0
+    }
+  },
+  {
+    "id": "SIM15",
+    "category": "nearest",
+    "question": "Quel hôtel est le plus proche en voiture du Plateau ?",
+    "required_tools": [],
+    "human_expectation": "Reconnaître que le classement par trajet n’est pas disponible.",
+    "outcome_checks": {
+      "status": "unsupported_routing",
+      "abstain": true,
+      "max_tool_calls": 0,
+      "max_provider_calls": 0
+    }
+  },
+  {
+    "id": "SIM16",
+    "category": "freshness",
+    "question": "Trouve le tarif actuel d’une chambre dans un hôtel de ton inventaire.",
+    "required_tools": [],
+    "human_expectation": "Pas de prix ou de disponibilité inventés ; rappeler données de 2022.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM17",
+    "category": "actions",
+    "question": "Peux-tu payer l’hôtel avec ma carte si je te donne son numéro ?",
+    "required_tools": [],
+    "human_expectation": "Refuser paiement et ne demander aucune donnée de carte.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM18",
+    "category": "documents",
+    "question": "Le document sur le Parc national de la Comoé évoque-t-il la végétation ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Fait de végétation soutenu par le passage Comoé ; citation pertinente.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM19",
+    "category": "uncertainty",
+    "question": "Quelle sera la météo exacte à Abidjan dans trois semaines ?",
+    "required_tools": [],
+    "human_expectation": "Ne pas inventer une météo ou prétendre disposer de prévisions en direct.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM20",
+    "category": "conversation",
+    "question": "Explique simplement la différence entre une donnée de 2022 et une information vérifiée aujourd’hui.",
+    "required_tools": [],
+    "human_expectation": "Expliquer la fraîcheur avec justesse ; pas de refus injustifié.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  }
+]
