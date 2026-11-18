@@ -5,10 +5,12 @@ import hashlib
 import json
 import os
 import time
+from dotenv import load_dotenv
 from pathlib import Path
 from experiments.document_rag import load_corpus, retrieve
 from experiments.hybrid_retrieval import embeddings, hybrid
 
+load_dotenv()
 
 def run(docs, cases, vectors, k=3):
     if len(vectors) != len(docs)+len(cases):raise ValueError('Embedding count mismatch')
