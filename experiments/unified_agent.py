@@ -15,7 +15,7 @@ from experiments.document_rag import load_corpus, retrieve
 from experiments.injection_guard import inspect_passages, normalize
 from experiments.place_catalog import search
 from run_azure import load_config
-from experiments.route_service import route, load_route_key
+from experiments.route_service import route, load_route_key, valid_coordinates
 
 class DocumentInput(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
@@ -96,6 +96,8 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
     if _NO_ROUTE.search(normalized_question) and (len(coords)!=2 or len(mode_matches)!=1):
         return local_response('Pour calculer un itinéraire, indiquez deux coordonnées sous la forme latitude, longitude et précisez voiture ou à pied.', 'unsupported_routing')
     route_available=len(coords)==2 and len(mode_matches)==1
+    if route_available and not all(valid_coordinates(point) for point in coords):
+        return local_response('Coordonnées invalides : la latitude doit être comprise entre -90 et 90 et la longitude entre -180 et 180.', 'invalid_coordinates')
     route_instruction=' A routing tool is available only for the two explicit user coordinate pairs and requested mode. Use calculate_route for their route, never guess coordinates. No route ranking or live traffic.' if route_available else ''
     system=SYSTEM.replace('Do not infer distance, routing, live conditions or reservations.', 'Do not infer distance, routing, live conditions or reservations without the routing tool.') if route_available else SYSTEM
     messages=[{'role':'system','content':system+route_instruction},{'role':'user','content':question}]
