@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import tempfile
 import unittest
 import urllib.error
@@ -12,6 +13,15 @@ def call(args):
     return {'tool_calls':[{'id':'r1','type':'function','function':{'name':'calculate_route','arguments':json.dumps(args)}}]}
 
 class RouteTests(unittest.TestCase):
+    def test_load_key_from_dotenv_and_environment_precedence(self):
+        from experiments.route_service import load_route_key
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);(root/'.env').write_text('ORS_API_KEY=from_file\n',encoding='utf8')
+            module_path=root/'experiments'/'route_service.py'
+            with patch('experiments.route_service.__file__',str(module_path)),patch.dict(os.environ,{},clear=True):
+                self.assertEqual(load_route_key(),'from_file')
+                os.environ['ORS_API_KEY']='from_environment'
+                self.assertEqual(load_route_key(),'from_environment')
     def test_request_converts_latlon_and_result(self):
         transport=Mock();transport.open.return_value=io.BytesIO(json.dumps({'routes':[{'summary':{'distance':1250,'duration':180}}]}).encode())
         result=route((5.32,-4.02),(5.34,-4.01),'car','TEST_KEY',opener=transport)
