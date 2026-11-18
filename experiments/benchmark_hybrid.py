@@ -18,12 +18,12 @@ def run(docs, cases, vectors, k=3):
         if not set(relevant)<=ids:raise ValueError('Unknown relevant passage')
         lexical=[d['id'] for d in retrieve(case['question'],docs,k=k)]
         fused=[d['id'] for d in hybrid(case['question'],docs,[query]+document_vectors,k=k)['passages']]
-        row={'id':case['id'], 'labelled_answerable':bool(relevant)}
+        row={'id':case['id'], 'category':case.get('category','uncategorized'), 'labelled_answerable':bool(relevant)}
         for name, ranked in [('bm25',lexical),('hybrid',fused)]:
             hits=len(set(ranked)&set(relevant))
             row[name]={'returned_ids':ranked,'hit_at_k':bool(hits) if relevant else None,
                        'recall_at_k':hits/len(relevant) if relevant else None,
-                       'returned_any':bool(ranked)}
+                       'returned_any':bool(ranked), 'reciprocal_rank': next((1/(i+1) for i,identifier in enumerate(ranked) if identifier in relevant),0.0) if relevant else None}
         rows.append(row)
     metrics={}
     for name in ('bm25','hybrid'):
@@ -32,8 +32,21 @@ def run(docs, cases, vectors, k=3):
         metrics[name]={'labelled_cases':len(labelled),
             'hit_at_k':sum(x['hit_at_k'] for x in labelled)/len(labelled) if labelled else None,
             'recall_at_k':sum(x['recall_at_k'] for x in labelled)/len(labelled) if labelled else None,
+            'mrr_at_k':sum(x['reciprocal_rank'] for x in labelled)/len(labelled) if labelled else None,
             'unanswerable_cases':len(unlabelled),'unanswerable_with_any_returned':sum(x['returned_any'] for x in unlabelled)}
-    return {'results':rows,'metrics':metrics}
+    by_category={}
+    for category in sorted({r['category'] for r in rows}):
+        subset=[r for r in rows if r['category']==category]
+        by_category[category]={'cases':len(subset)}
+        for name in ('bm25','hybrid'):
+            eligible=[r[name] for r in subset if r['labelled_answerable']]
+            by_category[category][name]={
+                'labelled_cases':len(eligible),
+                'hit_at_k':sum(x['hit_at_k'] for x in eligible)/len(eligible) if eligible else None,
+                'recall_at_k':sum(x['recall_at_k'] for x in eligible)/len(eligible) if eligible else None,
+                'mrr_at_k':sum(x['reciprocal_rank'] for x in eligible)/len(eligible) if eligible else None,
+                'unanswerable_with_any_returned':sum(r[name]['returned_any'] for r in subset if not r['labelled_answerable'])}
+    return {'results':rows,'metrics':metrics,'per_category':by_category}
 
 
 def main():

@@ -21,3 +21,13 @@ Déployer/configurer une ressource Azure AI Content Safety disposant de Prompt S
 ```
 
 Pour évaluer le jeu de 24 exemples en entier, remplacer la commande par la même en ajoutant `--max-requests 5` (au plus cinq requêtes) ; la disponibilité, les quotas et les tarifs dépendent de la ressource. La commande s'arrête après une erreur fournisseur et préserve un rapport partiel. Les rapports ne contiennent ni clé ni endpoint, ni textes de test ni chemin local. Une détection n'établit pas une protection complète ; la question fixe est aussi analysée et signalée séparément. Les tests automatisés simulent les services ; aucun essai Azure réel n'a encore été réalisé par l'auteur du code.
+
+## Jeu de questions élargi
+
+`data/rag_retrieval_expanded_dev.json` contient 74 questions pour les mêmes 10 passages : 27 formulations proches des textes, 27 reformulations et 20 questions sans réponse documentée. Les étiquettes sont provisoires et non exhaustives, produites avec connaissance du corpus et par le même auteur : ce n'est pas un test indépendant. Les formulations sur une même source ne sont pas des observations indépendantes ; les résultats ne généralisent pas à un corpus plus large.
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.benchmark_hybrid --cases data/rag_retrieval_expanded_dev.json --endpoint https://MA-RESSOURCE.openai.azure.com/openai/v1 --deployment MON-DEPLOIEMENT-EMBEDDING --out hybrid_expanded.json
+```
+
+Les 84 textes sont envoyés ensemble, en **un appel HTTP embeddings** sans retry et sans poids locaux. La clé peut être saisie masquée ou lue depuis `AGENTLAB_API_KEY`. Utiliser le même déploiement `text-embedding-3-large` que pour le premier pilote, si disponible sous ce nom de déploiement. La sortie inclut hit@k, rappel@k et MRR@k globalement et par catégorie. Le rappel est calculé sur les seuls passages annotés ; des passages non annotés peuvent aussi être pertinents. Pour les questions sans réponse, le nombre de résultats non vides décrit la recherche et ne mesure ni la qualité des résultats ni l'abstention du modèle. Pour comparer des corpus et jeux différents, conserver les empreintes et la configuration du modèle. Aucun coût ou nombre de tokens n'est relevé.

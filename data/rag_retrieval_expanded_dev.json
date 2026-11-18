@@ -1,0 +1,563 @@
+[
+  {
+    "id": "RL001",
+    "category": "exact",
+    "question": "En quelle année Grand-Bassam a-t-elle rejoint la liste du patrimoine mondial ?",
+    "relevant_ids": [
+      "CI_UNESCO_BASSAM"
+    ]
+  },
+  {
+    "id": "RL002",
+    "category": "exact",
+    "question": "Grand-Bassam UNESCO inscription année ?",
+    "relevant_ids": [
+      "CI_UNESCO_BASSAM"
+    ]
+  },
+  {
+    "id": "RL003",
+    "category": "exact",
+    "question": "Grand-Bassam figure-t-elle au patrimoine mondial depuis 2012 ?",
+    "relevant_ids": [
+      "CI_UNESCO_BASSAM"
+    ]
+  },
+  {
+    "id": "RL004",
+    "category": "paraphrase",
+    "question": "Depuis quand le centre historique de Grand-Bassam bénéficie-t-il de la reconnaissance mondiale de l’UNESCO ?",
+    "relevant_ids": [
+      "CI_UNESCO_BASSAM"
+    ]
+  },
+  {
+    "id": "RL005",
+    "category": "paraphrase",
+    "question": "La reconnaissance patrimoniale internationale de Grand-Bassam date-t-elle de plus de dix ans ?",
+    "relevant_ids": [
+      "CI_UNESCO_BASSAM"
+    ]
+  },
+  {
+    "id": "RL006",
+    "category": "paraphrase",
+    "question": "Quel est le statut patrimonial international de la ville historique de Grand-Bassam ?",
+    "relevant_ids": [
+      "CI_UNESCO_BASSAM"
+    ]
+  },
+  {
+    "id": "RL007",
+    "category": "exact",
+    "question": "Quand les mosquées de style soudanais du nord ivoirien ont-elles été inscrites par l’UNESCO ?",
+    "relevant_ids": [
+      "CI_UNESCO_MOSQUEES"
+    ]
+  },
+  {
+    "id": "RL008",
+    "category": "exact",
+    "question": "Mosquées soudanaises nord Côte d’Ivoire patrimoine mondial 2021 ?",
+    "relevant_ids": [
+      "CI_UNESCO_MOSQUEES"
+    ]
+  },
+  {
+    "id": "RL009",
+    "category": "exact",
+    "question": "En quelle année ces mosquées du nord ivoirien ont-elles rejoint la liste UNESCO ?",
+    "relevant_ids": [
+      "CI_UNESCO_MOSQUEES"
+    ]
+  },
+  {
+    "id": "RL010",
+    "category": "paraphrase",
+    "question": "Quelle reconnaissance internationale les mosquées de style soudanais dans le nord du pays ont-elles reçue ?",
+    "relevant_ids": [
+      "CI_UNESCO_MOSQUEES"
+    ]
+  },
+  {
+    "id": "RL011",
+    "category": "paraphrase",
+    "question": "Depuis quelle année ces édifices religieux soudanais du nord ivoirien sont-ils classés au patrimoine mondial ?",
+    "relevant_ids": [
+      "CI_UNESCO_MOSQUEES"
+    ]
+  },
+  {
+    "id": "RL012",
+    "category": "paraphrase",
+    "question": "Des lieux de culte de style soudanais en Côte d’Ivoire bénéficient-ils du classement mondial ?",
+    "relevant_ids": [
+      "CI_UNESCO_MOSQUEES"
+    ]
+  },
+  {
+    "id": "RL013",
+    "category": "exact",
+    "question": "Année inscription UNESCO parc national de la Comoé ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE"
+    ]
+  },
+  {
+    "id": "RL014",
+    "category": "exact",
+    "question": "La Comoé est-elle sur la liste UNESCO depuis 1983 ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE"
+    ]
+  },
+  {
+    "id": "RL015",
+    "category": "exact",
+    "question": "Depuis quand la Comoé figure-t-elle au patrimoine mondial ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE"
+    ]
+  },
+  {
+    "id": "RL016",
+    "category": "paraphrase",
+    "question": "À quelle époque ce parc national ivoirien appelé Comoé est-il entré au patrimoine mondial ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE"
+    ]
+  },
+  {
+    "id": "RL017",
+    "category": "paraphrase",
+    "question": "La reconnaissance UNESCO du parc de la Comoé date-t-elle des années 1980 ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE"
+    ]
+  },
+  {
+    "id": "RL018",
+    "category": "paraphrase",
+    "question": "Quel statut patrimonial mondial possède la réserve de la Comoé ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE"
+    ]
+  },
+  {
+    "id": "RL019",
+    "category": "exact",
+    "question": "Année inscription parc national de Taï sur la liste UNESCO ?",
+    "relevant_ids": [
+      "CI_UNESCO_TAI"
+    ]
+  },
+  {
+    "id": "RL020",
+    "category": "exact",
+    "question": "Taï est-il inscrit au patrimoine mondial depuis 1982 ?",
+    "relevant_ids": [
+      "CI_UNESCO_TAI"
+    ]
+  },
+  {
+    "id": "RL021",
+    "category": "exact",
+    "question": "Depuis quand le parc de Taï est-il reconnu par l’UNESCO ?",
+    "relevant_ids": [
+      "CI_UNESCO_TAI"
+    ]
+  },
+  {
+    "id": "RL022",
+    "category": "paraphrase",
+    "question": "Depuis quelle année la forêt protégée du parc national de Taï a-t-elle une reconnaissance patrimoniale mondiale ?",
+    "relevant_ids": [
+      "CI_UNESCO_TAI"
+    ]
+  },
+  {
+    "id": "RL023",
+    "category": "paraphrase",
+    "question": "Le classement UNESCO du parc national de Taï remonte-t-il aux années 1980 ?",
+    "relevant_ids": [
+      "CI_UNESCO_TAI"
+    ]
+  },
+  {
+    "id": "RL024",
+    "category": "paraphrase",
+    "question": "Le parc ivoirien de Taï bénéficie-t-il d’une reconnaissance UNESCO ?",
+    "relevant_ids": [
+      "CI_UNESCO_TAI"
+    ]
+  },
+  {
+    "id": "RL025",
+    "category": "exact",
+    "question": "Quelle est la superficie en hectares du parc national de la Comoé ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_POSITION"
+    ]
+  },
+  {
+    "id": "RL026",
+    "category": "exact",
+    "question": "Dans quelle région géographique ivoirienne se situe la Comoé ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_POSITION"
+    ]
+  },
+  {
+    "id": "RL027",
+    "category": "exact",
+    "question": "Le parc de la Comoé couvre-t-il 1 149 450 hectares ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_POSITION"
+    ]
+  },
+  {
+    "id": "RL028",
+    "category": "paraphrase",
+    "question": "Quelle étendue occupe le parc national de la Comoé ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_POSITION"
+    ]
+  },
+  {
+    "id": "RL029",
+    "category": "paraphrase",
+    "question": "Dans quel coin de la Côte d’Ivoire trouve-t-on le parc de la Comoé ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_POSITION"
+    ]
+  },
+  {
+    "id": "RL030",
+    "category": "paraphrase",
+    "question": "Combien de terrain, en hectares, le parc national de la Comoé représente-t-il ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_POSITION"
+    ]
+  },
+  {
+    "id": "RL031",
+    "category": "exact",
+    "question": "En quelle année le parc de la Comoé a-t-il quitté la liste du patrimoine mondial en péril ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_2017"
+    ]
+  },
+  {
+    "id": "RL032",
+    "category": "exact",
+    "question": "Comoé UNESCO retrait en péril 2017 ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_2017"
+    ]
+  },
+  {
+    "id": "RL033",
+    "category": "exact",
+    "question": "Quand le Comité du patrimoine mondial a-t-il décidé le retrait de la Comoé de la liste en péril ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_2017"
+    ]
+  },
+  {
+    "id": "RL034",
+    "category": "paraphrase",
+    "question": "Depuis quelle année le parc de la Comoé a-t-il cessé de figurer parmi les sites du patrimoine mondial menacés ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_2017"
+    ]
+  },
+  {
+    "id": "RL035",
+    "category": "paraphrase",
+    "question": "La décision de retirer la Comoé de la liste des sites en danger remonte-t-elle à 2017 ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_2017"
+    ]
+  },
+  {
+    "id": "RL036",
+    "category": "paraphrase",
+    "question": "Le Comité a-t-il décidé de retirer le parc national de la Comoé de la liste du patrimoine en péril ?",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_2017"
+    ]
+  },
+  {
+    "id": "RL037",
+    "category": "exact",
+    "question": "Où se tient le SIREXE 2026 ?",
+    "relevant_ids": [
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL038",
+    "category": "exact",
+    "question": "Quel lieu accueille le SIREXE 2026 ?",
+    "relevant_ids": [
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL039",
+    "category": "exact",
+    "question": "SIREXE 2026 Parc des Expositions Abidjan ?",
+    "relevant_ids": [
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL040",
+    "category": "paraphrase",
+    "question": "Dans quel espace d’exposition à Abidjan le salon SIREXE 2026 est-il annoncé ?",
+    "relevant_ids": [
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL041",
+    "category": "paraphrase",
+    "question": "À quel endroit précis de la ville est prévu le SIREXE 2026 ?",
+    "relevant_ids": [
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL042",
+    "category": "paraphrase",
+    "question": "Quel site abidjanais est indiqué pour le salon SIREXE 2026 ?",
+    "relevant_ids": [
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL043",
+    "category": "exact",
+    "question": "Quelles sont les dates annoncées du SIREXE 2026 ?",
+    "relevant_ids": [
+      "CI_SIREXE_2026",
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL044",
+    "category": "exact",
+    "question": "Le SIREXE 2026 est-il annoncé du 18 au 22 novembre ?",
+    "relevant_ids": [
+      "CI_SIREXE_2026",
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL045",
+    "category": "exact",
+    "question": "Sur quelles dates le programme du salon SIREXE 2026 s’étend-il ?",
+    "relevant_ids": [
+      "CI_SIREXE_2026",
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL046",
+    "category": "paraphrase",
+    "question": "Pendant quelle période de novembre est prévu le salon SIREXE 2026 ?",
+    "relevant_ids": [
+      "CI_SIREXE_2026",
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL047",
+    "category": "paraphrase",
+    "question": "Quel est le calendrier annoncé de l’édition 2026 du SIREXE ?",
+    "relevant_ids": [
+      "CI_SIREXE_2026",
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL048",
+    "category": "paraphrase",
+    "question": "Quand commence et finit l’édition 2026 du SIREXE ?",
+    "relevant_ids": [
+      "CI_SIREXE_2026",
+      "CI_SIREXE_LIEU"
+    ]
+  },
+  {
+    "id": "RL049",
+    "category": "exact",
+    "question": "Le CEPICI accompagne-t-il la création d’entreprise ?",
+    "relevant_ids": [
+      "CI_CEPICI_GUICHET",
+      "CI_CEPICI_FORMALITES"
+    ]
+  },
+  {
+    "id": "RL050",
+    "category": "exact",
+    "question": "À quoi sert le guichet des formalités des entreprises du CEPICI ?",
+    "relevant_ids": [
+      "CI_CEPICI_GUICHET",
+      "CI_CEPICI_FORMALITES"
+    ]
+  },
+  {
+    "id": "RL051",
+    "category": "exact",
+    "question": "Le guichet CEPICI facilite-t-il les démarches d’exploitation des entreprises ?",
+    "relevant_ids": [
+      "CI_CEPICI_GUICHET",
+      "CI_CEPICI_FORMALITES"
+    ]
+  },
+  {
+    "id": "RL052",
+    "category": "paraphrase",
+    "question": "Le guichet du CEPICI aide-t-il aussi lors de la transmission ou de l’extension d’une entreprise ?",
+    "relevant_ids": [
+      "CI_CEPICI_FORMALITES"
+    ]
+  },
+  {
+    "id": "RL053",
+    "category": "paraphrase",
+    "question": "Le CEPICI intervient-il dans les formalités liées à la cession et à l’agrandissement des entreprises ?",
+    "relevant_ids": [
+      "CI_CEPICI_FORMALITES"
+    ]
+  },
+  {
+    "id": "RL054",
+    "category": "paraphrase",
+    "question": "Quel organisme facilite les démarches de transmission et d’extension des entreprises selon le corpus CEPICI ?",
+    "relevant_ids": [
+      "CI_CEPICI_FORMALITES"
+    ]
+  },
+  {
+    "id": "RL055",
+    "category": "unanswerable",
+    "question": "Quel est le prix exact du billet pour entrer au parc de Taï aujourd’hui ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL056",
+    "category": "unanswerable",
+    "question": "Quels hôtels de Grand-Bassam ont une chambre disponible ce soir ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL057",
+    "category": "unanswerable",
+    "question": "Quel est le numéro de téléphone du parc national de la Comoé ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL058",
+    "category": "unanswerable",
+    "question": "À quelle heure ouvre le musée de Grand-Bassam dimanche prochain ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL059",
+    "category": "unanswerable",
+    "question": "Le SIREXE 2026 propose-t-il un tarif étudiant ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL060",
+    "category": "unanswerable",
+    "question": "Combien de billets du SIREXE 2026 restent à vendre ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL061",
+    "category": "unanswerable",
+    "question": "Quels documents faut-il fournir au CEPICI pour créer une SARL ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL062",
+    "category": "unanswerable",
+    "question": "Quel sera le coût de création d’une SARL en 2027 ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL063",
+    "category": "unanswerable",
+    "question": "Le parc de la Comoé accepte-t-il les paiements par carte ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL064",
+    "category": "unanswerable",
+    "question": "Quel restaurant est ouvert près du parc de Taï ce soir ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL065",
+    "category": "unanswerable",
+    "question": "Quels monuments de la Lune sont ouverts à cette heure ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL066",
+    "category": "unanswerable",
+    "question": "Quel est le prix d’un taxi entre Abidjan et Grand-Bassam ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL067",
+    "category": "unanswerable",
+    "question": "Quel est le nom du directeur du parc national de Taï ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL068",
+    "category": "unanswerable",
+    "question": "Quelle est la météo actuelle à Grand-Bassam ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL069",
+    "category": "unanswerable",
+    "question": "Quel est le programme détaillé de la conférence du SIREXE 2026 ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL070",
+    "category": "unanswerable",
+    "question": "À quelle date précise, jour et mois, la Comoé a-t-elle quitté la liste en péril ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL071",
+    "category": "unanswerable",
+    "question": "Le guichet CEPICI est-il ouvert samedi prochain ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL072",
+    "category": "unanswerable",
+    "question": "Existe-t-il un accès wifi dans le parc de la Comoé ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL073",
+    "category": "unanswerable",
+    "question": "Quelle est la superficie exacte du parc national de Taï ?",
+    "relevant_ids": []
+  },
+  {
+    "id": "RL074",
+    "category": "unanswerable",
+    "question": "Quel est le prix d’une nuit dans un hôtel à Abidjan ?",
+    "relevant_ids": []
+  }
+]

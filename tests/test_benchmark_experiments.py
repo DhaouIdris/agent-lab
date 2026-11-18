@@ -30,3 +30,19 @@ class BenchmarkTests(unittest.TestCase):
         self.assertEqual(report['summary']['shield']['unevaluable'],1)
         self.assertEqual(report['summary']['shield']['fn'],0)
         self.assertIsNone(report['results'][0]['shield_document_attack'])
+
+    def test_expanded_cases_consistent_and_metrics_stratified(self):
+        import json
+        from pathlib import Path
+        from experiments.document_rag import load_corpus
+        cases=json.loads(Path('data/rag_retrieval_expanded_dev.json').read_text(encoding='utf8'))
+        docs=load_corpus('data/rag_seed_extended.json')
+        self.assertEqual(len(cases),74)
+        self.assertLessEqual(len(cases)+len(docs),101)
+        self.assertEqual(len({c['id'] for c in cases}),len(cases))
+        self.assertTrue(all(set(c['relevant_ids']) <= {d['id'] for d in docs} for c in cases))
+        vectors=[[1.,0.] for _ in range(len(cases)+len(docs))]
+        report=run_hybrid(docs,cases,vectors)
+        self.assertEqual(report['per_category']['unanswerable']['cases'],20)
+        self.assertIsNone(report['per_category']['unanswerable']['hybrid']['mrr_at_k'])
+        self.assertEqual(report['per_category']['exact']['cases'],27)
