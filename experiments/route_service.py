@@ -10,6 +10,11 @@ from dotenv import load_dotenv
 ENDPOINT='https://api.heigit.org/openrouteservice/v2/directions/'
 PROFILES={'car':'driving-car','walk':'foot-walking'}
 
+def valid_coordinates(point):
+    return (isinstance(point,(list,tuple)) and len(point)==2
+            and all(type(v) in (int,float) and math.isfinite(v) for v in point)
+            and -90<=point[0]<=90 and -180<=point[1]<=180)
+
 def load_route_key():
     """Load the root .env without replacing an existing environment variable."""
     load_dotenv(dotenv_path=Path(__file__).resolve().parents[1]/'.env',override=False)
@@ -21,10 +26,8 @@ def route(origin, destination, mode, api_key, opener=None, timeout=12):
         return {'status':'unavailable','reason':'missing_key_or_invalid_mode'}
     coords=[]
     for point in (origin,destination):
-        if not isinstance(point,(list,tuple)) or len(point)!=2 or any(type(v) not in (int,float) or not math.isfinite(v) for v in point):
-            return {'status':'invalid_coordinates'}
+        if not valid_coordinates(point):return {'status':'invalid_coordinates'}
         lat,lon=point
-        if not -90<=lat<=90 or not -180<=lon<=180:return {'status':'invalid_coordinates'}
         coords.append([lon,lat])
     request=urllib.request.Request(ENDPOINT+PROFILES[mode]+'/json',data=json.dumps({'coordinates':coords,'instructions':False}).encode('utf-8'),headers={'Authorization':api_key,'Content-Type':'application/json','Accept':'application/json'},method='POST')
     try:
