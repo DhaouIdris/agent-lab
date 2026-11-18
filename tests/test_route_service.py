@@ -1,18 +1,47 @@
 import io
 import json
 import os
+import random
 import tempfile
 import unittest
 import urllib.error
 from pathlib import Path
 from unittest.mock import Mock, patch
-from experiments.route_service import route
+from experiments.route_service import route, valid_coordinates
 from experiments.unified_agent import ask
 
 def call(args):
     return {'tool_calls':[{'id':'r1','type':'function','function':{'name':'calculate_route','arguments':json.dumps(args)}}]}
 
 class RouteTests(unittest.TestCase):
+    def test_coordinate_bounds_and_types(self):
+        for point in [(-90,-180),(90,180),(0,0),(5.32,-4.02)]:
+            self.assertTrue(valid_coordinates(point))
+        for point in [(90.00001,0),(-90.00001,0),(0,180.00001),(0,-180.00001),(float('nan'),0),(float('inf'),0),(True,0),('5',0),None,(0,)]:
+            self.assertFalse(valid_coordinates(point))
+
+    def test_ten_thousand_generated_points_offline(self):
+        rng=random.Random(20261118)
+        for _ in range(10000):
+            lat=rng.uniform(-120,120);lon=rng.uniform(-220,220)
+            self.assertEqual(valid_coordinates((lat,lon)), -90<=lat<=90 and -180<=lon<=180)
+
+    def test_invalid_points_stop_before_model_and_routing(self):
+        rng=random.Random(42)
+        with tempfile.TemporaryDirectory() as d:
+            db=Path(d)/'x';db.touch();client=Mock()
+            with patch('experiments.unified_agent.route') as service:
+                for i in range(1000):
+                    lat=(1 if i%2==0 else -1)*rng.uniform(90.01,99.99) if i%4<2 else 5.3200
+                    lon=(1 if i%2==0 else -1)*rng.uniform(180.01,199.99) if i%4>=2 else -4.0100
+                    bad=f'{lat:.5f}, {lon:.5f}'
+                    start,end=(bad,'5.3200, -4.0200') if i%2==0 else ('5.3200, -4.0200',bad)
+                    question=f'Itinéraire voiture entre {start} et {end}.'
+                    result=ask(client,db,[],question)
+                    self.assertEqual(result['guard_status'],'invalid_coordinates')
+                    self.assertTrue(result['output']['abstain'])
+                client.chat.assert_not_called()
+                service.assert_not_called()
     def test_load_key_from_dotenv_and_environment_precedence(self):
         from experiments.route_service import load_route_key
         with tempfile.TemporaryDirectory() as d:
