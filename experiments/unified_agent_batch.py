@@ -33,6 +33,17 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
                  'tool_selection_match':None if guard else set(case['required_tools'])<=set(used),
                  'argument_checks_pass':None if guard or not arg_checks else all(c['passed'] for c in arg_checks),
                  'forbidden_tools_pass':None if guard or not case.get('forbidden_tools') else not forbidden,'error':None}
+            checks=case.get('outcome_checks',{})
+            if checks:
+                route_calls=[t for t in result['trace'] if t['tool']=='calculate_route']
+                validations={}
+                if 'status' in checks:validations['status']=row['status']==checks['status']
+                if 'abstain' in checks:validations['abstain']=row['output'].get('abstain') is checks['abstain']
+                if 'route_status' in checks:validations['route_status']=any(t.get('result',{}).get('status')==checks['route_status'] for t in route_calls)
+                if 'route_mode' in checks:validations['route_mode']=any(t.get('arguments',{}).get('mode')==checks['route_mode'] for t in route_calls)
+                if 'max_tool_calls' in checks:validations['max_tool_calls']=len(used)<=checks['max_tool_calls']
+                row['outcome_checks']=validations
+                row['outcome_checks_pass']=all(validations.values())
         except (ProviderError,ValueError) as exc:
             diagnostic = exc.code if isinstance(exc,AgentDiagnosticError) else None
             safe_trace = exc.trace if isinstance(exc,AgentDiagnosticError) else []
@@ -53,6 +64,8 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
           'guard_blocked':sum(r['status']=='blocked_suspected_injection' for r in rows),
           'unsupported_routing':sum(r['status']=='unsupported_routing' for r in rows),
           'fallbacks':sum(r['status']=='fallback_invalid_response' for r in rows),
+          'outcome_checks_evaluable':sum('outcome_checks_pass' in r for r in rows),
+          'outcome_checks_passes':sum(r.get('outcome_checks_pass') is True for r in rows),
           'provider_attempts':sum(len(r['provider_calls']) for r in rows),'cost':None},'results':rows,
         'caveat':'Automatic checks cover only annotated tool names and selected exact arguments; they do not assess factual claims or source quality. Human review of usefulness, factuality, sources, injection resistance and over-refusal is required. Development scenarios are not independent.'}
 
