@@ -167,6 +167,9 @@ class ChatClient:
             entry.update(latency_seconds=time.monotonic()-start,error="provider_guard")
             raise
         entry.update(latency_seconds=time.monotonic()-start,usage=usage)
+        finish_reason=data['choices'][0].get('finish_reason')
+        if finish_reason in ('stop','length','tool_calls','content_filter','function_call'):
+            entry['finish_reason']=finish_reason
         return message
 
     def cost(self):
