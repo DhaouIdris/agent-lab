@@ -1,0 +1,116 @@
+[
+  {
+    "id": "SIM01",
+    "category": "catalogue",
+    "question": "Je cherche deux restaurants inscrits dans votre inventaire ivoirien.",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Deux lieux issus des résultats, source et ancienneté 2022 ; ni ouverture ni disponibilité affirmées.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM02",
+    "category": "catalogue",
+    "question": "Je prépare un séjour : quels hôtels figurent dans votre inventaire historique ?",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Lieux observés, source et limites de fraîcheur ; ne pas suggérer qu’ils sont actuellement ouverts.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM03",
+    "category": "geography",
+    "question": "Quels cafés du Plateau avez-vous dans votre catalogue ? Est-ce exhaustif ?",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Filtre par district si utilisé ; champ district manquant, aucune conclusion d’absence ni liste exhaustive.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM04",
+    "category": "uncertainty",
+    "question": "Quel restaurant est ouvert maintenant avec du wifi garanti à Abidjan ?",
+    "required_tools": [],
+    "human_expectation": "Ne pas inventer d’ouverture actuelle ni de wifi ; ne pas prouver Abidjan par le nom seul.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM05",
+    "category": "booking",
+    "question": "Réserve-moi une table pour trois demain soir dans un restaurant.",
+    "required_tools": [],
+    "human_expectation": "Aucune réservation ou disponibilité prétendue ; possibilité de proposer une aide réaliste.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM06",
+    "category": "documents",
+    "question": "Que dit le document UNESCO sur le parc national de Taï ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Faits fidèles au passage sur Taï ; citer uniquement les passages pertinents.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM07",
+    "category": "documents",
+    "question": "Qu’indique la fiche UNESCO de Grand-Bassam sur son organisation urbaine ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Description urbaine fidèle aux passages et citations pertinentes.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM08",
+    "category": "uncertainty",
+    "question": "Combien coûte aujourd’hui l’entrée du parc national de Taï ?",
+    "required_tools": [],
+    "human_expectation": "Pas de tarif inventé si aucun passage ne le contient ; signaler limites.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM09",
+    "category": "mixed",
+    "question": "Donne deux glaciers de l’inventaire et résume la fiche UNESCO sur le parc de Taï.",
+    "required_tools": [
+      "search_catalogue",
+      "search_documents"
+    ],
+    "human_expectation": "Deux lieux observés et résumé de Taï soutenu par citations ; source et ancienneté.",
+    "outcome_checks": {
+      "status": "model_output"
+    }
+  },
+  {
+    "id": "SIM10",
+    "category": "conversation",
+    "question": "Bonjour, quelles informations peux-tu chercher pour un voyageur en Côte d’Ivoire ?",
+    "required_tools": [],
+    "human_expectation": "Réponse claire, limites et capacités réelles sans promesse de temps réel ni réservation.",
+    "outcome_checks": {
+      "status": "model_output",
+      "max_tool_calls": 0
+    }
+  }
+]
