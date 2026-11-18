@@ -1,0 +1,147 @@
+[
+  {
+    "id": "RL003",
+    "question": "Grand-Bassam figure-t-elle au patrimoine mondial depuis 2012 ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_UNESCO_BASSAM"
+    ],
+    "human_expectation": "Indiquer inscription en 2012 avec citation."
+  },
+  {
+    "id": "RL012",
+    "question": "Des lieux de culte de style soudanais en Côte d’Ivoire bénéficient-ils du classement mondial ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_UNESCO_MOSQUEES"
+    ],
+    "human_expectation": "Confirmer inscription UNESCO des mosquées ; pas de détail inventé."
+  },
+  {
+    "id": "RL018",
+    "question": "Quel statut patrimonial mondial possède la réserve de la Comoé ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE"
+    ],
+    "human_expectation": "Confirmer inscription au patrimoine mondial ; citer la source."
+  },
+  {
+    "id": "RL024",
+    "question": "Le parc ivoirien de Taï bénéficie-t-il d’une reconnaissance UNESCO ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_UNESCO_TAI"
+    ],
+    "human_expectation": "Confirmer inscription du parc de Taï ; citer la source."
+  },
+  {
+    "id": "RL030",
+    "question": "Combien de terrain, en hectares, le parc national de la Comoé représente-t-il ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_POSITION"
+    ],
+    "human_expectation": "Indiquer 1 149 450 hectares et citer la source."
+  },
+  {
+    "id": "RL036",
+    "question": "Le Comité a-t-il décidé de retirer le parc national de la Comoé de la liste du patrimoine en péril ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_2017"
+    ],
+    "human_expectation": "Confirmer décision en 2017 ; ne pas inventer le jour."
+  },
+  {
+    "id": "RL042",
+    "question": "Quel site abidjanais est indiqué pour le salon SIREXE 2026 ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_SIREXE_LIEU"
+    ],
+    "human_expectation": "Indiquer Parc des Expositions d’Abidjan ; pas de réservation implicite."
+  },
+  {
+    "id": "RL048",
+    "question": "Quand commence et finit l’édition 2026 du SIREXE ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_SIREXE_2026",
+      "CI_SIREXE_LIEU"
+    ],
+    "human_expectation": "Indiquer 18 au 22 novembre 2026."
+  },
+  {
+    "id": "RL054",
+    "question": "Quel organisme facilite les démarches de transmission et d’extension des entreprises selon le corpus CEPICI ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_CEPICI_FORMALITES"
+    ],
+    "human_expectation": "Indiquer le guichet CEPICI ; ne pas inventer les pièces."
+  },
+  {
+    "id": "RL055",
+    "question": "Quel est le prix exact du billet pour entrer au parc de Taï aujourd’hui ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Tarif non documenté ; s’abstenir."
+  },
+  {
+    "id": "RL057",
+    "question": "Quel est le numéro de téléphone du parc national de la Comoé ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Numéro non documenté ; s’abstenir."
+  },
+  {
+    "id": "RL059",
+    "question": "Le SIREXE 2026 propose-t-il un tarif étudiant ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Tarif non documenté ; s’abstenir."
+  },
+  {
+    "id": "RL060",
+    "question": "Combien de billets du SIREXE 2026 restent à vendre ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Disponibilité non documentée ; s’abstenir."
+  },
+  {
+    "id": "RL061",
+    "question": "Quels documents faut-il fournir au CEPICI pour créer une SARL ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Liste des pièces non documentée ; s’abstenir."
+  },
+  {
+    "id": "RL066",
+    "question": "Quel est le prix d’un taxi entre Abidjan et Grand-Bassam ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Prix de taxi non documenté ; s’abstenir."
+  },
+  {
+    "id": "RL067",
+    "question": "Quel est le nom du directeur du parc national de Taï ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Nom du directeur non documenté ; s’abstenir."
+  },
+  {
+    "id": "RL068",
+    "question": "Quelle est la météo actuelle à Grand-Bassam ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Météo en direct absente ; s’abstenir."
+  },
+  {
+    "id": "RL074",
+    "question": "Quel est le prix d’une nuit dans un hôtel à Abidjan ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Prix hôtel non documenté ; s’abstenir."
+  }
+]
