@@ -45,6 +45,14 @@ class RouteTests(unittest.TestCase):
             self.assertIn('1.25 km',result['output']['answer']);self.assertIn('3 minutes',result['output']['answer'])
             self.assertNotIn('5.32',str(result['trace']))
             self.assertEqual(client.chat.call_count,1)
+    def test_coordinates_followed_by_full_stop(self):
+        with tempfile.TemporaryDirectory() as d:
+            db=Path(d)/'x';db.touch();client=Mock()
+            client.chat.return_value=call({'origin_lat':5.319,'origin_lon':-4.0116,'destination_lat':5.3237,'destination_lon':-4.0169,'mode':'car'})
+            with patch('experiments.unified_agent.route',return_value={'status':'ok','distance_m':1250,'duration_s':180,'mode':'car'}) as service:
+                result=ask(client,db,[],"Donne l’itinéraire en voiture de 5.3190, -4.0116 à 5.3237, -4.0169.")
+            self.assertFalse(result['output']['abstain'])
+            service.assert_called_once()
     def test_agent_rejects_fabricated_coordinates(self):
         with tempfile.TemporaryDirectory() as d:
             db=Path(d)/'x';db.touch();client=Mock()
