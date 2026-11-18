@@ -4,6 +4,7 @@ import getpass
 import hashlib
 import json
 import os
+import platform
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,6 +40,14 @@ def campaign(client, db, docs, cases, repeat=2, timeout=180, on_progress=None):
             'model_outputs':sum(x['status']=='model_output' for x in matches),
             'abstentions':sum(x.get('output',{}).get('abstain') is True for x in matches if isinstance(x.get('output'),dict)),
             'tool_sequences':[x.get('observed_tools') for x in matches]})
+    categories={}
+    for row in rows:
+        category=row.get('category') or 'unspecified'
+        item=categories.setdefault(category,{'runs':0,'outcome_checks_evaluable':0,'outcome_checks_passes':0,'execution_errors':0})
+        item['runs']+=1
+        item['outcome_checks_evaluable']+=int('outcome_checks_pass' in row)
+        item['outcome_checks_passes']+=int(row.get('outcome_checks_pass') is True)
+        item['execution_errors']+=int(row['status']=='execution_error')
     return {'kind':'agent_consistency_development_pending_human_review',
         'campaign_complete':stop_reason is None and len(rows)==len(cases)*repeat,
         'stop_reason':stop_reason,
@@ -51,7 +60,7 @@ def campaign(client, db, docs, cases, repeat=2, timeout=180, on_progress=None):
             'outcome_checks_evaluable':sum('outcome_checks_pass' in x for x in rows),
             'outcome_checks_passes':sum(x.get('outcome_checks_pass') is True for x in rows),
             'provider_attempts':sum(len(x.get('provider_calls',[])) for x in rows),
-            'cost':None},'per_case':by_case,'results':rows,
+            'cost':None},'per_category':categories,'per_case':by_case,'results':rows,
         'caveat':'Repeated development cases are not independent or representative. A model output or matching tool selection is not proof of a correct, useful, safe, or consistent answer; review responses and sources manually.'}
 
 
@@ -83,7 +92,10 @@ def main():
         row=rows[-1];print(f"{row['id']} repeat={row['repetition']}: {row['status']}",flush=True)
     report=campaign(client,db,docs,cases,repeat=a.repeat,timeout=cfg['turn_timeout_seconds'],on_progress=checkpoint)
     report['config']={'model':cfg['underlying_model'],'model_version':cfg['model_version'],'max_provider_calls':max_calls,
-        'corpus_sha256':hashlib.sha256(corpus.read_bytes()).hexdigest(),'cases_sha256':hashlib.sha256(casefile.read_bytes()).hexdigest()}
+        'max_output_tokens':cfg['max_output_tokens'], 'python_version':platform.python_version(),
+        'corpus_sha256':hashlib.sha256(corpus.read_bytes()).hexdigest(),'cases_sha256':hashlib.sha256(casefile.read_bytes()).hexdigest(),
+        'catalogue_sha256_at_end':hashlib.sha256(db.read_bytes()).hexdigest(),
+        'code_sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in (Path('experiments/unified_agent.py'),Path('experiments/unified_agent_batch.py'),Path('experiments/route_service.py'),Path('experiments/injection_guard.py'),Path('ci_agentlab/providers.py'))}}
     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(report['summary'],ensure_ascii=False,indent=2));print('Rapport :',out/'report.json')
     if not report['campaign_complete']:p.exit(1,'Campagne interrompue ; consulter le rapport.\n')
