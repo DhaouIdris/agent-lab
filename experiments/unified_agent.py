@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from ci_agentlab.providers import ChatClient, ProviderError
 from experiments.catalogue_chat import SearchInput, TOOL as CATALOGUE_TOOL
 from experiments.document_rag import load_corpus, retrieve
-from experiments.injection_guard import inspect_passages
+from experiments.injection_guard import inspect_passages, normalize
 from experiments.place_catalog import search
 from run_azure import load_config
 
@@ -31,6 +31,17 @@ Use only factual claims supported by tool results, preserve uncertainty and do n
 The query argument searches names only; a city name in a name is not evidence of geographic location. District filtering is incomplete. The catalogue returns at most ten items per call; do not promise a larger limit, complete list, or external search. A different search does not establish current facts.
 Do not cite irrelevant documents merely because they were returned. Use document_ids only for documents that directly support claims, and place_ids only for places mentioned in the answer. Do not promise online lookup or unverified contact details. If information is absent, stop repeated searches and explain the limit.
 Return JSON only: {"answer": string, "document_ids": [string], "place_ids": [string], "abstain": boolean}. Include the IDs used. Do not say you completed actions you cannot perform.'''
+
+# A narrow, experimental tripwire: it cannot detect every injection or routing
+# request. It is deliberately checked before any provider or tool call.
+_NO_ROUTE = re.compile(r"\b(?:plus proche|les plus proches|a vol d.oiseau|itineraire|temps de trajet|distance routiere|distance a pied)\b")
+
+def local_response(answer, status, diagnostic=None):
+    result={'output':{'answer':answer,'document_ids':[],'place_ids':[],'abstain':True},
+            'guard_status':status,'trace':[],
+            'caveat':'Experimental lexical checks are incomplete and can block benign requests.'}
+    if diagnostic:result['diagnostic_code']=diagnostic
+    return result
 
 
 class AgentDiagnosticError(ProviderError):
@@ -62,13 +73,18 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
     if not isinstance(question,str) or not question.strip() or len(question)>2000:raise ValueError('Question must contain 1..2000 characters')
     if not Path(db).is_file():raise ValueError('Catalogue database missing')
     if type(max_rounds) is not int or not 1<=max_rounds<=10:raise ValueError('Invalid round limit')
+    if inspect_passages([{'id':'user','text':question}]):
+        return local_response('La demande a été interrompue car elle contient une instruction suspecte. Reformulez votre question.', 'blocked_suspected_injection')
+    if _NO_ROUTE.search(normalize(question)):
+        return local_response('Je ne peux pas calculer de proximité, de distance ou d’itinéraire avec les outils disponibles. Vous pouvez utiliser un service de cartographie pour cela.', 'unsupported_routing')
     messages=[{'role':'system','content':SYSTEM},{'role':'user','content':question}]
-    observed_documents=set();observed_places=set();trace=[];document_queries=set();deadline=time.monotonic()+timeout
-    for _ in range(max_rounds):
+    observed_documents=set();observed_places=set();trace=[];document_queries=set();deadline=time.monotonic()+timeout;force_final=False
+    for turn in range(max_rounds):
         remaining=deadline-time.monotonic()
         if remaining<=0:raise AgentDiagnosticError('turn_deadline_exceeded',trace)
         try:
-            reply=client.chat(messages,timeout=remaining,tools_override=TOOLS,response_format={'type':'json_object'})
+            no_tools=force_final or turn==max_rounds-1
+            reply=client.chat(messages,timeout=remaining,tools_override=[] if no_tools else TOOLS,response_format={'type':'json_object'})
         except ProviderError:
             raise AgentDiagnosticError('provider_error',trace) from None
         calls=reply.get('tool_calls') or []
@@ -78,10 +94,16 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                 content=reply.get('content')
                 metadata={'content_kind':'empty' if content is None or content=='' else ('string' if isinstance(content,str) else 'non_string'),
                           'content_length':len(content) if isinstance(content,str) else None}
-                raise AgentDiagnosticError(error,trace,metadata)
+                fallback=local_response('Je ne peux pas formuler une réponse fiable pour cette demande. Veuillez réessayer ou reformuler.', 'fallback_invalid_response', error)
+                fallback['trace']=AgentDiagnosticError(error,trace).trace
+                fallback['trace_redacted']=True
+                fallback['diagnostic_metadata']=metadata
+                return fallback
             return {'output':result,'trace':trace,'caveat':'IDs checked against tool results only; prose, citation relevance and completeness require review.'}
         if not isinstance(calls,list) or not 1<=len(calls)<=4:
             raise AgentDiagnosticError('invalid_tool_call_count',trace)
+        if no_tools:
+            raise AgentDiagnosticError('tool_call_on_final_turn',trace)
         try:
             ids=[call['id'] for call in calls]
             if any(not isinstance(cid,str) or not cid for cid in ids) or len(set(ids))!=len(ids):raise ValueError()
@@ -101,6 +123,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                     if normalized in document_queries or len(document_queries)>=2:
                         flagged=[]
                         result={'passages':[],'status':'search_limit_reached','search_limit_reason':'duplicate_query' if normalized in document_queries else 'distinct_query_limit','note':'No new search performed; use existing evidence or abstain.'}
+                        force_final=True
                     else:
                         document_queries.add(normalized)
                         hits=retrieve(args.query,docs,k=args.limit)
