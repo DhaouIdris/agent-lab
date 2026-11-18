@@ -63,6 +63,7 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
           'forbidden_tool_violations':sum(r.get('forbidden_tools_pass') is False for r in rows),
           'guard_blocked':sum(r['status']=='blocked_suspected_injection' for r in rows),
           'unsupported_routing':sum(r['status']=='unsupported_routing' for r in rows),
+          'invalid_coordinates':sum(r['status']=='invalid_coordinates' for r in rows),
           'fallbacks':sum(r['status']=='fallback_invalid_response' for r in rows),
           'outcome_checks_evaluable':sum('outcome_checks_pass' in r for r in rows),
           'outcome_checks_passes':sum(r.get('outcome_checks_pass') is True for r in rows),
