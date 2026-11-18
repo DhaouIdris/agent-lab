@@ -15,7 +15,7 @@ from experiments.document_rag import load_corpus, retrieve
 from experiments.injection_guard import inspect_passages, normalize
 from experiments.place_catalog import search
 from run_azure import load_config
-from experiments.route_service import route
+from experiments.route_service import route, load_route_key
 
 class DocumentInput(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
@@ -141,7 +141,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                     args=RouteInput.model_validate(raw)
                     if not route_available or (args.origin_lat,args.origin_lon)!=coords[0] or (args.destination_lat,args.destination_lon)!=coords[1] or args.mode not in mode_matches:
                         raise ValueError('Unverified route inputs')
-                    result=route(coords[0],coords[1],args.mode,os.getenv('ORS_API_KEY',''),timeout=min(12,max(.1,deadline-time.monotonic())))
+                    result=route(coords[0],coords[1],args.mode,load_route_key(),timeout=min(12,max(.1,deadline-time.monotonic())))
                     safe_trace=trace+[{'tool':'calculate_route','arguments':{'mode':args.mode},'result':result}]
                     if result['status']!='ok':
                         answer='Le service de calcul d’itinéraire est indisponible ou ne peut pas calculer ce trajet. Aucun trajet ni durée ne peuvent être confirmés.'
