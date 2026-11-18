@@ -36,3 +36,38 @@ class IngestionTests(unittest.TestCase):
         with self.assertRaises(ValueError):build_corpus(self.manifest)
 
 if __name__=='__main__':unittest.main()
+
+class SentenceSplittingTests(unittest.TestCase):
+    def test_sentence_boundaries_cover_text_and_preserve_offsets(self):
+        from experiments.ingest_text_documents import sentence_spans
+        text=('Première phrase contenant assez de détails pour le visiteur. '
+              'La deuxième phrase donne des informations complémentaires sur le musée. '
+              'Une troisième phrase décrit les conditions de visite du site. '
+              'La dernière phrase indique un lien vers les autorités concernées.')
+        spans=list(sentence_spans(text,110,20))
+        self.assertGreater(len(spans),1)
+        self.assertEqual(spans[0][0],0);self.assertEqual(spans[-1][1],len(text))
+        for i,(start,end) in enumerate(spans):
+            self.assertLessEqual(end-start,110)
+            self.assertTrue(text[start:end].rstrip().endswith('.'))
+            if i:self.assertLessEqual(start,spans[i-1][1])
+            if start:self.assertIn(text[start-2:start].strip(),('.',))
+
+    def test_long_sentence_falls_back_without_gap(self):
+        from experiments.ingest_text_documents import sentence_spans
+        text='Une phrase '+('longue description sans ponctuation '*20)+'termine.'
+        spans=list(sentence_spans(text,100,10))
+        self.assertEqual(spans[-1][1],len(text))
+        self.assertTrue(all(0<b-a<=100 for a,b in spans))
+        self.assertTrue(all(spans[i][0]<=spans[i-1][1] for i in range(1,len(spans))))
+
+    def test_sentence_mode_retains_source_offsets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp);text=('Une phrase complète avec des mots. '*14)
+            (p/'doc.txt').write_text(text,encoding='utf8')
+            (p/'manifest.json').write_text(json.dumps([{'id':'D','title':'Titre','file':'doc.txt','url':'https://example.org/a','publisher':'P','consulted_at':'2026-11-18','license_note':'permission','rights_confirmed':True}]),encoding='utf8')
+            chunks=build_corpus(p/'manifest.json',100,10,split_mode='sentences')
+            self.assertGreater(len(chunks),1)
+            for c in chunks:
+                self.assertEqual(c['text'],text[c['start_char']:c['end_char']])
+                self.assertTrue(c['text'].rstrip().endswith('.'))

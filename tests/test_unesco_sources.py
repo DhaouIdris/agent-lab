@@ -40,3 +40,15 @@ class UNESCODataTests(unittest.TestCase):
         self.assertIn('never turn a possibility, hypothesis, estimate or uncertainty into a categorical assertion',system)
         self.assertIn('Cite only passages that directly support at least one substantive claim',system)
         self.assertEqual(result['citation_ids'],['UNESCO_MOSQUEES__0002'])
+
+    def test_sentence_corpus_matches_original_offsets(self):
+        root=Path('data/unesco_source_texts')
+        manifest=json.loads((root/'manifest.json').read_text(encoding='utf8'))
+        source={d['id']:d for d in manifest}
+        docs=load_corpus('data/rag_unesco_sentences.json')
+        for d in docs:
+            text=(root/source[d['source_doc_id']]['file']).read_text(encoding='utf8')
+            self.assertEqual(d['text'],text[d['start_char']:d['end_char']])
+            self.assertTrue(d['text'].rstrip().endswith(('.', '!', '?')))
+        cases=json.loads(Path('data/rag_unesco_sentences_dev_cases.json').read_text(encoding='utf8'))
+        self.assertTrue(all(set(c['relevant_ids'])<={d['id'] for d in docs} for c in cases))

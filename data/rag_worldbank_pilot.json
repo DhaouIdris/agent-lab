@@ -1,0 +1,13 @@
+[
+  {
+    "id": "WB_CIV_GDP_CURRENT_2025",
+    "title": "Côte d’Ivoire : PIB en dollars courants en 2025",
+    "text": "Selon les données de la Banque mondiale consultées le 18 novembre 2026, le produit intérieur brut de la Côte d’Ivoire en 2025 était de 99,77 milliards de dollars américains courants. Cette donnée annuelle peut être révisée et ne mesure pas le PIB par habitant.",
+    "url": "https://data.worldbank.org/country/cote-divoire",
+    "publisher": "Banque mondiale",
+    "source_updated_at": null,
+    "consulted_at": "2026-11-18",
+    "content_type": "curated_data_summary",
+    "license_note": "Données Banque mondiale, CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ ; indicateur PIB en dollars courants, valeur arrondie. Sources statistiques détaillées sur https://data.worldbank.org/indicator/NY.GDP.MKTP.CD."
+  }
+]
