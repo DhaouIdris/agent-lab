@@ -17,8 +17,6 @@ La logique agentique reste dans `ci_agentlab/providers.py`. Un service d'agents 
 5. Choisir un déploiement à la demande **Standard**, **Global Standard** ou **Data Zone Standard**, selon disponibilité et contraintes de région. Ce lot ne prévoit pas de capacité provisionnée/PTU. Nom suggéré : `agentlab-baseline`.
 6. Relever le nom du déploiement, le modèle et sa version, la région, les limites TPM/RPM et l'URL d'inférence. Conserver la clé uniquement sur ton poste.
 
-L'offre publique annonce 100 USD de crédit sur 12 mois ; cela ne renseigne pas ton solde restant. Les conditions excluent notamment les produits Marketplace et certains produits tiers. L'accès effectif à un modèle dépend de l'offre et des quotas de ta souscription. Si le déploiement est refusé, relever le code d'erreur et le quota affiché ; ne pas changer automatiquement d'offre de facturation.
-
 ## 2. Installer localement
 
 Extraire le ZIP. Dans le terminal PowerShell de VS Code, ouvrir le dossier `agentlab` contenant `run_azure.py`. Python 3.11 ou 3.12 est requis.
@@ -84,9 +82,9 @@ Un scénario peut contenir plusieurs tours et plusieurs requêtes modèle. Les p
 
 Chaque campagne crée un dossier daté dans `runs/` avec `report.json`, `human_review.json`, `review_mapping.json` et les métadonnées Azure. `--dry-run` affiche la commande sans clé ni requête réseau. Un chemin `--out` existant est refusé par le lanceur pour préserver les résultats.
 
-Les requêtes sont séquentielles, espacées d'au moins 15 secondes entre débuts par défaut, avec 1 200 tokens de sortie maximum, 6 appels modèle et 8 appels d'outils maximum par tour. Le budget par tour est de 180 secondes ; chaque tentative réseau dispose d'un timeout de 60 secondes maximum, borné par le temps restant après espacement et backoff. Un timeout socket n'est pas une garantie stricte sur la durée totale d'une réponse réseau. Ces valeurs ne garantissent pas le respect du quota TPM : le prompt et l'historique comptent aussi. Un modèle à raisonnement peut consommer le plafond de sortie avant de produire un JSON utile.
+Les requêtes sont séquentielles, espacées d'au moins 15 secondes entre débuts par défaut, avec 1 200 tokens de sortie maximum, 6 appels modèle et 8 appels d'outils maximum par tour. Le délai par tour est de 180 secondes, avec une attente réseau d'au plus 30 secondes par appel, diminuée de l'espacement éventuel. Ces valeurs ne garantissent pas le respect du quota TPM : le prompt et l'historique comptent aussi. Un modèle à raisonnement peut consommer le plafond de sortie avant de produire un JSON utile.
 
-Les erreurs 429, 500, 502, 503, 504 et certains timeouts/coupures peuvent être réessayés au plus deux fois avec backoff et jitter, sous réserve du délai et du plafond d'appels. Un `Retry-After` valide est respecté ; si l'attente dépasse le délai disponible, l'exécution s'arrête. Une erreur persistante ou non réessayable interrompt la campagne. Les codes fournisseur reconnus sont journalisés sans message brut. Les erreurs de comportement du modèle restent des échecs à analyser. `campaign_complete: true` signifie que la campagne est terminée, pas que les scénarios sont réussis.
+Une erreur HTTP/réseau interrompt le scénario et la campagne sans nouvelle tentative automatique. Les erreurs de comportement du modèle restent des échecs à analyser. `campaign_complete: true` signifie que la campagne est terminée, pas que les scénarios sont réussis.
 
 ## 6. Lire les erreurs et contrôler le coût
 
@@ -116,5 +114,3 @@ Les annotations et les données sont limitées ; les réservations restent simul
 - Contrat REST v1 : https://learn.microsoft.com/en-us/rest/api/microsoft-foundry/azureopenai/chat
 
 La disponibilité propre à ta souscription n'a pas été vérifiée.
-
-
