@@ -52,6 +52,9 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
                  'diagnostic_code':diagnostic, 'diagnostic_metadata':exc.metadata if isinstance(exc,AgentDiagnosticError) else {}, 'trace_redacted':bool(safe_trace)}
             complete=False
         row['provider_calls']=client.calls[start:];rows.append(row)
+        if 'outcome_checks' in row and 'max_provider_calls' in case.get('outcome_checks',{}):
+            row['outcome_checks']['max_provider_calls']=len(row['provider_calls'])<=case['outcome_checks']['max_provider_calls']
+            row['outcome_checks_pass']=all(row['outcome_checks'].values())
         if on_progress:on_progress(rows)
         if not complete:break
     evaluated=[r for r in rows if r['tool_selection_match'] is not None]
