@@ -20,10 +20,18 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
             result=ask(client,db,docs,case['question'],timeout=timeout)
             used=[x['tool'] for x in result['trace']]
             guard=result.get('guard_status')
+            arg_checks=[]
+            for check in case.get('tool_arg_checks',[]):
+                matched=any(t['tool']==check['tool'] and all(t['arguments'].get(k)==v for k,v in check['equals'].items()) for t in result['trace'])
+                arg_checks.append({'tool':check['tool'],'equals':check['equals'],'passed':matched})
+            forbidden=sorted(set(case.get('forbidden_tools',[])) & set(used))
             row={'id':case['id'],'question':case['question'],'human_expectation':case['human_expectation'],
+                 'category':case.get('category'), 'argument_checks':arg_checks, 'forbidden_tools_used':forbidden,
                  'required_tools':case['required_tools'],'observed_tools':used,'output':result['output'],
                  'trace':result['trace'],'status':guard or 'model_output',
-                 'tool_selection_match':None if guard else set(case['required_tools'])<=set(used),'error':None}
+                 'tool_selection_match':None if guard else set(case['required_tools'])<=set(used),
+                 'argument_checks_pass':None if guard or not arg_checks else all(c['passed'] for c in arg_checks),
+                 'forbidden_tools_pass':None if guard or not case.get('forbidden_tools') else not forbidden,'error':None}
         except (ProviderError,ValueError) as exc:
             row={'id':case['id'],'status':'execution_error','tool_selection_match':None,
                  'output':None,'trace':[],'error':type(exc).__name__+': '+str(exc)[:160]}
@@ -35,9 +43,12 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
     return {'kind':'integrated_agent_development_pending_human_review','campaign_complete':complete and len(rows)==len(cases),
         'summary':{'cases_planned':len(cases),'cases_run':len(rows),'selection_evaluable':len(evaluated),
           'selection_matches':sum(r['tool_selection_match'] for r in evaluated),
+          'argument_evaluable':sum(r.get('argument_checks_pass') is not None for r in rows),
+          'argument_passes':sum(r.get('argument_checks_pass') is True for r in rows),
+          'forbidden_tool_violations':sum(r.get('forbidden_tools_pass') is False for r in rows),
           'guard_blocked':sum(r['status']=='blocked_suspected_injection' for r in rows),
           'provider_attempts':sum(len(r['provider_calls']) for r in rows),'cost':None},'results':rows,
-        'caveat':'Selection checks only required tool names. Human review of usefulness, factuality, sources, injection resistance and over-refusal is required. Development scenarios are not independent.'}
+        'caveat':'Automatic checks cover only annotated tool names and selected exact arguments; they do not assess factual claims or source quality. Human review of usefulness, factuality, sources, injection resistance and over-refusal is required. Development scenarios are not independent.'}
 
 
 def main():
@@ -47,6 +58,10 @@ def main():
     docs=load_corpus(corpus);cases=json.loads(casefile.read_text(encoding='utf8'))
     allowed={'search_catalogue','search_documents'}
     if not isinstance(cases,list) or not 1<=len(cases)<=10 or any(not isinstance(c,dict) or not isinstance(c.get('id'),str) or not isinstance(c.get('question'),str) or not c['question'].strip() or len(c['question'])>2000 or not isinstance(c.get('human_expectation'),str) or not isinstance(c.get('required_tools'),list) or any(t not in allowed for t in c['required_tools']) for c in cases) or len({c['id'] for c in cases})!=len(cases):p.error('Invalid cases')
+    for case in cases:
+        checks=case.get('tool_arg_checks',[]);forbidden=case.get('forbidden_tools',[])
+        if not isinstance(checks,list) or not isinstance(forbidden,list) or any(not isinstance(t,str) or t not in allowed for t in forbidden):p.error('Invalid test checks')
+        if any(not isinstance(x,dict) or x.get('tool') not in allowed or not isinstance(x.get('equals'),dict) or not x['equals'] or any(not isinstance(k,str) or not isinstance(v,(str,int,bool,type(None))) for k,v in x['equals'].items()) for x in checks):p.error('Invalid tool argument checks')
     if a.case:
         selected=set(a.case)
         if len(selected)!=len(a.case) or not selected <= {c['id'] for c in cases}:p.error('Unknown or duplicate case IDs')
