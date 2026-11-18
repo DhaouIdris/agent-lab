@@ -13,6 +13,7 @@ from ci_agentlab.providers import ChatClient, ProviderError
 from experiments.catalogue_chat import SearchInput, TOOL as CATALOGUE_TOOL
 from experiments.document_rag import load_corpus, retrieve
 from experiments.injection_guard import inspect_passages, normalize
+from experiments.input_guard import inspect_user_input
 from experiments.place_catalog import search
 from run_azure import load_config
 from experiments.route_service import route, load_route_key, valid_coordinates
@@ -83,7 +84,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
     if not isinstance(question,str) or not question.strip() or len(question)>2000:raise ValueError('Question must contain 1..2000 characters')
     if not Path(db).is_file():raise ValueError('Catalogue database missing')
     if type(max_rounds) is not int or not 1<=max_rounds<=10:raise ValueError('Invalid round limit')
-    if inspect_passages([{'id':'user','text':question}]):
+    if inspect_user_input(question):
         return local_response('La demande a été interrompue car elle contient une instruction suspecte. Reformulez votre question.', 'blocked_suspected_injection')
     normalized_question=normalize(question)
     pairs=re.findall(r'(?<![\w.])(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)(?!\w|\.\d)',question)
