@@ -62,7 +62,7 @@ def main():
     a=p.parse_args();db=Path(a.db);corpus=Path(a.corpus);casefile=Path(a.cases)
     if not db.is_file():p.error('Catalogue database missing')
     docs=load_corpus(corpus);cases=json.loads(casefile.read_text(encoding='utf8'))
-    allowed={'search_catalogue','search_documents'}
+    allowed={'search_catalogue','search_documents','calculate_route'}
     if not isinstance(cases,list) or not 1<=len(cases)<=10 or any(not isinstance(c,dict) or not isinstance(c.get('id'),str) or not isinstance(c.get('question'),str) or not c['question'].strip() or len(c['question'])>2000 or not isinstance(c.get('human_expectation'),str) or not isinstance(c.get('required_tools'),list) or any(t not in allowed for t in c['required_tools']) for c in cases) or len({c['id'] for c in cases})!=len(cases):p.error('Invalid cases')
     for case in cases:
         checks=case.get('tool_arg_checks',[]);forbidden=case.get('forbidden_tools',[])
