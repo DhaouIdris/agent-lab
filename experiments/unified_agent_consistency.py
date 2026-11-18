@@ -47,6 +47,7 @@ def campaign(client, db, docs, cases, repeat=2, timeout=180, on_progress=None):
             'model_outputs':sum(x['status']=='model_output' for x in rows),
             'execution_errors':sum(x['status']=='execution_error' for x in rows),
             'guard_blocks':sum(x['status']=='blocked_suspected_injection' for x in rows),
+            'invalid_coordinates':sum(x['status']=='invalid_coordinates' for x in rows),
             'outcome_checks_evaluable':sum('outcome_checks_pass' in x for x in rows),
             'outcome_checks_passes':sum(x.get('outcome_checks_pass') is True for x in rows),
             'provider_attempts':sum(len(x.get('provider_calls',[])) for x in rows),
