@@ -47,3 +47,11 @@ class EndToEndTests(unittest.TestCase):
         self.assertEqual(len(docs),13)
         self.assertTrue(all(set(c['relevant_ids']) <= {d['id'] for d in docs} for c in cases))
         self.assertEqual(sum(c['expected_behavior']=='abstain' for c in cases),1)
+
+    def test_comprehensive_case_set_is_bounded_and_has_known_ids(self):
+        docs=load_corpus('data/rag_corpus_licensed_pilot.json')
+        cases=json.loads(Path('data/rag_comprehensive_dev.json').read_text(encoding='utf8'))
+        self.assertEqual(len(cases),20)
+        self.assertEqual(len({c['id'] for c in cases}),len(cases))
+        self.assertTrue(all(set(c['relevant_ids']) <= {d['id'] for d in docs} for c in cases))
+        self.assertEqual(sum(c['expected_behavior']=='answer' for c in cases),10)
