@@ -5,6 +5,18 @@ from unittest.mock import Mock, patch
 from experiments.unified_agent_batch import run
 
 class BatteryTests(unittest.TestCase):
+    def test_route_outcome_checks_catch_wrong_mode_and_service_error(self):
+        case={'id':'R','question':'q','human_expectation':'review','required_tools':['calculate_route'],
+              'outcome_checks':{'status':'model_output','route_status':'ok','route_mode':'car','abstain':False}}
+        result={'output':{'answer':'error','place_ids':[],'document_ids':[],'abstain':True},
+                'trace':[{'tool':'calculate_route','arguments':{'mode':'walk'},'result':{'status':'unavailable'}}]}
+        client=Mock();client.calls=[]
+        with patch('experiments.unified_agent_batch.ask',return_value=result):report=run(client,'unused',[],[case])
+        row=report['results'][0]
+        self.assertTrue(row['tool_selection_match'])
+        self.assertFalse(row['outcome_checks_pass'])
+        self.assertFalse(row['outcome_checks']['route_status'])
+        self.assertFalse(row['outcome_checks']['route_mode'])
     def test_battery_metadata(self):
         cases=[]
         for i in (1,2,3):
