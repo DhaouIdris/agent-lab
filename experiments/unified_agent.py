@@ -35,11 +35,14 @@ Return JSON only: {"answer": string, "document_ids": [string], "place_ids": [str
 
 class AgentDiagnosticError(ProviderError):
     """Categorized failure with metadata only, no model output or retrieved text."""
-    def __init__(self, code, trace):
+    def __init__(self, code, trace, metadata=None):
         super().__init__(code)
         self.code=code
+        self.metadata=metadata or {}
         self.trace=[{'tool':item['tool'], 'arguments':{k:v for k,v in item['arguments'].items() if k in ('category','limit')},
-                     'result_status':item.get('result',{}).get('status','returned')}
+                     'result_status':item.get('result',{}).get('status','returned'),
+                     'result_count':len(item.get('result',{}).get('passages',item.get('result',{}).get('items',[]))),
+                     **({'search_limit_reason':item['result']['search_limit_reason']} if 'search_limit_reason' in item.get('result',{}) else {})}
                     for item in trace]
 
 
@@ -71,7 +74,11 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
         calls=reply.get('tool_calls') or []
         if not calls:
             result,error=validate_final(reply.get('content'),observed_documents,observed_places)
-            if error:raise AgentDiagnosticError(error,trace)
+            if error:
+                content=reply.get('content')
+                metadata={'content_kind':'empty' if content is None or content=='' else ('string' if isinstance(content,str) else 'non_string'),
+                          'content_length':len(content) if isinstance(content,str) else None}
+                raise AgentDiagnosticError(error,trace,metadata)
             return {'output':result,'trace':trace,'caveat':'IDs checked against tool results only; prose, citation relevance and completeness require review.'}
         if not isinstance(calls,list) or not 1<=len(calls)<=4:
             raise AgentDiagnosticError('invalid_tool_call_count',trace)
@@ -93,7 +100,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                     normalized=' '.join(re.findall(r'\w+',args.query.casefold()))
                     if normalized in document_queries or len(document_queries)>=2:
                         flagged=[]
-                        result={'passages':[],'status':'search_limit_reached','note':'No new search performed; use existing evidence or abstain.'}
+                        result={'passages':[],'status':'search_limit_reached','search_limit_reason':'duplicate_query' if normalized in document_queries else 'distinct_query_limit','note':'No new search performed; use existing evidence or abstain.'}
                     else:
                         document_queries.add(normalized)
                         hits=retrieve(args.query,docs,k=args.limit)
