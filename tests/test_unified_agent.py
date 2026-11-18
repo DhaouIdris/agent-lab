@@ -112,6 +112,27 @@ class DiagnosticsTests(unittest.TestCase):
         client=Mock();client.chat.return_value={'content':'not json'}
         with self.assertRaises(AgentDiagnosticError) as error:ask(client,self.db,self.docs,'test',catalogue_search=self.catalogue)
         self.assertEqual(error.exception.code,'invalid_json')
+        self.assertEqual(error.exception.metadata,{'content_kind':'string','content_length':8})
+
+    def test_exhausted_rounds_report_redacted_search_causes(self):
+        from experiments.unified_agent import AgentDiagnosticError
+        from unittest.mock import patch
+        client=Mock();client.chat.side_effect=[call('search_documents',{'query':'private query'},1),call('search_documents',{'query':'private query'},2)]
+        with patch('experiments.unified_agent.retrieve',return_value=[]):
+            with self.assertRaises(AgentDiagnosticError) as error:
+                ask(client,self.db,self.docs,'test',max_rounds=2,catalogue_search=self.catalogue)
+        self.assertEqual(error.exception.trace[1]['search_limit_reason'],'duplicate_query')
+        self.assertEqual(error.exception.trace[0]['result_count'],0)
+        self.assertNotIn('private query',str(error.exception.trace))
+
+    def test_provider_records_allowlisted_finish_reason(self):
+        import io
+        from ci_agentlab.providers import ChatClient
+        client=ChatClient('https://example.com/v1','test',max_calls=1)
+        client.opener=Mock()
+        client.opener.open.return_value=io.BytesIO(json.dumps({'choices':[{'message':{'content':'{'},'finish_reason':'length'}],'usage':{}}).encode())
+        client.chat([{'role':'user','content':'test'}])
+        self.assertEqual(client.calls[0]['finish_reason'],'length')
 
     def test_repeat_search_returns_no_new_results_without_retrieval(self):
         from unittest.mock import patch
