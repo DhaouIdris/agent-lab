@@ -1,0 +1,36 @@
+[
+  {
+    "id": "L01",
+    "question": "Quelle forêt protège le parc national de Taï selon l’UNESCO ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_UNESCO_TAI_FORET"
+    ],
+    "human_expectation": "Décrire la forêt tropicale primaire et citer l’extrait."
+  },
+  {
+    "id": "L02",
+    "question": "Que dit l’UNESCO sur la végétation du parc de la Comoé ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_UNESCO_COMOE_VEGETATION"
+    ],
+    "human_expectation": "Mentionner sa grande diversité végétale, sans inventer de détail."
+  },
+  {
+    "id": "L03",
+    "question": "De quelle époque date l’urbanisme historique de Grand-Bassam selon l’UNESCO ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "CI_UNESCO_BASSAM_URBANISME"
+    ],
+    "human_expectation": "Fin XIXe et début XXe siècle avec citation."
+  },
+  {
+    "id": "L04",
+    "question": "Quels documents sont obligatoires pour créer une SARL au CEPICI ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Aucune liste documentée pour la SARL. Ne pas énumérer d’exemples non sourcés de pièces même entre parenthèses ; renvoyer à une source officielle."
+  }
+]
