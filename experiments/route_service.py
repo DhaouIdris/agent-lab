@@ -1,11 +1,19 @@
 """Bounded read-only route calculation via the hosted openrouteservice API."""
 import json
 import math
+import os
 import urllib.error
 import urllib.request
+from pathlib import Path
+from dotenv import load_dotenv
 
 ENDPOINT='https://api.heigit.org/openrouteservice/v2/directions/'
 PROFILES={'car':'driving-car','walk':'foot-walking'}
+
+def load_route_key():
+    """Load the root .env without replacing an existing environment variable."""
+    load_dotenv(dotenv_path=Path(__file__).resolve().parents[1]/'.env',override=False)
+    return os.getenv('ORS_API_KEY','')
 
 
 def route(origin, destination, mode, api_key, opener=None, timeout=12):
