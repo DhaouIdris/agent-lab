@@ -86,7 +86,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
     if inspect_passages([{'id':'user','text':question}]):
         return local_response('La demande a été interrompue car elle contient une instruction suspecte. Reformulez votre question.', 'blocked_suspected_injection')
     normalized_question=normalize(question)
-    pairs=re.findall(r'(?<![\w.])(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)(?![\w.])',question)
+    pairs=re.findall(r'(?<![\w.])(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)(?!\w|\.\d)',question)
     coords=[tuple(map(float,p)) for p in pairs]
     mode_matches=set()
     if re.search(r'\b(?:voiture|auto|car)\b',normalized_question):mode_matches.add('car')
