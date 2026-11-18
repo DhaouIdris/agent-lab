@@ -1,0 +1,13 @@
+# Pilote itinéraire
+
+Outil expérimental openrouteservice hébergé, en lecture seule et uniquement pour deux paires `latitude, longitude` explicites dans la question et un mode explicite voiture ou à pied. Aucun géocodage, classement du lieu le plus proche, réservation, trafic en direct ou garantie d'ouverture des lieux. Les coordonnées transmises par l'utilisateur vont à Azure et, en cas d'appel routier, à HeiGIT. Ne pas mettre de lieux privés dans les scénarios ou rapports. Réponse chiffrée produite par le code depuis le service ; données de cartographie © contributeurs OpenStreetMap, calcul openrouteservice. Un délai, une absence de clé ou une erreur fournisseur entraîne une abstention. Le détecteur lexical reste incomplet.
+
+Créer une clé gratuite dans le compte HeiGIT, consulter les quotas et renseigner dans le processus PowerShell uniquement (ne pas coller dans un chat) :
+
+```powershell
+$env:ORS_API_KEY = [System.Net.NetworkCredential]::new('', (Read-Host 'Clé openrouteservice' -AsSecureString)).Password
+.\.venv\Scripts\python.exe -m experiments.unified_agent_consistency --db local_data/lieux.sqlite --cases data/unified_route_pilot.json --repeat 1
+Remove-Item Env:ORS_API_KEY
+```
+
+La clé n'est pas dans le rapport. Les questions et réponses peuvent y figurer. Le pilote utilise au plus 25 tentatives Azure ; le service routier n'est appelé que si le modèle demande l'outil et que les coordonnées et le mode correspondent strictement à la question. Il n'y a pas de retry ORS. Les contrôles automatiques des noms d'outils ne vérifient pas la qualité de la réponse ; relire le rapport. Tester le service dans une région ne prouve pas sa couverture routière sur toute la Côte d'Ivoire. Il peut refuser, limiter ou retourner un itinéraire imparfait.
