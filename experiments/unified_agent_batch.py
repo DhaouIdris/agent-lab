@@ -37,7 +37,7 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
             safe_trace = exc.trace if isinstance(exc,AgentDiagnosticError) else []
             row={'id':case['id'],'category':case.get('category'),'status':'execution_error','tool_selection_match':None,
                  'output':None,'trace':safe_trace,'error':type(exc).__name__+': '+str(exc)[:160],
-                 'diagnostic_code':diagnostic, 'trace_redacted':bool(safe_trace)}
+                 'diagnostic_code':diagnostic, 'diagnostic_metadata':exc.metadata if isinstance(exc,AgentDiagnosticError) else {}, 'trace_redacted':bool(safe_trace)}
             complete=False
         row['provider_calls']=client.calls[start:];rows.append(row)
         if on_progress:on_progress(rows)
