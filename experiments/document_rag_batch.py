@@ -12,7 +12,7 @@ from run_azure import load_config
 
 CASES=ROOT/'data/rag_batch_dev.json'
 
-def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180):
+def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180,shield=None):
     results=[];complete=True
     for case in cases:
         start=len(client.calls)
@@ -21,12 +21,16 @@ def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180):
              'relevant_ids':case['relevant_ids'],'human_expectation':case['human_expectation'],
              'retrieved_ids':[x['id'] for x in hits], 'human_review_required':True}
         try:
-            output=generate(client,case['question'],hits,timeout=turn_timeout)
+            output=generate(client,case['question'],hits,timeout=turn_timeout,shield=shield)
             row['output']=output
-            row['behavior_match']=output['abstain']==(case['expected_behavior']=='abstain')
+            row['evaluation_status'] = output.get('guard_status', 'model_output' if hits else 'no_retrieval')
+            row['behavior_match'] = None if output.get('guard_status') else output['abstain']==(case['expected_behavior']=='abstain')
             row['retrieval_hit_at_k']=bool(set(case['relevant_ids']) & {x['id'] for x in hits}) if case['relevant_ids'] else None
             row['retrieval_recall_at_k']=len(set(case['relevant_ids']) & {x['id'] for x in hits})/len(set(case['relevant_ids'])) if case['relevant_ids'] else None
             row['error']=None
+            if output.get('guard_status') == 'guard_unavailable':
+                row['error']='guard_unavailable'
+                complete=False
         except (ProviderError,ValueError) as exc:
             row.update(output=None,behavior_match=None,retrieval_hit_at_k=None,retrieval_recall_at_k=None,error=type(exc).__name__+': '+str(exc)[:180])
             complete=False
@@ -37,7 +41,10 @@ def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180):
     judged=[r for r in results if r['behavior_match'] is not None]
     retrieved=[r for r in results if r['retrieval_hit_at_k'] is not None]
     usage=[c.get('usage',{}) for r in results for c in r['provider_calls']]
-    summary={'cases_planned':len(cases),'cases_run':len(results),'cases_with_output':len(judged),
+    summary={'cases_planned':len(cases),'cases_run':len(results),'cases_with_output':sum(r['output'] is not None for r in results),
+             'guard_blocked_runs':sum(r.get('evaluation_status') == 'blocked_suspected_injection' for r in results),
+             'guard_unavailable_runs':sum(r.get('evaluation_status') == 'guard_unavailable' for r in results),
+             'behavior_evaluable_runs':len(judged),
              'behavior_matches':sum(r['behavior_match'] for r in judged),
              'behavior_match_rate':sum(r['behavior_match'] for r in judged)/len(judged) if judged else None,
              'retrieval_hit_count':sum(r['retrieval_hit_at_k'] for r in retrieved),
@@ -53,6 +60,7 @@ def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--config',default='azure.json');p.add_argument('--out')
+    p.add_argument('--prompt-shield-endpoint',help='Optional Azure Content Safety endpoint')
     p.add_argument('--k',type=int,default=3);p.add_argument('--corpus',default=str(CORPUS));p.add_argument('--cases',default=str(CASES));a=p.parse_args()
     corpus_path=Path(a.corpus);cases_path=Path(a.cases)
     docs=load_corpus(corpus_path);cases=json.loads(cases_path.read_text(encoding='utf-8'))
@@ -69,15 +77,21 @@ def main():
     client=ChatClient(cfg['base_url'],cfg['deployment'],api_key=key,api_version=cfg.get('api_version'),
         max_output_tokens=cfg['max_output_tokens'],max_calls=3*len(cases),auth_header=cfg['auth_header'],
         token_parameter=cfg['token_parameter'],min_interval_seconds=cfg['min_interval_seconds'])
+    shield=None
+    if a.prompt_shield_endpoint:
+        from experiments.prompt_shield import AzurePromptShield
+        shield_key=os.getenv('AGENTLAB_SHIELD_KEY') or getpass.getpass('Clé Content Safety (saisie masquée) : ')
+        if not shield_key:p.error('Clé Content Safety absente')
+        shield=AzurePromptShield(a.prompt_shield_endpoint,shield_key)
     out.mkdir(parents=True,exist_ok=False)
     def checkpoint(results):
         partial={'kind':'development_rag_batch_partial','campaign_complete':False,'results':results}
         temp=out/'report.tmp'
         temp.write_text(json.dumps(partial,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         temp.replace(out/'report.json')
-    report=run_batch(client,docs,cases,k=a.k,on_progress=checkpoint,turn_timeout=cfg['turn_timeout_seconds'])
+    report=run_batch(client,docs,cases,k=a.k,on_progress=checkpoint,turn_timeout=cfg['turn_timeout_seconds'],shield=shield)
     report['config']={'model':cfg['underlying_model'],'deployment':cfg['deployment'],'model_version':cfg['model_version'],'k':a.k,'max_provider_calls':3*len(cases),
-        'corpus_sha256':hashlib.sha256(corpus_path.read_bytes()).hexdigest(),'cases_sha256':hashlib.sha256(cases_path.read_bytes()).hexdigest()}
+        'prompt_shield_enabled':shield is not None, 'corpus_sha256':hashlib.sha256(corpus_path.read_bytes()).hexdigest(),'cases_sha256':hashlib.sha256(cases_path.read_bytes()).hexdigest()}
     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(report['summary'],ensure_ascii=False,indent=2));print('Rapport :',out/'report.json')
     if not report['campaign_complete']:p.exit(1,'Campagne interrompue ; consulter le rapport partiel.\n')
