@@ -27,3 +27,16 @@ class UNESCODataTests(unittest.TestCase):
         cases=json.loads(Path('data/rag_unesco_descriptions_dev_cases.json').read_text(encoding='utf8'))
         self.assertEqual(len(cases),12)
         self.assertTrue(all(set(c['relevant_ids'])<={d['id'] for d in docs} for c in cases))
+
+    def test_generation_requests_uncertainty_and_relevant_citations(self):
+        from unittest.mock import Mock
+        from experiments.document_rag import generate, retrieve
+        docs=load_corpus('data/rag_unesco_descriptions.json')
+        hits=retrieve('De quelle ville provient le style architectural des mosquées ?',docs)
+        client=Mock()
+        client.chat.return_value={'content':json.dumps({'answer':'La source indique que l’origine se situerait à Djenné.','citation_ids':['UNESCO_MOSQUEES__0002'],'abstain':False})}
+        result=generate(client,'De quelle ville provient le style architectural des mosquées ?',hits)
+        system=client.chat.call_args.args[0][0]['content']
+        self.assertIn('never turn a possibility, hypothesis, estimate or uncertainty into a categorical assertion',system)
+        self.assertIn('Cite only passages that directly support at least one substantive claim',system)
+        self.assertEqual(result['citation_ids'],['UNESCO_MOSQUEES__0002'])

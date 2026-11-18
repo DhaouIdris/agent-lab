@@ -80,6 +80,8 @@ def generate(client,question,hits,timeout=180,shield=None):
             'If evidence is insufficient, abstain. Never invent prices, hours, current availability or bookings. '
             'When evidence is missing, do not suggest specific examples of required documents, eligibility criteria, procedures, prices or other factual requirements unless directly supported by a cited passage. Say only what is unknown and point to an appropriate official source without inventing an address. '
             'Return JSON only: {"answer":string,"citation_ids":[document IDs],"abstain":boolean}. '
+            'Preserve the source’s degree of certainty: never turn a possibility, hypothesis, estimate or uncertainty into a categorical assertion. '
+            'Cite only passages that directly support at least one substantive claim made in your answer; do not cite a passage merely because it is about the same topic. '
             'Cite at least one provided ID when answering. If no passage supports a substantive claim, use an empty citation list rather than presenting an unrelated source as evidence. Mention source age or uncertainty where appropriate.')
     messages=[{'role':'system','content':system},{'role':'user','content':json.dumps({'question':question,'passages':hits},ensure_ascii=False)}]
     msg=client.chat(messages,timeout=timeout,tools_override=[],tool_choice='none',response_format={'type':'json_object'})
