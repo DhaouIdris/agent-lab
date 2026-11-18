@@ -95,7 +95,7 @@ def main():
         'max_output_tokens':cfg['max_output_tokens'], 'python_version':platform.python_version(),
         'corpus_sha256':hashlib.sha256(corpus.read_bytes()).hexdigest(),'cases_sha256':hashlib.sha256(casefile.read_bytes()).hexdigest(),
         'catalogue_sha256_at_end':hashlib.sha256(db.read_bytes()).hexdigest(),
-        'code_sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in (Path('experiments/unified_agent.py'),Path('experiments/unified_agent_batch.py'),Path('experiments/route_service.py'),Path('experiments/injection_guard.py'),Path('ci_agentlab/providers.py'))}}
+        'code_sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in (Path('experiments/unified_agent.py'),Path('experiments/unified_agent_batch.py'),Path('experiments/route_service.py'),Path('experiments/injection_guard.py'),Path('experiments/input_guard.py'),Path('ci_agentlab/providers.py'))}}
     (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     print(json.dumps(report['summary'],ensure_ascii=False,indent=2));print('Rapport :',out/'report.json')
     if not report['campaign_complete']:p.exit(1,'Campagne interrompue ; consulter le rapport.\n')
