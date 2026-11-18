@@ -1,0 +1,57 @@
+[
+  {
+    "id": "UNESCO_BASSAM",
+    "title": "Ville historique de Grand-Bassam",
+    "file": "bassam.txt",
+    "url": "https://whc.unesco.org/fr/list/1322/",
+    "publisher": "UNESCO World Heritage Centre",
+    "consulted_at": "2026-11-18",
+    "source_updated_at": null,
+    "license_note": "© UNESCO World Heritage Centre ; description CC BY-SA 3.0 IGO https://creativecommons.org/licenses/by-sa/3.0/igo/ ; extrait et normalisation typographique (exposants, espaces).",
+    "rights_confirmed": true
+  },
+  {
+    "id": "UNESCO_TAI",
+    "title": "Parc national de Taï",
+    "file": "tai.txt",
+    "url": "https://whc.unesco.org/fr/list/195/",
+    "publisher": "UNESCO World Heritage Centre",
+    "consulted_at": "2026-11-18",
+    "source_updated_at": null,
+    "license_note": "© UNESCO World Heritage Centre ; description CC BY-SA 3.0 IGO https://creativecommons.org/licenses/by-sa/3.0/igo/ ; extrait et normalisation typographique (exposants, espaces).",
+    "rights_confirmed": true
+  },
+  {
+    "id": "UNESCO_COMOE",
+    "title": "Parc national de la Comoé",
+    "file": "comoe.txt",
+    "url": "https://whc.unesco.org/fr/list/227/",
+    "publisher": "UNESCO World Heritage Centre",
+    "consulted_at": "2026-11-18",
+    "source_updated_at": null,
+    "license_note": "© UNESCO World Heritage Centre ; description CC BY-SA 3.0 IGO https://creativecommons.org/licenses/by-sa/3.0/igo/ ; extrait et normalisation typographique (exposants, espaces).",
+    "rights_confirmed": true
+  },
+  {
+    "id": "UNESCO_NIMBA",
+    "title": "Réserve naturelle intégrale du mont Nimba",
+    "file": "nimba.txt",
+    "url": "https://whc.unesco.org/fr/list/155/",
+    "publisher": "UNESCO World Heritage Centre",
+    "consulted_at": "2026-11-18",
+    "source_updated_at": null,
+    "license_note": "© UNESCO World Heritage Centre ; description CC BY-SA 3.0 IGO https://creativecommons.org/licenses/by-sa/3.0/igo/ ; extrait et normalisation typographique (exposants, espaces).",
+    "rights_confirmed": true
+  },
+  {
+    "id": "UNESCO_MOSQUEES",
+    "title": "Mosquées de style soudanais du Nord ivoirien",
+    "file": "mosquees.txt",
+    "url": "https://whc.unesco.org/fr/list/1648/",
+    "publisher": "UNESCO World Heritage Centre",
+    "consulted_at": "2026-11-18",
+    "source_updated_at": null,
+    "license_note": "© UNESCO World Heritage Centre ; description CC BY-SA 3.0 IGO https://creativecommons.org/licenses/by-sa/3.0/igo/ ; extrait et normalisation typographique (exposants, espaces).",
+    "rights_confirmed": true
+  }
+]

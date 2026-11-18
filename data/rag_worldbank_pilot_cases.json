@@ -1,0 +1,18 @@
+[
+  {
+    "id": "WB01",
+    "question": "Quel était le PIB de la Côte d’Ivoire en dollars courants en 2025 selon la Banque mondiale ?",
+    "expected_behavior": "answer",
+    "relevant_ids": [
+      "WB_CIV_GDP_CURRENT_2025"
+    ],
+    "human_expectation": "99,77 milliards de dollars américains courants en 2025, valeur arrondie et révisable ; citer."
+  },
+  {
+    "id": "WB02",
+    "question": "Quel est le PIB par habitant de la Côte d’Ivoire en 2025 ?",
+    "expected_behavior": "abstain",
+    "relevant_ids": [],
+    "human_expectation": "Le passage ne donne pas le PIB par habitant ; ne pas utiliser le PIB total comme réponse."
+  }
+]
