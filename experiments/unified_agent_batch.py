@@ -29,6 +29,7 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
                  'category':case.get('category'), 'argument_checks':arg_checks, 'forbidden_tools_used':forbidden,
                  'required_tools':case['required_tools'],'observed_tools':used,'output':result['output'],
                  'trace':result['trace'],'status':guard or 'model_output',
+                 'diagnostic_code':result.get('diagnostic_code'), 'diagnostic_metadata':result.get('diagnostic_metadata',{}), 'trace_redacted':result.get('trace_redacted',False),
                  'tool_selection_match':None if guard else set(case['required_tools'])<=set(used),
                  'argument_checks_pass':None if guard or not arg_checks else all(c['passed'] for c in arg_checks),
                  'forbidden_tools_pass':None if guard or not case.get('forbidden_tools') else not forbidden,'error':None}
@@ -50,6 +51,8 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
           'argument_passes':sum(r.get('argument_checks_pass') is True for r in rows),
           'forbidden_tool_violations':sum(r.get('forbidden_tools_pass') is False for r in rows),
           'guard_blocked':sum(r['status']=='blocked_suspected_injection' for r in rows),
+          'unsupported_routing':sum(r['status']=='unsupported_routing' for r in rows),
+          'fallbacks':sum(r['status']=='fallback_invalid_response' for r in rows),
           'provider_attempts':sum(len(r['provider_calls']) for r in rows),'cost':None},'results':rows,
         'caveat':'Automatic checks cover only annotated tool names and selected exact arguments; they do not assess factual claims or source quality. Human review of usefulness, factuality, sources, injection resistance and over-refusal is required. Development scenarios are not independent.'}
 
