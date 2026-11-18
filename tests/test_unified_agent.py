@@ -88,3 +88,43 @@ class GroupedToolTests(unittest.TestCase):
         for calls in ([one,one],[dict(one,id=str(i)) for i in range(5)]):
             client.chat.return_value={'tool_calls':calls}
             with self.subTest(n=len(calls)),self.assertRaises(ProviderError):ask(client,self.db,self.docs,'test',catalogue_search=self.catalogue)
+
+class DiagnosticsTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        self.db=Path(self.tmp.name)/'test.sqlite';self.db.touch()
+        self.docs=load_corpus('data/rag_integrated_dev.json')
+        self.catalogue=Mock(return_value={'items':[{'source_id':'node/1','name':'Café Test'}]})
+
+    def test_failure_codes_and_redacted_trace(self):
+        from experiments.unified_agent import AgentDiagnosticError
+        client=Mock();client.chat.side_effect=[call('search_catalogue',{'category':'cafe','query':'SECRET_PRIVATE'},1),final(place_ids=['invented'])]
+        with self.assertRaises(AgentDiagnosticError) as error:
+            ask(client,self.db,self.docs,'test',catalogue_search=self.catalogue)
+        self.assertEqual(error.exception.code,'unobserved_place_ids')
+        self.assertEqual(error.exception.trace[0]['tool'],'search_catalogue')
+        self.assertNotIn('SECRET_PRIVATE',str(error.exception.trace))
+        self.assertNotIn('Café Test',str(error.exception.trace))
+        self.assertNotIn('invented',str(error.exception))
+
+    def test_malformed_json_has_distinct_code(self):
+        from experiments.unified_agent import AgentDiagnosticError
+        client=Mock();client.chat.return_value={'content':'not json'}
+        with self.assertRaises(AgentDiagnosticError) as error:ask(client,self.db,self.docs,'test',catalogue_search=self.catalogue)
+        self.assertEqual(error.exception.code,'invalid_json')
+
+    def test_repeat_search_returns_no_new_results_without_retrieval(self):
+        from unittest.mock import patch
+        client=Mock();client.chat.side_effect=[call('search_documents',{'query':'Taï parc'},1),call('search_documents',{'query':'Taï parc'},2),final(abstain=True)]
+        with patch('experiments.unified_agent.retrieve',return_value=[]) as retriever:
+            result=ask(client,self.db,self.docs,'test',catalogue_search=self.catalogue)
+        self.assertEqual(retriever.call_count,1)
+        self.assertEqual(result['trace'][1]['result']['status'],'search_limit_reached')
+
+    def test_search_cap_applies_to_distinct_queries(self):
+        from unittest.mock import patch
+        client=Mock();client.chat.side_effect=[call('search_documents',{'query':'one'},1),call('search_documents',{'query':'two'},2),call('search_documents',{'query':'three'},3),final(abstain=True)]
+        with patch('experiments.unified_agent.retrieve',return_value=[]) as retriever:
+            result=ask(client,self.db,self.docs,'test',catalogue_search=self.catalogue)
+        self.assertEqual(retriever.call_count,2)
+        self.assertEqual(result['trace'][2]['result']['status'],'search_limit_reached')

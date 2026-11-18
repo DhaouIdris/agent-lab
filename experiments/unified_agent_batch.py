@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from ci_agentlab.providers import ChatClient, ProviderError
 from experiments.document_rag import load_corpus
-from experiments.unified_agent import ask
+from experiments.unified_agent import ask, AgentDiagnosticError
 from run_azure import load_config
 
 
@@ -33,8 +33,11 @@ def run(client,db,docs,cases,on_progress=None,timeout=180):
                  'argument_checks_pass':None if guard or not arg_checks else all(c['passed'] for c in arg_checks),
                  'forbidden_tools_pass':None if guard or not case.get('forbidden_tools') else not forbidden,'error':None}
         except (ProviderError,ValueError) as exc:
-            row={'id':case['id'],'status':'execution_error','tool_selection_match':None,
-                 'output':None,'trace':[],'error':type(exc).__name__+': '+str(exc)[:160]}
+            diagnostic = exc.code if isinstance(exc,AgentDiagnosticError) else None
+            safe_trace = exc.trace if isinstance(exc,AgentDiagnosticError) else []
+            row={'id':case['id'],'category':case.get('category'),'status':'execution_error','tool_selection_match':None,
+                 'output':None,'trace':safe_trace,'error':type(exc).__name__+': '+str(exc)[:160],
+                 'diagnostic_code':diagnostic, 'trace_redacted':bool(safe_trace)}
             complete=False
         row['provider_calls']=client.calls[start:];rows.append(row)
         if on_progress:on_progress(rows)
