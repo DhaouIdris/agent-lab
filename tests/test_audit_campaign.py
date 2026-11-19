@@ -102,7 +102,7 @@ class AuditTests(unittest.TestCase):
 
     def test_status_or_tool_alone_cannot_pass(self):
         row={'status':'model_output','outcome_checks':{'status':True},'observed_tools':[],
-             'output':{'answer':'Redemandez-moi la météo demain.','document_ids':[],'place_ids':[]}}
+             'output':{'answer':'Demandez‑moi de nouveau la météo demain.','document_ids':[],'place_ids':[]}}
         case={'outcome_checks':{'status':'model_output'}}
         score_response(row,case)
         self.assertIsNone(row['automatic_checks_pass'])
