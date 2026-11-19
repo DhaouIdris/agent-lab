@@ -117,7 +117,7 @@ class AuditTests(unittest.TestCase):
              'provider_calls':[{'usage':{'junk':secret}}],'category':'dialogue','observed_tools':['search_documents']}
         for complete in (False,True):
             save_report(self.dir,{'kind':'test','campaign_complete':complete,'results':[row]})
-            self.assertNotIn(secret,(self.dir/'report.json').read_text())
+            self.assertNotIn(secret,(self.dir/'report.json').read_text(encoding='utf8'))
             self.assertFalse((self.dir/'review.private.json').exists())
 
     def test_grading_requires_actual_decisions(self):
@@ -133,7 +133,7 @@ class AuditTests(unittest.TestCase):
         grade.update(dict.fromkeys(REVIEW,True),facts_supported=False)
         save()
         adjudicate(self.dir)
-        self.assertEqual(json.loads((self.dir/'adjudication.json').read_text())['joint_passes'],0)
+        self.assertEqual(json.loads((self.dir/'adjudication.json').read_text(encoding='utf8'))['joint_passes'],0)
 
     def test_generic_retention_advice_does_not_trigger_opening_hours_rule(self):
         self.client.chat.return_value=self.reply('Supprimez votre position partagée après 24 heures.')
@@ -152,7 +152,7 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(row['diagnostic_metadata']['parent_id_confusion_count'],1)
         self.assertIn('Détail privé',json.loads(row['rejected_responses_private'][0]['rejected_model_content'])['answer'])
         save_report(self.dir,{'kind':'test','results':[row]},private=True)
-        public=(self.dir/'report.json').read_text()
+        public=(self.dir/'report.json').read_text(encoding='utf8')
         self.assertNotIn('SYNTHETIC_PARENT',public)
         self.assertNotIn('Détail privé',public)
         self.assertNotIn('rejected_responses_private',public)
@@ -174,7 +174,7 @@ class AuditTests(unittest.TestCase):
         report={'kind':'live_development','config':{'run_id':'r'},'results':[row,passed]}
         save_report(self.dir,report,private=True)
         diagnose(self.dir)
-        data=json.loads((self.dir/'diagnosis.private.json').read_text())
+        data=json.loads((self.dir/'diagnosis.private.json').read_text(encoding='utf8'))
         self.assertEqual(len(data['rows']),1)
         self.assertEqual(data['rows'][0]['output']['answer'],'Réponse privée')
         self.client.chat.assert_not_called()
