@@ -117,7 +117,8 @@ class AuditTests(unittest.TestCase):
             'Je peux lancer une recherche documentaire ciblée pour trouver le site du musée.',
             'Je peux chercher dans l’inventaire pour voir s’il existe une fiche musée.',
             'Je peux alors chercher dans le catalogue des lieux près de ce musée.',
-            'Je ferai une recherche des documents officiels pertinents.'):
+            'Je ferai une recherche des documents officiels pertinents.',
+            'Je lancerai la recherche par nom du musée.'):
             with self.subTest(answer=answer):
                 row={'status':'model_output','outcome_checks':{'status':True},
                      'output':{'answer':answer,'abstain':True,'document_ids':[],'place_ids':[]}}

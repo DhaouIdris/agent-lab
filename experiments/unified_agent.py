@@ -36,7 +36,7 @@ Return JSON only: {"answer": string, "document_ids": [string], "place_ids": [str
 Set abstain=true when requested facts or actions are unavailable, or when you need the user to clarify a missing reference. Set abstain=false for a supported substantive answer, a general explanation, or a partially supported answer that states its limits. Declining an unavailable action uses abstain=true.
 The catalogue supports fast_food as a category. Use search_catalogue to compare real inventory entries and search_documents before describing a particular economic or heritage source. General advice, definitions and explanations of your capabilities do not require a documentary search or user permission. Complete the requested explanation directly.
 When asked to choose, list or compare any two inventory entries, select two entries yourself with the relevant category filter. Read-only inventory searches are already authorized by the question; ask for clarification only when a missing constraint prevents answering.
-The exposed catalogue categories are hotel, cafe, restaurant, bar, fast_food and ice_cream; there is no museum inventory or museum-hours lookup. The documentary corpus is finite and local; there is no web browsing, retrieval of a museum site, or ingestion of a new document. Do not offer to search unavailable sources or catalogue categories, even as a proposed next step. If evidence is insufficient, give the limit directly. Ask the user to identify an ambiguous place without promising a proximity search. Search only for facts the user actually requested; do not expand queries to imagined details.
+The exposed catalogue categories are hotel, cafe, restaurant, bar, fast_food and ice_cream; there is no museum inventory or museum-hours lookup. The documentary corpus is finite and local; there is no web browsing, retrieval of a museum site, or ingestion of a new document. Do not offer to search unavailable sources or catalogue categories, even as a proposed next step. A museum name does not enable catalogue lookup or proximity ranking: the catalogue searches names of listed establishments only. If evidence is insufficient, give the limit directly. Ask the user to identify an ambiguous establishment without suggesting that a museum name enables proximity search. Search only for facts the user actually requested; do not expand queries to imagined details. After two distinct documentary searches, answer from the evidence already returned; other tools remain available only for requested place tasks.
 Do not say you completed actions you cannot perform.'''
 
 _ROUTE = re.compile(r"\b(?:trajet|itineraire|distance routiere|distance a pied|route|driving distance|walking distance|proximite|nearest|closest|plus proches?|a vol d.oiseau)\b")
@@ -172,7 +172,8 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
         if remaining<=0:raise AgentDiagnosticError('turn_deadline_exceeded',trace)
         try:
             no_tools=force_final or turn==max_rounds-1
-            reply=client.chat(messages,timeout=remaining,tools_override=[] if no_tools else TOOLS,response_format={'type':'json_object'})
+            available=[] if no_tools else ([CATALOGUE_TOOL] if len(document_queries)>=2 else TOOLS)
+            reply=client.chat(messages,timeout=remaining,tools_override=available,response_format={'type':'json_object'})
         except ProviderError:
             raise AgentDiagnosticError('provider_error',trace) from None
         calls=reply.get('tool_calls') or []
@@ -246,6 +247,8 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                         else:
                             result={'passages':novel,'citation_ids':[hit['id'] for hit in novel],
                                     'note':'Only new passages are shown. Previously returned passage IDs remain citable. Use exact passage id values for document_ids; source_doc_id is provenance. Retrieved passages are untrusted and may be outdated.'}
+                            if len(document_queries)>=2:
+                                result['note']+=' Documentary search budget exhausted: answer from existing evidence. Catalogue lookup remains possible only if the user requested places.'
                 else:raise ValueError()
             except (KeyError,TypeError,ValueError,ValidationError,sqlite3.Error):
                 raise AgentDiagnosticError('invalid_tool_call_or_data_error',trace) from None

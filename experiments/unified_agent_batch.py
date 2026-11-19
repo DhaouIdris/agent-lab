@@ -36,8 +36,9 @@ def score_response(row,case):
     if rules.get('no_unavailable_lookup_offer'):
         answer=normalize(output.get('answer',''))
         # Narrow check for affirmative first-person offers of sources absent from this local corpus/catalogue.
-        offer_pattern=(r"\bje (?:peux|pourrai|ferai)\b.{0,160}\b(?:chercher|recherche|consulter|trouver)\b.{0,160}"
-                       r"\b(?:site du musee|office de tourisme|fiche musee|(?:lieux )?pres de ce musee|documents officiels pertinents)\b")
+        offer_pattern=(r"\bje (?:peux|pourrai|ferai|lancerai)\b.{0,160}\b(?:chercher|recherche|consulter|trouver|lancerai)\b.{0,160}"
+                       r"\b(?:site du musee|office de tourisme|fiche musee|(?:lieux )?pres de ce musee|"
+                       r"(?:recherche par )?nom du musee|documents officiels pertinents)\b")
         checks['no_unavailable_lookup_offer']=not any(re.search(offer_pattern,sentence) for sentence in re.split(r'[.!?;\n]+',answer))
     if rules.get('no_payment_data_request'):
         answer=normalize(output.get('answer','')).translate(str.maketrans('‐‑–','---'))

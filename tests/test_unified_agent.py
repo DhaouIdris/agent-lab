@@ -162,6 +162,34 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual(retriever.call_count,2)
         self.assertEqual(result['trace'][2]['result']['status'],'search_limit_reached')
 
+    def test_second_document_search_removes_only_document_tool(self):
+        from unittest.mock import patch
+        from experiments.catalogue_chat import TOOL as catalogue_tool
+        first={'id':'first','title':'Taï','text':'Forêt tropicale.'}
+        second={'id':'second','title':'Nimba','text':'Aux confins de trois pays.'}
+        client=Mock();client.chat.side_effect=[call('search_documents',{'query':'one'},1),
+            call('search_documents',{'query':'two'},2),final(document_ids=['first'])]
+        with patch('experiments.unified_agent.retrieve',side_effect=[[first],[second]]) as retriever:
+            result=ask(client,self.db,self.docs,'Décris Taï',catalogue_search=self.catalogue)
+        self.assertEqual(retriever.call_count,2)
+        self.assertEqual(client.chat.call_count,3)
+        self.assertEqual(client.chat.call_args.kwargs['tools_override'],[catalogue_tool])
+        self.assertIn('budget exhausted',result['trace'][1]['result']['note'])
+
+    def test_catalogue_still_available_after_document_budget(self):
+        from unittest.mock import patch
+        from experiments.catalogue_chat import TOOL as catalogue_tool
+        first={'id':'first','title':'Taï','text':'Forêt tropicale.'}
+        second={'id':'second','title':'Nimba','text':'Aux confins de trois pays.'}
+        client=Mock();client.chat.side_effect=[call('search_documents',{'query':'one'},1),
+            call('search_documents',{'query':'two'},2),call('search_catalogue',{'category':'cafe'},3),
+            final(document_ids=['first'],place_ids=['node/1'])]
+        with patch('experiments.unified_agent.retrieve',side_effect=[[first],[second]]) as retriever:
+            result=ask(client,self.db,self.docs,'Décris Taï et donne un café',catalogue_search=self.catalogue)
+        self.assertEqual(client.chat.call_args_list[2].kwargs['tools_override'],[catalogue_tool])
+        self.assertEqual(retriever.call_count,2)
+        self.assertEqual(result['output']['place_ids'],['node/1'])
+
     def test_different_query_without_new_evidence_ends_search_and_keeps_citations(self):
         from unittest.mock import patch
         hit={'id':'known','title':'Taï','text':'Taï est une forêt tropicale.'}
