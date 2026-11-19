@@ -111,6 +111,47 @@ class AuditTests(unittest.TestCase):
         self.assertFalse(row['quality_checks']['required_tools'])
         self.assertFalse(row['automatic_checks_pass'])
 
+    def test_followup_flags_observed_unavailable_search_offers(self):
+        case={'outcome_checks':{'status':'model_output'},'evidence_checks':{'no_unavailable_lookup_offer':True}}
+        for answer in (
+            'Je peux lancer une recherche documentaire ciblée pour trouver le site du musée.',
+            'Je peux chercher dans l’inventaire pour voir s’il existe une fiche musée.',
+            'Je peux alors chercher dans le catalogue des lieux près de ce musée.',
+            'Je ferai une recherche des documents officiels pertinents.'):
+            with self.subTest(answer=answer):
+                row={'status':'model_output','outcome_checks':{'status':True},
+                     'output':{'answer':answer,'abstain':True,'document_ids':[],'place_ids':[]}}
+                score_response(row,case)
+                self.assertFalse(row['quality_checks']['no_unavailable_lookup_offer'])
+        for answer in ('Je ne peux pas rechercher le site du musée.',
+                       'Je peux rechercher les passages déjà présents dans le corpus local.',
+                       'Je peux rechercher des passages locaux. Je ne peux pas chercher une fiche musée.'):
+            row={'status':'model_output','outcome_checks':{'status':True},
+                 'output':{'answer':answer,'abstain':True,'document_ids':[],'place_ids':[]}}
+            score_response(row,case)
+            self.assertTrue(row['quality_checks']['no_unavailable_lookup_offer'])
+
+    def test_evidence_followup_is_small_and_reuses_original_questions(self):
+        from experiments.audit_campaign import load_cases
+        cases=load_cases(Path('data/audit_evidence_followup_3.json'),True)
+        original={c['id']:c for c in json.loads(Path('data/audit_consistency_12.json').read_text(encoding='utf8'))}
+        self.assertEqual(len(cases),3)
+        for case in cases:
+            self.assertEqual(case['question'],original[case['id']]['question'])
+            self.assertTrue(case['evidence_checks']['no_unavailable_lookup_offer'])
+            self.assertEqual(case['outcome_checks']['status'],'model_output')
+
+    def test_case_overrides_cannot_replace_core_checks(self):
+        from experiments.audit_campaign import load_cases
+        source=json.loads(Path('data/audit_evidence_followup_3.json').read_text(encoding='utf8'))[:1]
+        for key,value in (('outcome_checks',{'status':'blocked_suspected_injection'}),
+                          ('evidence_checks',{'document_prefix':'OTHER'}),
+                          ('outcome_checks',{'max_provider_calls':True})):
+            source[0][key]=value
+            path=self.dir/'invalid.json';path.write_text(json.dumps(source),encoding='utf8')
+            with self.subTest(key=key,value=value),self.assertRaises(ValueError):
+                load_cases(path,True)
+
     def test_no_raw_data_in_partial_or_final_export(self):
         secret='SYNTHETIC-PRIVATE-LOCATION'
         row={'id':'C01','question':secret,'trace':[secret],'error':secret,'output':{'answer':secret,'abstain':True},

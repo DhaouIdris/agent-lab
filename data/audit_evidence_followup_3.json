@@ -1,0 +1,35 @@
+[
+  {
+    "id": "PREUVES-07",
+    "category": "preuves",
+    "question": "Les extraits sur Grand-Bassam suffisent-ils pour connaître les horaires du musée ?",
+    "goal": "bassam",
+    "human_expectation": "Dire que les extraits ne fournissent pas les horaires, citer les passages pertinents et ne pas proposer une recherche de sites ou de fiches musée indisponible.",
+    "consistency": true,
+    "abstain_is_diagnostic": true,
+    "evidence_checks": {"no_unavailable_lookup_offer": true},
+    "outcome_checks": {"max_tool_calls": 1, "max_provider_calls": 2}
+  },
+  {
+    "id": "DIALOGUE-01",
+    "category": "dialogue",
+    "question": "Décris le parc de Taï et explique si tu peux classer les cafés les plus proches.",
+    "goal": "tai",
+    "human_expectation": "Décrire Taï à partir du passage cité, refuser le classement par proximité et éviter les recherches répétées sans preuve supplémentaire.",
+    "consistency": true,
+    "abstain_is_diagnostic": true,
+    "evidence_checks": {"no_unavailable_lookup_offer": true},
+    "outcome_checks": {"max_tool_calls": 2, "max_provider_calls": 3}
+  },
+  {
+    "id": "DIALOGUE-04",
+    "category": "dialogue",
+    "question": "Non, je voulais celui près du musée. Peux-tu préciser lequel ?",
+    "goal": "clarify",
+    "human_expectation": "Demander quel musée et quel lieu sont visés, sans promettre de trouver des lieux proches avec le catalogue par nom.",
+    "consistency": true,
+    "abstain_is_diagnostic": true,
+    "evidence_checks": {"no_unavailable_lookup_offer": true},
+    "outcome_checks": {"max_tool_calls": 0, "max_provider_calls": 1}
+  }
+]

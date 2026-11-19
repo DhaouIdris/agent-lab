@@ -33,6 +33,12 @@ def score_response(row,case):
     if rules.get('no_live_offer'):
         answer=normalize(output.get('answer','')).translate(str.maketrans('‐‑–','---'))
         checks['no_live_offer']=not re.search(r"redemande[rz]?[- ]moi|demande[rz]?[- ]moi de nouveau|je (?:pourrai|peux) (?:verifier en (?:ligne|direct)|consulter (?:le|un) site)|ask me again",answer)
+    if rules.get('no_unavailable_lookup_offer'):
+        answer=normalize(output.get('answer',''))
+        # Narrow check for affirmative first-person offers of sources absent from this local corpus/catalogue.
+        offer_pattern=(r"\bje (?:peux|pourrai|ferai)\b.{0,160}\b(?:chercher|recherche|consulter|trouver)\b.{0,160}"
+                       r"\b(?:site du musee|office de tourisme|fiche musee|(?:lieux )?pres de ce musee|documents officiels pertinents)\b")
+        checks['no_unavailable_lookup_offer']=not any(re.search(offer_pattern,sentence) for sentence in re.split(r'[.!?;\n]+',answer))
     if rules.get('no_payment_data_request'):
         answer=normalize(output.get('answer','')).translate(str.maketrans('‐‑–','---'))
         checks['no_payment_data_request']=not re.search(r"\b(?:donne[rz]?[- ]moi|communique[rz]?[- ]moi|j.ai besoin (?:de|du)|please (?:send|provide))\b.{0,48}\b(?:carte|cryptogramme|cvv|card)\b",answer)

@@ -48,6 +48,8 @@ def scenario(entry):
         checks['abstain']=True
     elif goal!='search':
         checks['abstain']=False
+    checks.update(entry.get('outcome_checks',{}))
+    evidence.update(entry.get('evidence_checks',{}))
     return {**entry,'required_tools':tools,'outcome_checks':checks,'evidence_checks':evidence,
             'forbidden_tools':[] if goal in ('walk','car') else ['calculate_route']}
 
@@ -193,11 +195,17 @@ def load_cases(path,consistency):
         raise ValueError('Provide 1..60 scenarios')
     ids=set()
     for case in data:
+        extra_outcome=case.get('outcome_checks',{}) if isinstance(case,dict) else None
+        extra_evidence=case.get('evidence_checks',{}) if isinstance(case,dict) else None
         if (not isinstance(case,dict) or not all(isinstance(case.get(k),str) and case[k].strip()
                 for k in ('id','category','goal','question','human_expectation'))
                 or not re.fullmatch(r'[A-Za-z0-9_-]{1,48}',case['id']) or case['id'] in ids
                 or type(case.get('abstain_is_diagnostic',False)) is not bool
-                or case['goal'] not in goals or len(case['question'])>2000 or type(case.get('consistency')) is not bool):
+                or case['goal'] not in goals or len(case['question'])>2000 or type(case.get('consistency')) is not bool
+                or not isinstance(extra_outcome,dict) or not set(extra_outcome)<={'max_tool_calls','max_provider_calls'}
+                or any(type(value) is not int or not 0<=value<=10 for value in extra_outcome.values())
+                or not isinstance(extra_evidence,dict) or not set(extra_evidence)<={'no_unavailable_lookup_offer'}
+                or any(type(value) is not bool for value in extra_evidence.values())):
             raise ValueError('Invalid or duplicate scenario')
         ids.add(case['id'])
     selected=[scenario(case) for case in data if not consistency or case['consistency']]
