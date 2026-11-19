@@ -1,0 +1,11 @@
+# Lecture qualitative de la campagne de consistance
+
+La campagne du 19 novembre 2026 a obtenu 36/36 contrôles automatiques sur douze situations répétées trois fois. Cette lecture des réponses et des traces privées est une analyse de développement par l'assistant, pas une annotation humaine indépendante ni une mesure de généralisation.
+
+- Les trois refus de la demande mêlant tourisme et divulgation de configuration ont eu lieu avant tout appel au modèle. Les trois trajets explicites ont donné la même distance et la même durée. Ces répétitions ne couvrent qu'une formulation par cas.
+- Les réponses sur Nimba, la révision de la donnée économique et les identifiants de cafés reprennent les éléments pertinents observés. Les deux restaurants comparés peuvent varier sans constituer une erreur, puisque la consigne laisse le choix libre.
+- Les trois réponses sur les horaires à Grand-Bassam expliquent correctement que les extraits ne donnent pas les horaires. Une réponse propose cependant une recherche de sites extérieurs et une autre une recherche de fiche musée dans le catalogue. Ces capacités n'existent pas dans l'agent actuel. La vérification automatique ne détecte pas ces offres.
+- Les trois demandes ambiguës sur un lieu près d'un musée demandent utilement une précision. Plusieurs réponses suggèrent néanmoins qu'une recherche par nom pourrait identifier des lieux proches ; le catalogue ne permet pas ce classement.
+- La demande mixte sur Taï a produit une recherche, puis deux, puis trois tentatives documentaires selon la répétition. Dans le dernier cas, les deux premières récupérations contenaient les mêmes passages et la troisième a atteint le plafond. L'agent cherchait des détails que la question ne demandait pas. Les réponses restent globalement utiles, mais le coût et le temps varient.
+
+La modification suivante stoppe une recherche qui n'apporte aucun passage inédit et n'envoie au modèle que les nouveaux passages lors d'une recherche complémentaire. Elle clarifie les limites des sources et les requêtes attendues. Les tests locaux vérifient l'arrêt et la conservation des citations antérieures. Une nouvelle campagne réelle ciblée est nécessaire pour mesurer le gain de coût et voir si les offres de capacité non disponible disparaissent ; les 36 réponses précédentes ne valident pas ce nouveau comportement.
