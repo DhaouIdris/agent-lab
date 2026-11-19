@@ -36,3 +36,23 @@ Le relecteur utilise la question, l’attente, la réponse et la trace privées.
 La deuxième commande est une campagne distincte de 12 scénarios, trois passages intercalés avec un plafond de 180 tentatives chat. La grille de cette campagne s’adjuge de la même manière. adjudication.json indique notamment le nombre de cas réussis aux trois essais. Les contrôles automatiques portent sur le statut, les outils, certaines citations et certaines expressions. L’évaluation humaine porte sur le sens et la fidélité. Une comparaison de modèles exige de conserver le même panel et les mêmes instantanés de données. Le panel fourni est mono-tour, y compris les cas qui demandent de clarifier une référence manquante.
 
 Pour le bilan par famille, consulter per_category. Le dénominateur planned inclut les cas interrompus ou non exécutés. Le compteur automatically_evaluable exclut les cas en attente hors ligne. Un échec du service routier ou un filtrage fournisseur doit être interprété séparément d’une hallucination. Le rapport de revue conserve le statut détaillé d’ORS. Le nombre de tokens est inconnu dès qu’une tentative n’a pas fourni son usage.
+
+## Examiner une campagne terminée
+
+Le premier passage reçu comporte 44 réussites automatiques sur 60 et 16 échecs. Neuf échouent uniquement sur la valeur attendue d’abstention. Quatre sorties ont été rejetées par le validateur (trois pour identifiants non observés, une pour mention numérique). Les trois autres échouent sur l’utilisation des outils ou des citations, avec également un désaccord d’abstention pour un de ces cas. Les réponses restent à relire pour distinguer erreur de modèle et ambiguïté d’annotation. Les scores de la campagne d’origine sont conservés.
+
+L’export suivant utilise les réponses existantes et écrit diagnosis.private.json dans le dossier de la campagne. Il permet de relire les seize sorties échouées et les identifiants des résultats observés. Il conserve uniquement ces cas. Le fichier contient du texte libre privé.
+
+~~~powershell
+.\.venv\Scripts\python.exe -m experiments.audit_campaign --diagnose runs/audit_20261119T080633405783Z
+~~~
+
+Les sorties brutes rejetées par l’ancien validateur étaient supprimées. Le fichier privé historique ne permet donc pas de reconstruire les trois listes de citations refusées ni la phrase numérique rejetée. Dorénavant --private-review conserve ces sorties rejetées dans review.private.json. Le rapport partageable en conserve seulement les compteurs, dont le nombre d’IDs non observés et le nombre qui ressemblent à un source_doc_id retourné. Aucun identifiant refusé n’est substitué ou accepté automatiquement.
+
+Pour une vérification ciblée après lecture et correction, --failed-from sélectionne seulement les cas échoués. Une nouvelle campagne et une nouvelle empreinte du code sont enregistrées. Le score initial est conservé dans son dossier. Les empreintes historiques LF et CRLF du même panel sont reconnues.
+
+~~~powershell
+.\.venv\Scripts\python.exe -m experiments.audit_campaign --live --db local_data/lieux.sqlite --private-review --failed-from runs/audit_20261119T080633405783Z/report.json
+~~~
+
+Ce sous-ensemble comprend seize questions de chat et fixe un plafond de 80 tentatives, retries inclus. Il mesure une régression ciblée sur des cas déjà vus. Avant de lancer un test de consistance, relire la signification d’abstention et les annotations litigieuses, notamment une question demandant si les extraits suffisent à déduire les horaires. Une réponse négative bien justifiée peut répondre à cette question même si les horaires précis restent inconnus. Le drapeau seul ne permet pas cet arbitrage.

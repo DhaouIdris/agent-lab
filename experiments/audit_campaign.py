@@ -73,7 +73,7 @@ def digest(path):
         return hashlib.file_digest(f,'sha256').hexdigest()
 
 
-def evaluate_case(case,client,live,db,docs,timeout):
+def evaluate_case(case,client,live,db,docs,timeout,capture_rejected=False):
     goal=case['goal']
     allow_chat=goal not in {*LOCAL,'walk','car'}
     allow_route=goal in ('walk','car')
@@ -81,7 +81,7 @@ def evaluate_case(case,client,live,db,docs,timeout):
     router=fetch_route if live and allow_route else no_route
     before=len(chat.calls)
     try:
-        return run(chat,db,docs,[case],timeout=timeout,route_service=router)['results'][0]
+        return run(chat,db,docs,[case],timeout=timeout,route_service=router,capture_rejected=capture_rejected)['results'][0]
     except ExternalBoundary as exc:
         requested=exc.args[0]
         permitted=allow_chat if requested=='chat' else allow_route
@@ -168,6 +168,43 @@ def load_cases(path,consistency):
     return selected
 
 
+def failed_cases(cases,report_path):
+    report=json.loads(report_path.read_text(encoding='utf-8-sig'))
+    raw=CASES.read_bytes().replace(b'\r\n',b'\n')
+    legacy_hashes={hashlib.sha256(raw).hexdigest(),hashlib.sha256(raw.replace(b'\n',b'\r\n')).hexdigest()}
+    if report['config']['cases_sha256'] not in legacy_hashes:
+        raise ValueError('Previous report must use the frozen default panel')
+    failed={r['id'] for r in report['results'] if r.get('automatic_checks_pass') is False}
+    if not failed or not failed <= {c['id'] for c in cases}:
+        raise ValueError('No failed cases or unknown scenario IDs')
+    return [c for c in cases if c['id'] in failed]
+
+
+def diagnose(directory):
+    """Extract failed-case evidence locally. No generation and no changes to scores."""
+    report=json.loads((directory/'report.json').read_text(encoding='utf-8-sig'))
+    review=json.loads((directory/'review.private.json').read_text(encoding='utf-8-sig'))
+    if report['config']['run_id']!=review['config']['run_id']:
+        raise ValueError('Review belongs to another run')
+    failed={(r['id'],r['repetition']) for r in report['results'] if r.get('automatic_checks_pass') is False}
+    rows=[]
+    for row in review['results']:
+        key=(row['id'],row['repetition'])
+        if key not in failed:
+            continue
+        failed.remove(key)
+        sources=[{'tool':t['tool'],'document_ids':[d['id'] for d in t.get('result',{}).get('passages',[])],
+                  'place_ids':[d['source_id'] for d in t.get('result',{}).get('items',[])]} for t in row.get('trace',[])]
+        rows.append({k:row.get(k) for k in ('id','repetition','question','human_expectation','output','diagnostic_code',
+                                            'diagnostic_metadata','quality_checks','rejected_responses_private')})
+        rows[-1]['observed_sources']=sources
+    if failed:
+        raise ValueError('Review missing failed executions')
+    output=directory/'diagnosis.private.json'
+    write_json(output,{'run_id':report['config']['run_id'],'rows':rows})
+    print(str(output))
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--live',action='store_true')
@@ -178,11 +215,20 @@ def main():
     p.add_argument('--private-review',action='store_true')
     p.add_argument('--out',type=Path)
     p.add_argument('--adjudicate',type=Path)
+    p.add_argument('--diagnose',type=Path,help='Extract failed answers from a local private review without network calls')
+    p.add_argument('--failed-from',type=Path,help='Run only failures from an earlier frozen-panel report')
     a=p.parse_args()
+    if a.diagnose:
+        diagnose(a.diagnose)
+        return
     if a.adjudicate:
         adjudicate(a.adjudicate)
         return
     cases=load_cases(a.cases,a.consistency)
+    if a.failed_from:
+        if a.consistency or a.cases!=CASES:
+            p.error('--failed-from requires the full frozen default panel')
+        cases=failed_cases(cases,a.failed_from)
     repeat=3 if a.consistency else 1
     planned=len(cases)*repeat
     config=load_config(a.config) if a.live else {}
@@ -193,20 +239,22 @@ def main():
     stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     out=a.out or Path('runs')/('audit_'+stamp)
     out.mkdir(parents=True,exist_ok=False)
-    metadata={'run_id':stamp,'repetitions':repeat,'cases_sha256':digest(a.cases),'corpus_sha256':digest(CORPUS),
+    metadata={'run_id':stamp,'selected_case_ids':[c['id'] for c in cases],'repetitions':repeat,'cases_sha256':digest(a.cases),'corpus_sha256':digest(CORPUS),
               'catalogue_sha256_start':digest(a.db) if a.db.is_file() else None,
               'model':config.get('underlying_model'),'model_version':config.get('model_version'),
               'max_provider_calls':planned*5 if a.live else 0,
               'code_sha256':{p.name:digest(p) for p in [Path(__file__),Path('ci_agentlab/providers.py'),
                           *(Path('experiments')/(m+'.py') for m in ('input_guard','injection_guard','unified_agent','route_service',
                           'document_rag','catalogue_chat','place_catalog','unified_agent_batch','benchmark_reporting'))]}}
+    if a.failed_from:
+        metadata['previous_report_sha256']=digest(a.failed_from)
     rows=[]
     report={'kind':'live_development' if a.live else 'offline_boundary_check','config':metadata,
             'campaign_complete':False,'results':rows}
     stop=None
     for rep in range(1,repeat+1):
         for case in cases:
-            row=evaluate_case(case,client,a.live,a.db,docs,config.get('turn_timeout_seconds',180))
+            row=evaluate_case(case,client,a.live,a.db,docs,config.get('turn_timeout_seconds',180),capture_rejected=a.private_review)
             row['repetition']=rep
             last=(row.get('provider_calls') or [{}])[-1]
             if last.get('provider_error_code')=='content_filter' or last.get('finish_reason')=='content_filter':

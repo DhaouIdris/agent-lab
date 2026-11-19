@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from experiments import catalogue_chat, document_rag
-from experiments.audit_campaign import CASES, REVIEW, adjudicate, evaluate_case, scenario
+from experiments.audit_campaign import CASES, REVIEW, adjudicate, diagnose, digest, failed_cases, evaluate_case, scenario
 from experiments.benchmark_reporting import save_report, write_json
 from experiments.input_guard import inspect_user_input
 from experiments.place_catalog import import_csv, search
@@ -134,3 +134,47 @@ class AuditTests(unittest.TestCase):
         save()
         adjudicate(self.dir)
         self.assertEqual(json.loads((self.dir/'adjudication.json').read_text())['joint_passes'],0)
+
+    def test_generic_retention_advice_does_not_trigger_opening_hours_rule(self):
+        self.client.chat.return_value=self.reply('Supprimez votre position partagée après 24 heures.')
+        result=ask(self.client,self.db,[],'Comment protéger mes données ?')
+        self.assertNotIn('diagnostic_code',result)
+        self.assertFalse(result['output']['abstain'])
+
+    def test_rejected_parent_ids_are_counted_without_disclosing_values(self):
+        doc={'id':'SYNTHETIC_PARENT__0001','source_doc_id':'SYNTHETIC_PARENT','title':'Musée','text':'Patrimoine.'}
+        call={'id':'a','function':{'name':'search_documents','arguments':'{"query":"Musée"}'}}
+        self.client.calls=[]
+        self.client.chat.side_effect=[{'tool_calls':[call]},self.reply('Détail privé du test.',['SYNTHETIC_PARENT'])]
+        from experiments.unified_agent_batch import run
+        row=run(self.client,self.db,[doc],[{'id':'c','question':'Musée ?', 'human_expectation':'cite',
+                         'required_tools':['search_documents']}],capture_rejected=True)['results'][0]
+        self.assertEqual(row['diagnostic_metadata']['parent_id_confusion_count'],1)
+        self.assertIn('Détail privé',json.loads(row['rejected_responses_private'][0]['rejected_model_content'])['answer'])
+        save_report(self.dir,{'kind':'test','results':[row]},private=True)
+        public=(self.dir/'report.json').read_text()
+        self.assertNotIn('SYNTHETIC_PARENT',public)
+        self.assertNotIn('Détail privé',public)
+        self.assertNotIn('rejected_responses_private',public)
+
+    def test_select_failures_accepts_windows_checkout_of_same_frozen_panel(self):
+        import hashlib
+        cases=[scenario(c) for c in json.loads(CASES.read_text(encoding='utf8'))]
+        windows=CASES.read_bytes().replace(b'\r\n',b'\n').replace(b'\n',b'\r\n')
+        previous=self.dir/'previous.json'
+        write_json(previous,{'config':{'cases_sha256':hashlib.sha256(windows).hexdigest()},
+                             'results':[{'id':cases[0]['id'],'automatic_checks_pass':False},
+                                        {'id':cases[1]['id'],'automatic_checks_pass':True}]})
+        self.assertEqual([c['id'] for c in failed_cases(cases,previous)],[cases[0]['id']])
+
+    def test_private_diagnosis_uses_existing_answers_and_only_failures(self):
+        row={'id':'a','repetition':1,'question':'Test privé','output':{'answer':'Réponse privée'},
+             'trace':[],'automatic_checks_pass':False}
+        passed={**row,'id':'b','automatic_checks_pass':True}
+        report={'kind':'live_development','config':{'run_id':'r'},'results':[row,passed]}
+        save_report(self.dir,report,private=True)
+        diagnose(self.dir)
+        data=json.loads((self.dir/'diagnosis.private.json').read_text())
+        self.assertEqual(len(data['rows']),1)
+        self.assertEqual(data['rows'][0]['output']['answer'],'Réponse privée')
+        self.client.chat.assert_not_called()

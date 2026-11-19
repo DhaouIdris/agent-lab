@@ -47,13 +47,15 @@ def score_response(row,case):
     row['human_review_required']=True
 
 
-def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_route):
+def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_route,capture_rejected=False):
     rows=[];complete=True
     for case in cases:
         started=time.monotonic()
         start=len(client.calls)
+        diagnostics=[]
+        options={'diagnostics':diagnostics} if capture_rejected else {}
         try:
-            result=ask(client,db,docs,case['question'],timeout=timeout,route_service=route_service)
+            result=ask(client,db,docs,case['question'],timeout=timeout,route_service=route_service,**options)
             used=[x['tool'] for x in result['trace']]
             guard=result.get('guard_status')
             arg_checks=[]
@@ -87,6 +89,8 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
                  'output':None,'trace':safe_trace,'error':type(exc).__name__+': '+str(exc)[:160],
                  'diagnostic_code':diagnostic, 'diagnostic_metadata':exc.metadata if isinstance(exc,AgentDiagnosticError) else {}, 'trace_redacted':bool(safe_trace)}
             complete=False
+        if diagnostics:
+            row['rejected_responses_private']=diagnostics
         row['provider_calls']=client.calls[start:];rows.append(row)
         if 'outcome_checks' in row and 'max_provider_calls' in case.get('outcome_checks',{}):
             row['outcome_checks']['max_provider_calls']=len(row['provider_calls'])<=case['outcome_checks']['max_provider_calls']
@@ -142,7 +146,7 @@ def main():
     out.mkdir(parents=True,exist_ok=False)
     def checkpoint(rows):
         save_report(out,{'kind':'partial','campaign_complete':False,'results':rows},a.private_review)
-    report=run(client,db,docs,cases,on_progress=checkpoint,timeout=cfg['turn_timeout_seconds'])
+    report=run(client,db,docs,cases,on_progress=checkpoint,timeout=cfg['turn_timeout_seconds'],capture_rejected=a.private_review)
     report['config']={'model':cfg['underlying_model'],'model_version':cfg['model_version'],'max_provider_calls':5*len(cases),
        'corpus_sha256':hashlib.sha256(corpus.read_bytes()).hexdigest(),'cases_sha256':hashlib.sha256(casefile.read_bytes()).hexdigest()}
     save_report(out,report,a.private_review)
