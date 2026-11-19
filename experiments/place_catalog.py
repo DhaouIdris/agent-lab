@@ -4,6 +4,7 @@ import csv
 import hashlib
 import json
 import math
+import re
 import sqlite3
 import unicodedata
 from collections import Counter
@@ -99,7 +100,15 @@ def search(db_path,category=None,district=None,query=None,limit=10):
         if category:clauses.append('category=?');params.append(category)
         # Literal substring match; LIKE wildcards in user input have no special meaning.
         if district:clauses.append('instr(district_norm,?)>0');params.append(norm(district))
-        if query:clauses.append('instr(name_norm,?)>0');params.append(norm(query))
+        if query:
+            term=norm(query)
+            if len(term)<=3 and term.isalnum():
+                token=re.compile(r'\b'+re.escape(term)+r'\b')
+                con.create_function('matches_name_token',1,lambda name: bool(token.search(name)))
+                clauses.append('matches_name_token(name_norm)')
+            else:
+                clauses.append('instr(name_norm,?)>0')
+                params.append(term)
         sql='SELECT source_id,name,category,district,latitude,longitude FROM places'+(' WHERE '+' AND '.join(clauses) if clauses else '')+' ORDER BY name_norm,source_id LIMIT ?'
         params.append(limit)
         return {'items':[dict(x) for x in con.execute(sql,params)],'limit':limit,'current_status_verified':False,'warning':'Historical 2022 data; opening, availability and current activity are unverified; incomplete inventory.','source':SOURCE,'attribution':ATTRIBUTION}

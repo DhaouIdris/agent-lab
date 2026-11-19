@@ -9,6 +9,8 @@ from pydantic import BaseModel,ConfigDict,Field,ValidationError
 from typing import Literal,Annotated
 
 from ci_agentlab.providers import ChatClient,ProviderError
+from experiments.input_guard import inspect_user_input
+from experiments.injection_guard import inspect_passages
 from experiments.place_catalog import search
 from run_azure import load_config
 
@@ -32,6 +34,8 @@ Answer in the user's language. Do not say you can perform actions that are unava
 
 def ask(client,db,question,max_rounds=4,timeout=180):
     if not isinstance(question,str) or not question.strip() or len(question)>2000:raise ValueError('Question must contain 1..2000 characters')
+    if inspect_user_input(question):
+        return 'Demande interrompue avant recherche.'
     if not Path(db).is_file():raise ValueError('Catalogue database missing')
     messages=[{'role':'system','content':SYSTEM},{'role':'user','content':question}]
     deadline=time.monotonic()+timeout
@@ -52,6 +56,8 @@ def ask(client,db,question,max_rounds=4,timeout=180):
             result=search(db,**args.model_dump())
         except (KeyError,TypeError,ValueError,ValidationError) as exc:
             raise ProviderError('Invalid tool arguments or catalogue error: '+type(exc).__name__) from None
+        if inspect_passages([{'id':item['source_id'], 'text':' '.join(str(item.get(k,'')) for k in ('name','district','source_id'))} for item in result['items']]):
+            return 'Recherche interrompue car une source contient une instruction suspecte.'
         messages.append({'role':'assistant','content':reply.get('content'),'tool_calls':calls})
         messages.append({'role':'tool','tool_call_id':cid,'content':json.dumps(result,ensure_ascii=False)})
     raise ProviderError('Agent round limit reached')

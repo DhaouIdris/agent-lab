@@ -73,7 +73,7 @@ class RouteTests(unittest.TestCase):
                 result=ask(client,db,[],'Quel itinéraire en voiture entre 5.32, -4.02 et 5.34, -4.01 ?')
             self.assertIn('1.25 km',result['output']['answer']);self.assertIn('3 minutes',result['output']['answer'])
             self.assertNotIn('5.32',str(result['trace']))
-            self.assertEqual(client.chat.call_count,1)
+            client.chat.assert_not_called()
     def test_coordinates_followed_by_full_stop(self):
         with tempfile.TemporaryDirectory() as d:
             db=Path(d)/'x';db.touch();client=Mock()
@@ -86,13 +86,16 @@ class RouteTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             db=Path(d)/'x';db.touch();client=Mock()
             client.chat.return_value=call({'origin_lat':5.32,'origin_lon':-4.02,'destination_lat':5.35,'destination_lon':-4.01,'mode':'car'})
-            with patch('experiments.unified_agent.route') as service:
-                with self.assertRaises(Exception):ask(client,db,[],'Itinéraire voiture entre 5.32, -4.02 et 5.34, -4.01 ?')
-                service.assert_not_called()
+            with patch('experiments.unified_agent.route',return_value={'status':'unavailable'}) as service:
+                ask(client,db,[],'Itinéraire voiture entre 5.32, -4.02 et 5.34, -4.01 ?')
+                self.assertEqual(service.call_args.args[:3],((5.32,-4.02),(5.34,-4.01),'car'))
+                client.chat.assert_not_called()
     def test_model_cannot_fabricate_final_route(self):
         with tempfile.TemporaryDirectory() as d:
             db=Path(d)/'x';db.touch();client=Mock()
             client.chat.return_value={'content':json.dumps({'answer':'1 km','document_ids':[],'place_ids':[],'abstain':False})}
-            result=ask(client,db,[],'Itinéraire voiture entre 5.32, -4.02 et 5.34, -4.01 ?')
-            self.assertEqual(result['diagnostic_code'],'route_not_called')
+            with patch('experiments.unified_agent.route',return_value={'status':'unavailable'}):
+                result=ask(client,db,[],'Itinéraire voiture entre 5.32, -4.02 et 5.34, -4.01 ?')
+            client.chat.assert_not_called()
+            self.assertNotIn('1 km',result['output']['answer'])
             self.assertTrue(result['output']['abstain'])

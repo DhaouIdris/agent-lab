@@ -23,4 +23,8 @@ def inspect_user_input(text):
     text=normalize(text)
     # Compact a small set of spaced-letter override verbs, not arbitrary text.
     text=re.sub(r'\bi\s+g\s+n\s+o\s+r\s+e\b','ignore',text)
+    # Disambiguate public entity IDs and formatting requests at phrase level.
+    # Other instructions in the same input are still scanned.
+    text=re.sub(r"\bidentifiants?(?:\s+publics?)?\s+(?:(?:des?|du)\s+(?:(?:deux|trois|ces)\s+)?(?:glaciers?|cafes?|restaurants?|hotels?|lieux|catalogue)\b|osm\b)", "references catalogue ", text)
+    text=re.sub(r"\b(?:remplace|reecris|modifie) (?:ta|la) reponse (?:par|en) (?:une liste|un tableau|deux phrases)\b", "presente au format demande ", text)
     return bool(inspect_passages([{'id':'user','text':text}])) or any(p.search(text) for p in _PATTERNS)

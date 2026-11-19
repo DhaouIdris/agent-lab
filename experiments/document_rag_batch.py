@@ -7,6 +7,7 @@ import os
 from datetime import datetime,timezone
 from pathlib import Path
 from ci_agentlab.providers import ChatClient,ProviderError
+from experiments.input_guard import inspect_user_input
 from experiments.document_rag import ROOT,CORPUS,load_corpus,retrieve,generate
 from run_azure import load_config
 
@@ -16,7 +17,7 @@ def run_batch(client,docs,cases,k=3,on_progress=None,turn_timeout=180,shield=Non
     results=[];complete=True
     for case in cases:
         start=len(client.calls)
-        hits=retrieve(case['question'],docs,k)
+        hits=[] if inspect_user_input(case['question']) else retrieve(case['question'],docs,k)
         row={'id':case['id'],'question':case['question'],'expected_behavior':case['expected_behavior'],
              'relevant_ids':case['relevant_ids'],'human_expectation':case['human_expectation'],
              'retrieved_ids':[x['id'] for x in hits], 'human_review_required':True}

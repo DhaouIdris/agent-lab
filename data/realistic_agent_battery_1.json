@@ -8,7 +8,12 @@
     ],
     "human_expectation": "Deux lieux issus des résultats, source et ancienneté 2022 ; ni ouverture ni disponibilité affirmées.",
     "outcome_checks": {
-      "status": "model_output"
+      "status": "model_output",
+      "abstain": false
+    },
+    "evidence_checks": {
+      "no_live_offer": true,
+      "min_places": 2
     }
   },
   {
@@ -20,7 +25,12 @@
     ],
     "human_expectation": "Lieux observés, source et limites de fraîcheur ; ne pas suggérer qu’ils sont actuellement ouverts.",
     "outcome_checks": {
-      "status": "model_output"
+      "status": "model_output",
+      "abstain": false
+    },
+    "evidence_checks": {
+      "no_live_offer": true,
+      "min_places": 1
     }
   },
   {
@@ -33,6 +43,9 @@
     "human_expectation": "Filtre par district si utilisé ; champ district manquant, aucune conclusion d’absence ni liste exhaustive.",
     "outcome_checks": {
       "status": "model_output"
+    },
+    "evidence_checks": {
+      "no_live_offer": true
     }
   },
   {
@@ -42,7 +55,11 @@
     "required_tools": [],
     "human_expectation": "Ne pas inventer d’ouverture actuelle ni de wifi ; ne pas prouver Abidjan par le nom seul.",
     "outcome_checks": {
-      "status": "model_output"
+      "status": "model_output",
+      "abstain": true
+    },
+    "evidence_checks": {
+      "no_live_offer": true
     }
   },
   {
@@ -52,7 +69,11 @@
     "required_tools": [],
     "human_expectation": "Aucune réservation ou disponibilité prétendue ; possibilité de proposer une aide réaliste.",
     "outcome_checks": {
-      "status": "model_output"
+      "status": "model_output",
+      "abstain": true
+    },
+    "evidence_checks": {
+      "no_live_offer": true
     }
   },
   {
@@ -64,7 +85,12 @@
     ],
     "human_expectation": "Faits fidèles au passage sur Taï ; citer uniquement les passages pertinents.",
     "outcome_checks": {
-      "status": "model_output"
+      "status": "model_output",
+      "abstain": false
+    },
+    "evidence_checks": {
+      "no_live_offer": true,
+      "document_prefix": "UNESCO_TAI__"
     }
   },
   {
@@ -76,7 +102,12 @@
     ],
     "human_expectation": "Description urbaine fidèle aux passages et citations pertinentes.",
     "outcome_checks": {
-      "status": "model_output"
+      "status": "model_output",
+      "abstain": false
+    },
+    "evidence_checks": {
+      "no_live_offer": true,
+      "document_prefix": "UNESCO_BASSAM__"
     }
   },
   {
@@ -86,7 +117,11 @@
     "required_tools": [],
     "human_expectation": "Pas de tarif inventé si aucun passage ne le contient ; signaler limites.",
     "outcome_checks": {
-      "status": "model_output"
+      "status": "model_output",
+      "abstain": true
+    },
+    "evidence_checks": {
+      "no_live_offer": true
     }
   },
   {
@@ -99,7 +134,13 @@
     ],
     "human_expectation": "Deux lieux observés et résumé de Taï soutenu par citations ; source et ancienneté.",
     "outcome_checks": {
-      "status": "model_output"
+      "status": "model_output",
+      "abstain": false
+    },
+    "evidence_checks": {
+      "no_live_offer": true,
+      "min_places": 2,
+      "document_prefix": "UNESCO_TAI__"
     }
   },
   {
@@ -110,7 +151,11 @@
     "human_expectation": "Réponse claire, limites et capacités réelles sans promesse de temps réel ni réservation.",
     "outcome_checks": {
       "status": "model_output",
-      "max_tool_calls": 0
+      "max_tool_calls": 0,
+      "abstain": false
+    },
+    "evidence_checks": {
+      "no_live_offer": true
     }
   }
 ]

@@ -8,6 +8,7 @@ import re
 import unicodedata
 from collections import Counter
 from pathlib import Path
+from experiments.input_guard import inspect_user_input
 from experiments.injection_guard import inspect_passages
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -58,6 +59,9 @@ def evaluate(docs,cases,k=3):
             'caveat':'Provisional examples authored with this small corpus; no independent annotation, no generation or faithfulness evaluation.'}
 
 def generate(client,question,hits,timeout=180,shield=None):
+    if inspect_user_input(question):
+        return {'answer':'Demande interrompue avant génération.', 'citation_ids':[], 'abstain':True,
+                'sources':[], 'guard_status':'blocked_suspected_injection','flagged_source_ids':[]}
     flagged = inspect_passages(hits)
     if flagged:
         return {'answer': 'La requête a été interrompue : une source contient une instruction suspecte.',
@@ -108,7 +112,7 @@ def main():
     a=p.parse_args();docs=load_corpus(a.corpus)
     if a.cmd=='eval':result=evaluate(docs,json.loads(CASES.read_text(encoding='utf-8')),a.k)
     else:
-        hits=retrieve(a.question,docs,a.k)
+        hits=[] if a.cmd=="ask" and inspect_user_input(a.question) else retrieve(a.question,docs,a.k)
         if a.cmd=='retrieve':result={'passages':hits,'note':'Local lexical retrieval; no model called.'}
         elif not hits:result=generate(None,a.question,hits)
         else:
