@@ -12,12 +12,12 @@ from unittest.mock import Mock, patch
 import run_azure
 from ci_agentlab.evaluation import run_case
 from ci_agentlab.preflight import check_endpoint
-from ci_agentlab.providers import ChatClient, ProviderError
+from ci_agentlab.providers import ChatClient, ProviderError, ToolAgent
 
 ROOT=Path(__file__).resolve().parents[1]
 
 def config():
-    c=json.loads((ROOT/'azure.example.json').read_text())
+    c=json.loads((ROOT/'azure.example.json').read_text(encoding="utf-8"))
     c['base_url']='https://example.openai.azure.com/openai/v1'
     return c
 
@@ -34,6 +34,16 @@ def tool_call():
         'name':'get_entity_details','arguments':'{"entity_id":"P1"}'}}]}
 
 class AzureConfiguration(unittest.TestCase):
+    def test_report_and_metadata_omit_endpoint_and_local_path(self):
+        import argparse
+        from ci_agentlab.__main__ import report_config
+        endpoint='https://private-resource.openai.azure.com/openai/v1'
+        cfg=report_config(argparse.Namespace(base_url=endpoint,out='C:/private/user/runs',api_key_env='SECRET_VAR',model='model'))
+        self.assertEqual(cfg,{'model':'model'})
+        meta=run_azure.public_config({**config(),'base_url':endpoint})
+        self.assertNotIn(endpoint,json.dumps(meta))
+        self.assertNotIn('base_url',meta)
+
     def load(self,c):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'azure.json';p.write_text(json.dumps(c),encoding='utf-8-sig')
@@ -77,13 +87,63 @@ class AzureConfiguration(unittest.TestCase):
 
     def test_dry_run_needs_no_key_or_network(self):
         with tempfile.TemporaryDirectory() as d:
-            p=Path(d)/'config.json';p.write_text(json.dumps(config()))
+            p=Path(d)/'config.json';p.write_text(json.dumps(config()),encoding='utf-8')
             r=subprocess.run([sys.executable,str(ROOT/'run_azure.py'),'smoke','--dry-run','--config',str(p)],
                 capture_output=True,text=True,timeout=10)
             self.assertEqual(r.returncode,0,r.stderr)
             self.assertEqual(json.loads(r.stdout)['network_calls'],0)
 
+    def test_targeted_pilot_dry_run(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'config.json';p.write_text(json.dumps(config()),encoding='utf-8')
+            r=subprocess.run([sys.executable,str(ROOT/'run_azure.py'),'pilot','--case','I01','--dry-run','--config',str(p)],capture_output=True,text=True,timeout=10)
+            self.assertEqual(r.returncode,0,r.stderr)
+            command=json.loads(r.stdout)['command']
+            self.assertEqual(command[command.index('--case')+1],'I01')
+            self.assertEqual(command[command.index('--base-url')+1],'[REDACTED]')
+            self.assertEqual(command[command.index('--out')+1],'[REDACTED]')
+            self.assertNotIn(config()['base_url'],r.stdout)
+
 class AzureProtocol(unittest.TestCase):
+    def test_content_filter_is_distinct_from_agent_refusal(self):
+        from ci_agentlab.evaluation import aggregate
+        cases=json.loads((ROOT/'data/scenarios.json').read_text(encoding='utf-8'))
+        case=next(x for x in cases if x['id']=='I01')
+        c=client([])
+        c.opener.open.side_effect=urllib.error.HTTPError(c.url,400,'filtered',{},io.BytesIO(b'{"error":{"code":"content_filter"}}'))
+        r=run_case(case,client=c,stop_on_provider_error=True)
+        self.assertEqual(r['evaluation_status'],'provider_filtered')
+        self.assertFalse(r['auto_pass'])
+        self.assertEqual(r['outputs'][0]['decision'],'abstain')
+        summary=aggregate([r])
+        self.assertEqual(summary['provider_filtered_runs'],1)
+        self.assertIsNone(summary['automatic_pass_rate_evaluable_runs'])
+
+    def test_unknown_400_is_not_classified_as_filter(self):
+        from ci_agentlab.evaluation import is_provider_filtered
+        self.assertFalse(is_provider_filtered({'error':'http','http_status':400}))
+        self.assertFalse(is_provider_filtered({'error':'http','http_status':429,'provider_error_code':'content_filter'}))
+
+    def test_retry_429_then_success_records_attempts(self):
+        c=client([{'content':'{}'}]);c.max_calls=3
+        good=c.opener.open.side_effect[0] if isinstance(c.opener.open.side_effect,list) else None
+        good=io.BytesIO(json.dumps({'choices':[{'message':{'content':'{}'}}], 'usage':{'prompt_tokens':1,'completion_tokens':1}}).encode())
+        c.opener.open.side_effect=[urllib.error.HTTPError(c.url,429,'limit',{'Retry-After':'3'},None),good]
+        with patch('ci_agentlab.providers.time.sleep') as sleep,patch('ci_agentlab.providers.random.uniform',return_value=1):
+            self.assertEqual(c.chat([],timeout=30)['content'],'{}')
+        sleep.assert_called_once_with(3)
+        self.assertEqual(c.attempts,2)
+        self.assertTrue(c.calls[0]['recovered_or_retried'])
+        self.assertEqual(c.calls[0]['http_status'],429)
+
+    def test_safe_diagnostic_does_not_log_body_or_secret(self):
+        c=client([])
+        body=io.BytesIO(b'{"error":{"code":"content_filter","message":"TEST_SECRET"}}')
+        c.opener.open.side_effect=urllib.error.HTTPError(c.url,400,'bad',{},body)
+        with self.assertRaises(ProviderError):c.chat([])
+        self.assertEqual(c.calls[0]['provider_error_code'],'content_filter')
+        self.assertNotIn('TEST_SECRET',json.dumps(c.calls))
+
     def test_two_call_preflight_and_azure_request_contract(self):
         c=client([tool_call(),{'content':json.dumps({'ok':True,'entity_id':'P1','name':'Nuit de Saïgon'})}])
         r=check_endpoint(c)
@@ -110,18 +170,18 @@ class AzureProtocol(unittest.TestCase):
             c=client([tool_call(),{'content':answer}])
             with self.subTest(answer=answer),self.assertRaises(ProviderError):check_endpoint(c)
 
-    def test_http_429_no_retry_or_secret_logging(self):
+    def test_http_400_no_retry_or_secret_logging(self):
         c=client([])
-        c.opener.open.side_effect=urllib.error.HTTPError(c.url,429,'quota',{},None)
+        c.opener.open.side_effect=urllib.error.HTTPError(c.url,400,'bad request',{},None)
         with self.assertRaises(ProviderError) as e:c.chat([])
-        self.assertIn('429',str(e.exception));self.assertNotIn('TEST_SECRET',str(e.exception))
+        self.assertIn('400',str(e.exception));self.assertNotIn('TEST_SECRET',str(e.exception))
         self.assertEqual(c.opener.open.call_count,1)
         self.assertEqual(c.calls[0]['error'],'http')
 
     def test_fail_fast_stops_remaining_conversation_turns(self):
-        cases=json.loads((ROOT/'data/scenarios.json').read_text())
+        cases=json.loads((ROOT/'data/scenarios.json').read_text(encoding="utf-8"))
         case=next(c for c in cases if len(c['turns'])>1)
-        c=client([]);c.opener.open.side_effect=urllib.error.HTTPError(c.url,429,'quota',{},None)
+        c=client([]);c.opener.open.side_effect=urllib.error.HTTPError(c.url,400,'bad request',{},None)
         r=run_case(case,client=c,stop_on_provider_error=True)
         self.assertEqual(len(r['outputs']),1);self.assertFalse(r['auto_pass'])
         self.assertEqual(c.opener.open.call_count,1)
@@ -132,6 +192,41 @@ class AzureProtocol(unittest.TestCase):
             c.chat([],timeout=10)
         self.assertEqual(c.attempts,0);self.assertEqual(c.opener.open.call_count,0)
 
+    def test_agent_allows_longer_model_response_within_turn(self):
+        from ci_agentlab.tools import Engine
+        c=Mock();c.chat.return_value={'content':'{}'}
+        e=Engine();e.deadline_seconds=180
+        ToolAgent(c,e).turn('test')
+        self.assertGreater(c.chat.call_args.kwargs['timeout'], 179)
+        self.assertLessEqual(c.chat.call_args.kwargs['timeout'], 180)
+
+    def test_timeout_retry_has_separate_attempt_and_total_budgets(self):
+        clock=[0.0]; c=client([]); c.max_calls=3; c.min_interval_seconds=15
+        good=io.BytesIO(json.dumps({'choices':[{'message':{'content':'{}'}}], 'usage':{'prompt_tokens':1,'completion_tokens':1}}).encode())
+        def open_request(req,timeout):
+            if c.opener.open.call_count==1:
+                self.assertEqual(timeout,60)
+                clock[0]+=timeout
+                raise TimeoutError('simulated')
+            self.assertLessEqual(timeout,60)
+            return good
+        c.opener.open.side_effect=open_request
+        def sleep(seconds):clock[0]+=seconds
+        with patch('ci_agentlab.providers.time.monotonic',side_effect=lambda:clock[0]),patch('ci_agentlab.providers.time.sleep',side_effect=sleep),patch('ci_agentlab.providers.random.uniform',return_value=1):
+            self.assertEqual(c.chat([],timeout=180)['content'],'{}')
+        self.assertEqual(c.attempts,2)
+        self.assertTrue(c.calls[0]['recovered_or_retried'])
+
+    def test_timeout_retry_still_honors_global_deadline(self):
+        clock=[0.0];c=client([]);c.max_calls=3
+        def timeout(req,timeout):
+            clock[0]+=timeout
+            raise TimeoutError('simulated')
+        c.opener.open.side_effect=timeout
+        with patch('ci_agentlab.providers.time.monotonic',side_effect=lambda:clock[0]),patch('ci_agentlab.providers.time.sleep',side_effect=lambda seconds:clock.__setitem__(0,clock[0]+seconds)),patch('ci_agentlab.providers.random.uniform',return_value=1):
+            with self.assertRaises(ProviderError):c.chat([],timeout=60)
+        self.assertEqual(c.attempts,1)
+
     def test_spacing_is_applied_to_next_request(self):
         c=client([{'content':'{}'}]);c.min_interval_seconds=15;c.last_request_at=100
         with patch('ci_agentlab.providers.time.monotonic',return_value=101),patch('ci_agentlab.providers.time.sleep') as sleep:
@@ -140,3 +235,7 @@ class AzureProtocol(unittest.TestCase):
         self.assertEqual(c.opener.open.call_args.kwargs['timeout'],16)
 
 if __name__=='__main__':unittest.main()
+
+
+
+

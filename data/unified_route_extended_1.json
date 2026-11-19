@@ -1,0 +1,116 @@
+[
+  {
+    "id": "RX01",
+    "category": "route",
+    "question": "Trajet en voiture entre 5.3190, -4.0116 et 5.3237, -4.0169.",
+    "required_tools": [
+      "calculate_route"
+    ],
+    "human_expectation": "Vérifier mode, statut, résultat du service et absence d’invention ; une erreur du service est à distinguer d’une erreur de l’agent.",
+    "outcome_checks": {
+      "status": "model_output",
+      "abstain": false,
+      "route_status": "ok",
+      "route_mode": "car"
+    }
+  },
+  {
+    "id": "RX02",
+    "category": "route",
+    "question": "Calcule le trajet à pied entre 5.3190, -4.0116 et 5.3237, -4.0169.",
+    "required_tools": [
+      "calculate_route"
+    ],
+    "human_expectation": "Vérifier mode, statut, résultat du service et absence d’invention ; une erreur du service est à distinguer d’une erreur de l’agent.",
+    "outcome_checks": {
+      "status": "model_output",
+      "abstain": false,
+      "route_status": "ok",
+      "route_mode": "walk"
+    }
+  },
+  {
+    "id": "RX03",
+    "category": "route",
+    "question": "Itinéraire en voiture de 5.3237, -4.0169 à 5.3190, -4.0116 ?",
+    "required_tools": [
+      "calculate_route"
+    ],
+    "human_expectation": "Vérifier mode, statut, résultat du service et absence d’invention ; une erreur du service est à distinguer d’une erreur de l’agent.",
+    "outcome_checks": {
+      "status": "model_output",
+      "abstain": false,
+      "route_status": "ok",
+      "route_mode": "car"
+    }
+  },
+  {
+    "id": "RX04",
+    "category": "route",
+    "question": "Quel trajet à pied de 5.3250, -4.0200 à 5.3200, -4.0100 ?",
+    "required_tools": [
+      "calculate_route"
+    ],
+    "human_expectation": "Vérifier mode, statut, résultat du service et absence d’invention ; une erreur du service est à distinguer d’une erreur de l’agent.",
+    "outcome_checks": {
+      "status": "model_output",
+      "abstain": false,
+      "route_status": "ok",
+      "route_mode": "walk"
+    }
+  },
+  {
+    "id": "RX05",
+    "category": "route",
+    "question": "Calcule un itinéraire en voiture : départ 5.3360, -4.0260, arrivée 5.3250, -4.0200.",
+    "required_tools": [
+      "calculate_route"
+    ],
+    "human_expectation": "Vérifier mode, statut, résultat du service et absence d’invention ; une erreur du service est à distinguer d’une erreur de l’agent.",
+    "outcome_checks": {
+      "status": "model_output",
+      "abstain": false,
+      "route_status": "ok",
+      "route_mode": "car"
+    }
+  },
+  {
+    "id": "RX06",
+    "category": "route",
+    "question": "En voiture, donne le trajet depuis 5.3500, -4.0000 jusqu’à 5.3600, -3.9900.",
+    "required_tools": [
+      "calculate_route"
+    ],
+    "human_expectation": "Vérifier mode, statut, résultat du service et absence d’invention ; une erreur du service est à distinguer d’une erreur de l’agent.",
+    "outcome_checks": {
+      "status": "model_output",
+      "abstain": false,
+      "route_status": "ok",
+      "route_mode": "car"
+    }
+  },
+  {
+    "id": "RX07",
+    "category": "invalid",
+    "question": "Itinéraire voiture entre 95.0000, -4.0100 et 5.3200, -4.0200.",
+    "required_tools": [],
+    "human_expectation": "Coordonnées hors limites rejetées avant appel Azure et avant appel au service.",
+    "outcome_checks": {
+      "status": "invalid_coordinates",
+      "abstain": true,
+      "max_tool_calls": 0
+    }
+  },
+  {
+    "id": "RX08",
+    "category": "invalid",
+    "question": "Itinéraire à pied entre 5.3200, -4.0100 et 5.3300, -181.0000.",
+    "required_tools": [],
+    "human_expectation": "Coordonnées hors limites rejetées avant appel Azure et avant appel au service.",
+    "outcome_checks": {
+      "status": "invalid_coordinates",
+      "abstain": true,
+      "max_tool_calls": 0
+    }
+  }
+]

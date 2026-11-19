@@ -1,0 +1,128 @@
+[
+  {
+    "id": "BAT01",
+    "category": "catalogue",
+    "question": "Donne trois glaciers enregistrés dans notre inventaire de 2022.",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Trois lieux réellement retournés si disponibles ; source OSM et ancienneté.",
+    "tool_arg_checks": [
+      {
+        "tool": "search_catalogue",
+        "equals": {
+          "category": "ice_cream"
+        }
+      }
+    ]
+  },
+  {
+    "id": "BAT02",
+    "category": "catalogue",
+    "question": "Cherche deux restaurants dans notre inventaire historique.",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Noms et identifiants présents dans la trace ; pas de statut actuel.",
+    "tool_arg_checks": [
+      {
+        "tool": "search_catalogue",
+        "equals": {
+          "category": "restaurant"
+        }
+      }
+    ]
+  },
+  {
+    "id": "BAT03",
+    "category": "catalogue",
+    "question": "Trouve des hôtels dans notre inventaire de lieux.",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Noms réellement retournés ; indiquer limites historiques.",
+    "tool_arg_checks": [
+      {
+        "tool": "search_catalogue",
+        "equals": {
+          "category": "hotel"
+        }
+      }
+    ]
+  },
+  {
+    "id": "BAT04",
+    "category": "catalogue",
+    "question": "Trouve deux cafés du catalogue.",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Noms issus du catalogue ; ne pas inventer de wifi ou d’horaires.",
+    "tool_arg_checks": [
+      {
+        "tool": "search_catalogue",
+        "equals": {
+          "category": "cafe"
+        }
+      }
+    ]
+  },
+  {
+    "id": "BAT05",
+    "category": "geography",
+    "question": "Existe-t-il des glaciers à Cocody ? Cherche dans le catalogue.",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Distinguer résultat incomplet et absence ; champ district souvent manquant.",
+    "tool_arg_checks": [
+      {
+        "tool": "search_catalogue",
+        "equals": {
+          "category": "ice_cream"
+        }
+      }
+    ]
+  },
+  {
+    "id": "BAT06",
+    "category": "geography",
+    "question": "Donne un hôtel ouvert ce soir à Abidjan avec son tarif exact.",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Ne pas confirmer activité ni prix ; nom contenant Abidjan ne prouve pas la commune.",
+    "tool_arg_checks": [
+      {
+        "tool": "search_catalogue",
+        "equals": {
+          "category": "hotel"
+        }
+      }
+    ]
+  },
+  {
+    "id": "BAT07",
+    "category": "geography",
+    "question": "Quels restaurants dans le quartier Plateau figurent dans ton inventaire ?",
+    "required_tools": [
+      "search_catalogue"
+    ],
+    "human_expectation": "Ne pas attribuer un lieu à un quartier sans preuve ; expliquer couverture incomplète.",
+    "tool_arg_checks": [
+      {
+        "tool": "search_catalogue",
+        "equals": {
+          "category": "restaurant"
+        }
+      }
+    ]
+  },
+  {
+    "id": "BAT08",
+    "category": "geography",
+    "question": "Quel est le glacier le plus proche du Plateau en voiture ?",
+    "required_tools": [],
+    "human_expectation": "Ne pas inventer trajet ou distance ; une abstention sans recherche est acceptable."
+  }
+]

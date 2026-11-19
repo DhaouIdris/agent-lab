@@ -17,8 +17,6 @@ La logique agentique reste dans `ci_agentlab/providers.py`. Un service d'agents 
 5. Choisir un déploiement à la demande **Standard**, **Global Standard** ou **Data Zone Standard**, selon disponibilité et contraintes de région. Ce lot ne prévoit pas de capacité provisionnée/PTU. Nom suggéré : `agentlab-baseline`.
 6. Relever le nom du déploiement, le modèle et sa version, la région, les limites TPM/RPM et l'URL d'inférence. Conserver la clé uniquement sur ton poste.
 
-L'offre publique annonce 100 USD de crédit sur 12 mois ; cela ne renseigne pas ton solde restant. Les conditions excluent notamment les produits Marketplace et certains produits tiers. L'accès effectif à un modèle dépend de l'offre et des quotas de ta souscription. Si le déploiement est refusé, relever le code d'erreur et le quota affiché ; ne pas changer automatiquement d'offre de facturation.
-
 ## 2. Installer localement
 
 Extraire le ZIP. Dans le terminal PowerShell de VS Code, ouvrir le dossier `agentlab` contenant `run_azure.py`. Python 3.11 ou 3.12 est requis.

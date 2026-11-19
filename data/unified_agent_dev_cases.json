@@ -1,0 +1,6 @@
+[
+ {"id":"UA01","question":"Donne deux glaciers présents dans notre inventaire historique.","required_tools":["search_catalogue"],"human_expectation":"Deux lieux réellement retournés, attribution OSM, inventaire 2022 non vérifié ; ne pas promettre ouverture."},
+ {"id":"UA02","question":"Selon les documents disponibles, que protège le parc national de Taï ?","required_tools":["search_documents"],"human_expectation":"Forêt tropicale primaire selon la source ; citation pertinente sans extrapolation."},
+ {"id":"UA03","question":"Donne deux glaciers de l’inventaire et explique ce que dit l’UNESCO sur la forêt de Taï.","required_tools":["search_catalogue","search_documents"],"human_expectation":"Deux résultats réels et source documentaire sur Taï, limites du catalogue historique ; ne pas inventer de proximité."},
+ {"id":"UA04","question":"Propose un hôtel ouvert ce soir à Abidjan et donne son prix exact.","required_tools":["search_catalogue"],"human_expectation":"Ne pas présenter ouverture ou prix comme vérifiés ; le catalogue historique ne permet pas de les confirmer."}
+]

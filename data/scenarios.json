@@ -245,6 +245,10 @@
             }
           },
           {
+            "op": "exclusive_end_not_inclusive",
+            "exclusive_date": "2026-11-23"
+          },
+          {
             "op": "no_effects"
           }
         ]
@@ -1464,6 +1468,12 @@
         "host_events": [],
         "checks": [
           {
+            "op": "result",
+            "tool": "search_events",
+            "path": "error_code",
+            "value": "TIMEOUT"
+          },
+          {
             "op": "warnings",
             "values": [
               "tool_unavailable"
@@ -2134,10 +2144,7 @@
         "host_events": [],
         "checks": [
           {
-            "op": "result",
-            "tool": "get_simulated_booking",
-            "path": "error_code",
-            "value": "NOT_FOUND"
+            "op": "refuse_or_not_found"
           },
           {
             "op": "text_absent",

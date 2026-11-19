@@ -22,7 +22,7 @@ ROOT=Path(__file__).parent
 def load_config(path):
     c=json.loads(Path(path).read_text(encoding="utf-8-sig"))
     if not isinstance(c,dict):raise ValueError("Configuration must be a JSON object")
-    allowed=set(json.loads((ROOT/"azure.example.json").read_text()))
+    allowed=set(json.loads((ROOT/"azure.example.json").read_text(encoding="utf-8")))
     if set(c)-allowed:raise ValueError("Unknown config fields; credentials must not be stored here")
     if allowed-set(c):raise ValueError("Missing fields: start from azure.example.json")
     if c["auth_header"] not in ("api-key","bearer"):raise ValueError("Invalid auth_header")
@@ -47,6 +47,8 @@ def load_config(path):
 
 def fingerprint(c):return hashlib.sha256(json.dumps(c,sort_keys=True).encode()).hexdigest()
 
+def public_config(c):return {k:v for k,v in c.items() if k!="base_url"}
+
 def build_command(c,stage,out):
     cmd=[sys.executable,"-m","ci_agentlab","run","--base-url",c["base_url"],"--model",c["deployment"],
          "--auth-header",c["auth_header"],"--token-parameter",c["token_parameter"],
@@ -69,7 +71,9 @@ def main():
     p.add_argument("--config",default="azure.json")
     p.add_argument("--dry-run",action="store_true",help="No network request or key requested")
     p.add_argument("--out",help="Fresh run directory; defaults to timestamped path")
+    p.add_argument("--case",action="append",help="Select development scenario(s), pilot stage only")
     args=p.parse_args()
+    if args.case and args.stage!="pilot":p.error("--case is supported with pilot only")
     
     try:c=load_config(args.config)
     except (OSError,ValueError,TypeError) as e:p.exit(2,"Configuration: "+str(e)+"\n")
@@ -85,12 +89,18 @@ def main():
     marker=ROOT/"runs/azure_preflight.json"
     
     if args.dry_run:
+        command=build_command(c,args.stage,out) if args.stage!="preflight" else "Two-call protocol check"
+        if args.case:
+            for case in args.case:command += ["--case",case]
+        if isinstance(command,list):
+            for flag in ("--base-url","--out"):
+                if flag in command:command[command.index(flag)+1]="[REDACTED]"
         print(json.dumps({"stage":args.stage,"network_calls":0,"preflight_max_requests":2,
-            "command":build_command(c,args.stage,out) if args.stage!="preflight" else "Two-call protocol check",
+            "command":command,
             "cost":"Unknown until deployment tariffs and usage are known"},ensure_ascii=False,indent=2));return
     
     if args.stage!="preflight":
-        try:prior=json.loads(marker.read_text())
+        try:prior=json.loads(marker.read_text(encoding="utf-8"))
         except (OSError,ValueError):p.exit(2,"Exécute d'abord : python run_azure.py preflight\n")
         if not prior.get("passed") or prior.get("config_fingerprint")!=fingerprint(c):
             p.exit(2,"Configuration modifiée ou preflight invalide : relance le preflight.\n")
@@ -109,13 +119,18 @@ def main():
         marker.parent.mkdir(parents=True,exist_ok=True);marker.write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
         print(json.dumps(report,ensure_ascii=False,indent=2));sys.exit(0 if report["passed"] else 1)
     env=os.environ.copy();env["AGENTLAB_API_KEY"]=key
-    proc=subprocess.run(build_command(c,args.stage,out),cwd=ROOT,env=env)
+    command=build_command(c,args.stage,out)
+    if args.case:
+        for case in args.case:command += ["--case",case]
+    proc=subprocess.run(command,cwd=ROOT,env=env)
 
     if proc.returncode:sys.exit(proc.returncode)
-    (out/"azure_run_metadata.json").write_text(json.dumps({"config":c,"currency":c["currency"],"quota_verified":False},indent=2),encoding="utf-8")
-    report=json.loads((out/"report.json").read_text())
+    (out/"azure_run_metadata.json").write_text(json.dumps({"config":public_config(c),"currency":c["currency"],"quota_verified":False},indent=2),encoding="utf-8")
+    report=json.loads((out/"report.json").read_text(encoding="utf-8"))
 
     if not report.get("campaign_complete",False):
         sys.exit(1)
 
 if __name__=="__main__":main()
+
+

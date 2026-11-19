@@ -1,0 +1,302 @@
+"""Sixty frozen scenarios. Default to a network-free check of the real entry point."""
+import argparse
+from collections import Counter
+from datetime import datetime, timezone
+import getpass
+import hashlib
+import json
+import os
+import re
+from pathlib import Path
+import statistics
+
+from ci_agentlab.providers import ChatClient
+from experiments.benchmark_reporting import save_report, write_json
+from experiments.document_rag import load_corpus
+from experiments.unified_agent import fetch_route
+from experiments.unified_agent_batch import run
+from run_azure import load_config
+
+CASES=Path('data/audit_campaign_60.json')
+CORPUS=Path('data/rag_integrated_dev.json')
+DOCS={'tai':'UNESCO_TAI__','comoe':'UNESCO_COMOE__','nimba':'UNESCO_NIMBA__',
+      'bassam':'UNESCO_BASSAM__','mosque':'UNESCO_MOSQUEES__','gdp':'WB_CIV_GDP_','mixed':'UNESCO_COMOE__'}
+LOCAL={'coords':'unsupported_routing','invalid':'invalid_coordinates','block':'blocked_suspected_injection'}
+REVIEW=('useful_and_complete','facts_supported','citations_relevant','limits_accurate','no_unauthorized_promise')
+
+
+def scenario(entry):
+    goal=entry['goal']
+    tools=[]
+    checks={'status':LOCAL.get(goal,'model_output')}
+    evidence={'no_live_offer':True}
+    if goal=='unknown':
+        evidence['no_payment_data_request']=True
+    if goal in DOCS:
+        tools.append('search_documents')
+        evidence['document_prefix']=DOCS[goal]
+    if goal in ('places','places2','search','mixed'):
+        tools.append('search_catalogue')
+        if goal!='search':
+            evidence['min_places']=2 if goal=='places2' else 1
+    if goal in LOCAL:
+        checks.update(max_provider_calls=0,max_tool_calls=0,abstain=True)
+    elif goal in ('car','walk'):
+        tools.append('calculate_route')
+        checks.update(route_status='ok',route_mode=goal,abstain=False,max_provider_calls=0)
+    elif goal in ('unknown','clarify'):
+        checks['abstain']=True
+    elif goal!='search':
+        checks['abstain']=False
+    return {**entry,'required_tools':tools,'outcome_checks':checks,'evidence_checks':evidence,
+            'forbidden_tools':[] if goal in ('walk','car') else ['calculate_route']}
+
+
+class ExternalBoundary(Exception):
+    """An offline or explicitly forbidden external operation was requested."""
+
+
+class NoChat:
+    def __init__(self):
+        self.calls=[]
+
+    def chat(self,*args,**kwargs):
+        raise ExternalBoundary('chat')
+
+
+def no_route(*args,**kwargs):
+    raise ExternalBoundary('route')
+
+
+def digest(path):
+    with path.open('rb') as f:
+        return hashlib.file_digest(f,'sha256').hexdigest()
+
+
+def evaluate_case(case,client,live,db,docs,timeout,capture_rejected=False):
+    goal=case['goal']
+    allow_chat=goal not in {*LOCAL,'walk','car'}
+    allow_route=goal in ('walk','car')
+    chat=client if live and allow_chat else NoChat()
+    router=fetch_route if live and allow_route else no_route
+    before=len(chat.calls)
+    try:
+        return run(chat,db,docs,[case],timeout=timeout,route_service=router,capture_rejected=capture_rejected)['results'][0]
+    except ExternalBoundary as exc:
+        requested=exc.args[0]
+        permitted=allow_chat if requested=='chat' else allow_route
+        status='awaiting_'+requested if permitted and not live else 'unexpected_'+requested
+        return {'id':case['id'],'category':case['category'],'status':status,'provider_calls':chat.calls[before:],
+                'automatic_checks_pass':None if status.startswith('awaiting') else False}
+
+
+def summarize(rows,planned):
+    passed=sum(r.get('automatic_checks_pass') is True for r in rows)
+    evaluated=sum(r.get('automatic_checks_pass') is not None for r in rows)
+    timed=sorted(r['elapsed_seconds'] for r in rows if 'elapsed_seconds' in r)
+    calls=[c for r in rows for c in r.get('provider_calls',[])]
+    tokens=[c.get('usage',{}).get('total_tokens') for c in calls]
+    return {'planned':planned,'visited':len(rows),'automatically_evaluable':evaluated,
+            'automatic_passes':passed,'automatic_failures':evaluated-passed,
+            'abstention_convention_mismatches':sum(r.get('abstention_convention_match') is False for r in rows),
+            'statuses':dict(Counter(r['status'] for r in rows)),'provider_attempts':len(calls),
+            'total_reported_tokens':sum(tokens) if all(isinstance(x,int) for x in tokens) else None,
+            'route_statuses':dict(Counter(r['route_status'] for r in rows if r.get('route_status'))),
+            'model_outputs':sum(r.get('response_origin')=='model' for r in rows),
+            'route_calls':sum(r.get('observed_tools',[]).count('calculate_route') for r in rows),
+            'latency_p50_seconds':statistics.median(timed) if timed else None,
+            'latency_p95_seconds':timed[(95*len(timed)+99)//100-1] if timed else None,
+            'human_success_rate':None}
+
+
+def provider(config,budget):
+    key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure : ')
+    if not key:
+        raise ValueError('Clé Azure absente')
+    return ChatClient(config['base_url'],config['deployment'],api_key=key,api_version=config.get('api_version'),
+                      max_calls=budget,max_output_tokens=config['max_output_tokens'],auth_header=config['auth_header'],
+                      token_parameter=config['token_parameter'],min_interval_seconds=config['min_interval_seconds'])
+
+
+def adjudicate(directory):
+    report=json.loads((directory/'report.json').read_text(encoding='utf8'))
+    grades=json.loads((directory/'grades.private.json').read_text(encoding='utf8'))
+    if report['kind']!='live_development' or grades['run_id']!=report['config']['run_id']:
+        raise ValueError('Grades must belong to this live campaign')
+    expected={(r['id'],r['repetition']):r for r in report['results']}
+    if len(grades['rows'])!=len(expected):
+        raise ValueError('Incomplete grade sheet')
+    by_case={}
+    by_category={}
+    dimension_failures=Counter()
+    for grade in grades['rows']:
+        key=(grade['id'],grade['repetition'])
+        row=expected.pop(key)
+        if any(type(grade.get(dim)) is not bool for dim in REVIEW):
+            raise ValueError('Fill every review dimension with true or false')
+        ok=row['automatic_checks_pass'] is True and all(grade[d] for d in REVIEW)
+        by_case.setdefault(key[0],[]).append(ok)
+        group=by_category.setdefault(row.get('category','unspecified'),{'reviewed':0,'joint_passes':0})
+        group['reviewed']+=1
+        group['joint_passes']+=int(ok)
+        dimension_failures.update(d for d in REVIEW if not grade[d])
+    n=report['summary']['planned']
+    passed=sum(sum(v) for v in by_case.values())
+    consistent=sum(len(v)==report['config']['repetitions'] and all(v) for v in by_case.values())
+    write_json(directory/'adjudication.json',{'reviewed':len(grades['rows']),'planned':n,'joint_passes':passed,
+               'success_per_planned_run':passed/n,'passed_every_planned_repetition':consistent,
+               'per_category':by_category,'failed_review_dimensions':dict(dimension_failures),
+               'cases_with_variable_success':sum(len(set(v))>1 for v in by_case.values()),
+               'distinct_cases_planned':n//report['config']['repetitions'],'campaign_complete':report['campaign_complete']})
+
+
+def load_cases(path,consistency):
+    data=json.loads(path.read_text(encoding='utf-8-sig'))
+    goals=set(DOCS)|set(LOCAL)|{'places','places2','search','general','unknown','clarify','car','walk'}
+    if not isinstance(data,list) or not 1<=len(data)<=60:
+        raise ValueError('Provide 1..60 scenarios')
+    ids=set()
+    for case in data:
+        if (not isinstance(case,dict) or not all(isinstance(case.get(k),str) and case[k].strip()
+                for k in ('id','category','goal','question','human_expectation'))
+                or not re.fullmatch(r'[A-Za-z0-9_-]{1,48}',case['id']) or case['id'] in ids
+                or type(case.get('abstain_is_diagnostic',False)) is not bool
+                or case['goal'] not in goals or len(case['question'])>2000 or type(case.get('consistency')) is not bool):
+            raise ValueError('Invalid or duplicate scenario')
+        ids.add(case['id'])
+    selected=[scenario(case) for case in data if not consistency or case['consistency']]
+    if not selected:
+        raise ValueError('Empty consistency subset')
+    return selected
+
+
+def failed_cases(cases,report_path):
+    report=json.loads(report_path.read_text(encoding='utf-8-sig'))
+    raw=CASES.read_bytes().replace(b'\r\n',b'\n')
+    legacy_hashes={hashlib.sha256(raw).hexdigest(),hashlib.sha256(raw.replace(b'\n',b'\r\n')).hexdigest()}
+    if report['config']['cases_sha256'] not in legacy_hashes:
+        raise ValueError('Previous report must use the frozen default panel')
+    failed={r['id'] for r in report['results'] if r.get('automatic_checks_pass') is False}
+    if not failed or not failed <= {c['id'] for c in cases}:
+        raise ValueError('No failed cases or unknown scenario IDs')
+    return [c for c in cases if c['id'] in failed]
+
+
+def diagnose(directory):
+    """Extract failed-case evidence locally. No generation and no changes to scores."""
+    report=json.loads((directory/'report.json').read_text(encoding='utf-8-sig'))
+    review=json.loads((directory/'review.private.json').read_text(encoding='utf-8-sig'))
+    if report['config']['run_id']!=review['config']['run_id']:
+        raise ValueError('Review belongs to another run')
+    failed={(r['id'],r['repetition']) for r in report['results'] if r.get('automatic_checks_pass') is False}
+    rows=[]
+    for row in review['results']:
+        key=(row['id'],row['repetition'])
+        if key not in failed:
+            continue
+        failed.remove(key)
+        sources=[]
+        for tool in row.get('trace',[]):
+            evidence_available=isinstance(tool.get('result'),dict)
+            result=tool.get('result') or {}
+            passages=result.get('passages',[])
+            items=result.get('items',[])
+            sources.append({'tool':tool['tool'],'evidence_available':evidence_available,
+                            'document_ids':[d['id'] for d in passages] if evidence_available else None,
+                            'place_ids':[d['source_id'] for d in items] if evidence_available else None,
+                            'result_count':len(passages)+len(items) if evidence_available else tool.get('result_count'),
+                            'passages':[{k:d[k] for k in ('id','title','text','url','publisher') if k in d} for d in passages],
+                            'places':[{k:d[k] for k in ('source_id','name','category','district') if k in d} for d in items]})
+        rows.append({k:row.get(k) for k in ('id','repetition','question','human_expectation','output','diagnostic_code',
+                                            'diagnostic_metadata','quality_checks','rejected_responses_private')})
+        rows[-1]['observed_sources']=sources
+    if failed:
+        raise ValueError('Review missing failed executions')
+    output=directory/'diagnosis.private.json'
+    write_json(output,{'run_id':report['config']['run_id'],'rows':rows})
+    print(str(output))
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--live',action='store_true')
+    p.add_argument('--consistency',action='store_true',help='Repeat 12 selected cases three times')
+    p.add_argument('--cases',type=Path,default=CASES,help='Frozen panel or a separately authored private panel')
+    p.add_argument('--db',type=Path,default=Path('local_data/lieux.sqlite'))
+    p.add_argument('--config',default='azure.json')
+    p.add_argument('--private-review',action='store_true')
+    p.add_argument('--out',type=Path)
+    p.add_argument('--adjudicate',type=Path)
+    p.add_argument('--diagnose',type=Path,help='Extract failed answers from a local private review without network calls')
+    p.add_argument('--failed-from',type=Path,help='Run only failures from an earlier frozen-panel report')
+    a=p.parse_args()
+    if a.diagnose:
+        diagnose(a.diagnose)
+        return
+    if a.adjudicate:
+        adjudicate(a.adjudicate)
+        return
+    cases=load_cases(a.cases,a.consistency)
+    if a.failed_from:
+        if a.consistency or a.cases!=CASES:
+            p.error('--failed-from requires the full frozen default panel')
+        cases=failed_cases(cases,a.failed_from)
+    repeat=3 if a.consistency else 1
+    planned=len(cases)*repeat
+    config=load_config(a.config) if a.live else {}
+    if a.live and not a.db.is_file():
+        p.error('Catalogue SQLite introuvable')
+    client=provider(config,planned*5) if a.live else NoChat()
+    docs=load_corpus(CORPUS)
+    stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
+    out=a.out or Path('runs')/('audit_'+stamp)
+    out.mkdir(parents=True,exist_ok=False)
+    metadata={'run_id':stamp,'abstention_policy':{c['id']:'diagnostic' if c.get('abstain_is_diagnostic') else 'scored' for c in cases},'selected_case_ids':[c['id'] for c in cases],'repetitions':repeat,'cases_sha256':digest(a.cases),'corpus_sha256':digest(CORPUS),
+              'catalogue_sha256_start':digest(a.db) if a.db.is_file() else None,
+              'model':config.get('underlying_model'),'model_version':config.get('model_version'),
+              'max_provider_calls':planned*5 if a.live else 0,
+              'code_sha256':{p.name:digest(p) for p in [Path(__file__),Path('ci_agentlab/providers.py'),
+                          *(Path('experiments')/(m+'.py') for m in ('input_guard','injection_guard','unified_agent','route_service',
+                          'document_rag','catalogue_chat','place_catalog','unified_agent_batch','benchmark_reporting'))]}}
+    if a.failed_from:
+        metadata['previous_report_sha256']=digest(a.failed_from)
+    rows=[]
+    report={'kind':'live_development' if a.live else 'offline_boundary_check','config':metadata,
+            'campaign_complete':False,'results':rows}
+    stop=None
+    for rep in range(1,repeat+1):
+        for case in cases:
+            row=evaluate_case(case,client,a.live,a.db,docs,config.get('turn_timeout_seconds',180),capture_rejected=a.private_review)
+            row['repetition']=rep
+            last=(row.get('provider_calls') or [{}])[-1]
+            if last.get('provider_error_code')=='content_filter' or last.get('finish_reason')=='content_filter':
+                row['status']='provider_filtered'
+                row['automatic_checks_pass']=False
+            rows.append(row)
+            report['summary']=summarize(rows,planned)
+            save_report(out,report,a.private_review)
+            if row.get('diagnostic_code') in ('provider_error','turn_deadline_exceeded'):
+                if row['status']=='provider_filtered':
+                    continue
+                stop='provider_or_deadline_error'
+                break
+        if stop:
+            break
+    metadata['catalogue_sha256_end']=digest(a.db) if a.db.is_file() else None
+    if metadata['catalogue_sha256_end']!=metadata['catalogue_sha256_start']:
+        stop='catalogue_changed'
+    report.update(campaign_complete=len(rows)==planned and stop is None,stop_reason=stop,summary=summarize(rows,planned))
+    report['per_category']={k:summarize([r for r in rows if r['category']==k],sum(c['category']==k for c in cases)*repeat)
+                            for k in sorted({c['category'] for c in cases})}
+    save_report(out,report,a.private_review)
+    if a.private_review and a.live:
+        write_json(out/'grades.private.json',{'run_id':stamp,'rows':[{'id':r['id'],'repetition':r['repetition'],
+                   **dict.fromkeys(REVIEW)} for r in rows]})
+    print(json.dumps(report['summary'],ensure_ascii=False,indent=2))
+    print(out/'report.json')
+    if stop:
+        p.exit(1,stop+'\n')
+
+
+if __name__=='__main__':
+    main()

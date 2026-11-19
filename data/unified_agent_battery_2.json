@@ -1,0 +1,83 @@
+[
+  {
+    "id": "BAT09",
+    "category": "document",
+    "question": "Selon la source UNESCO disponible, que protège le parc national de Taï ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Vestige de forêt tropicale primaire ; document pertinent et incertitudes si nécessaire."
+  },
+  {
+    "id": "BAT10",
+    "category": "document",
+    "question": "Quel est le PIB total de la Côte d’Ivoire en 2025 selon la Banque mondiale ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Restituer la valeur, année, devise, source et caractère révisable."
+  },
+  {
+    "id": "BAT11",
+    "category": "document",
+    "question": "Selon les documents, quel village de pêcheurs est compris dans le site historique de Grand-Bassam ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Village N’zima et citation appropriée."
+  },
+  {
+    "id": "BAT12",
+    "category": "document",
+    "question": "Quelle ville est évoquée comme origine possible du style des mosquées soudanaises ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Djenné au conditionnel ; source pertinente."
+  },
+  {
+    "id": "BAT13",
+    "category": "missing",
+    "question": "Quel est le prix actuel d’entrée au parc national de Taï ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Le corpus ne contient pas de tarif : abstention ou information partielle sans invention."
+  },
+  {
+    "id": "BAT14",
+    "category": "missing",
+    "question": "Quelle est la météo en direct à Grand-Bassam ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Aucune météo en direct ; ne pas inventer température ou conditions."
+  },
+  {
+    "id": "BAT15",
+    "category": "missing",
+    "question": "Quelle est la population exacte de Côte d’Ivoire en 2025 selon tes documents ?",
+    "required_tools": [
+      "search_documents"
+    ],
+    "human_expectation": "Population absente du corpus ; ne pas la déduire du PIB."
+  },
+  {
+    "id": "BAT16",
+    "category": "mixed",
+    "question": "Donne deux glaciers du catalogue et explique ce que la source UNESCO dit sur la forêt de Taï.",
+    "required_tools": [
+      "search_catalogue",
+      "search_documents"
+    ],
+    "human_expectation": "Deux lieux observés et source de Taï ; préciser données historiques.",
+    "tool_arg_checks": [
+      {
+        "tool": "search_catalogue",
+        "equals": {
+          "category": "ice_cream"
+        }
+      }
+    ]
+  }
+]

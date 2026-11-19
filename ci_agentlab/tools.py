@@ -30,7 +30,7 @@ def reply(status="ok", data=None, code=None, retryable=False, missing=None, conf
 class Engine:
     def __init__(self, world=None, actor="alice", now="2026-11-16T12:00:00+00:00", scopes=None,
                  max_calls=8, deadline_seconds=60):
-        self.world=copy.deepcopy(world or json.loads((ROOT/"data/world.json").read_text()))
+        self.world=copy.deepcopy(world or json.loads((ROOT/"data/world.json").read_text(encoding="utf-8")))
         self.actor=actor
         self.now=aware(now)
         self.scopes=set(TOOL_MODELS) if scopes is None else set(scopes)
@@ -242,10 +242,38 @@ class Engine:
         try: final=FinalAnswer.model_validate(payload)
         except (ValidationError,TypeError):return ["INVALID_FINAL_SCHEMA"]
         errors=[]
+        # Simulation steps are evidence only for the IDs and timestamps actually
+        # returned by the tool; they are not source documents about the places.
+        steps=[]
+        booking_evidence=[]
+        for t in self.trace:
+            result=t.get("result",{})
+            if t.get("tool")=="plan_itinerary" and result.get("status") in ("ok","partial"):
+                steps.extend((result.get("data") or {}).get("steps",[]))
+            if t.get("tool") in ("get_booking_quote","create_simulated_booking","get_simulated_booking","cancel_simulated_booking") and result.get("status")=="ok":
+                data=result.get("data") or {}
+                if t["tool"]=="get_booking_quote":
+                    owner_record=self.quotes.get(data.get("quote_id"))
+                else:
+                    owner_record=self.bookings.get(data.get("booking_id"))
+                if owner_record and owner_record.get("owner")==self.actor and data.get("simulation") is True:
+                    booking_evidence.append((t["tool"],data))
+        simulated_ids={s.get("place_id") for s in steps}
+        booking_ids={d[k] for _,d in booking_evidence for k in ("quote_id","booking_id","place_id") if isinstance(d.get(k),str)}
         for eid in final.entity_ids:
-            if eid not in self.exposed:errors.append("UNSEEN_ENTITY:"+eid)
+            if eid not in self.exposed and eid not in simulated_ids and not (final.simulation and eid in booking_ids):errors.append("UNSEEN_ENTITY:"+eid)
         for fact in final.facts:
             e=self.exposed.get(fact.entity_id)
+            if fact.source_id in ("get_booking_quote","functions.get_booking_quote"):
+                matches=[d for name,d in booking_evidence if name=="get_booking_quote" and fact.entity_id==d.get("quote_id")]
+                if not final.simulation or not any(fact.field in d and type(d[fact.field]) is type(fact.value) and d[fact.field]==fact.value for d in matches):
+                    errors.append("UNSUPPORTED_FACT")
+                continue
+            if fact.source_id in ("plan_itinerary","functions.plan_itinerary") and fact.field in ("start","end"):
+                field={"start":"arrival","end":"departure"}[fact.field]
+                if not final.simulation or not any(s.get("place_id")==fact.entity_id and type(s.get(field)) is type(fact.value) and s.get(field)==fact.value for s in steps):
+                    errors.append("UNSUPPORTED_FACT")
+                continue
             if not e or fact.field not in e or e[fact.field]!=fact.value or type(e[fact.field])!=type(fact.value):
                 errors.append("UNSUPPORTED_FACT")
             elif e.get("field_sources",{}).get(fact.field,e.get("source_id"))!=fact.source_id:
@@ -258,3 +286,5 @@ class Engine:
                          for t in self.trace if isinstance(t["result"].get("data"),dict)):
                 errors.append("UNOBSERVED_BOOKING")
         return errors
+
+

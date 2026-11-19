@@ -10,12 +10,15 @@ from pathlib import Path
 from . import __version__
 from .contracts import TOOL_MODELS,FinalAnswer,ToolResponse,tool_specs
 from .tools import ROOT
-from .evaluation import run_case,aggregate
+from .evaluation import run_case,aggregate,is_provider_filtered
 from .providers import ChatClient
 
 def dump(p,obj):
     p.parent.mkdir(parents=True,exist_ok=True)
     p.write_text(json.dumps(obj,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+
+def report_config(args):
+    return {k:v for k,v in vars(args).items() if k not in ("api_key_env","base_url","out")}
 
 def hashes():
     return {str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest()
@@ -56,7 +59,7 @@ def main():
         dump(ROOT/"schemas/tool_response.json",ToolResponse.model_json_schema())
         dump(ROOT/"schemas/tools.openai.json",tool_specs())
         print("Exported 9 tool input contracts + final response + tool catalog.");return
-    cases=json.loads((ROOT/"data/scenarios.json").read_text())
+    cases=json.loads((ROOT/"data/scenarios.json").read_text(encoding="utf-8"))
     if args.command=="validate":
         from .validation import validate_corpus
         errors=validate_corpus(cases)
@@ -65,14 +68,14 @@ def main():
         print("40 development cases: metadata, oracle rules and reference replays validated. No model evaluated.");return
     if args.command=="compare":
         from .comparison import compare
-        report=compare(json.loads(Path(args.left).read_text()),json.loads(Path(args.right).read_text()))
+        report=compare(json.loads(Path(args.left).read_text(encoding="utf-8")),json.loads(Path(args.right).read_text(encoding="utf-8")))
         dump(Path(args.out),report);print(json.dumps(report,indent=2));return
     if not 1<=args.repeat<=20:p.error("repeat must be 1..20")
     if args.case:
         unknown=set(args.case)-{c["id"] for c in cases}
         if unknown:p.error("Unknown cases: "+str(sorted(unknown)))
         cases=[c for c in cases if c["id"] in args.case]
-    replay=json.loads((ROOT/"data/oracle_replays.json").read_text()) if args.command=="replay" else None
+    replay=json.loads((ROOT/"data/oracle_replays.json").read_text(encoding="utf-8")) if args.command=="replay" else None
     client=None
     if args.command=="run":
         if not 1<=args.max_provider_calls<=10000:p.error("max-provider-calls must be 1..10000")
@@ -88,7 +91,8 @@ def main():
     results=[]
     out=Path(args.out)
     out.mkdir(parents=True,exist_ok=True)
-    config={k:v for k,v in vars(args).items() if k not in ("api_key_env",)}
+    # Never persist endpoint host or local output path in shareable reports.
+    config=report_config(args)
     report={"kind":"oracle_replay_NOT_MODEL_PERFORMANCE" if replay else "model_automatic_evaluation_PENDING_HUMAN_REVIEW",
         "created_at":datetime.now(timezone.utc).isoformat(),"version":__version__,"python":platform.python_version(),
         "config":config,"hashes":hashes(),"run_seed":args.seed,"results":results}
@@ -97,11 +101,12 @@ def main():
                    turn_timeout_seconds=getattr(args,"turn_timeout_seconds",60),
                    stop_on_provider_error=getattr(args,"stop_on_provider_error",False))
         r["repetition"]=rep;results.append(r)
-        print(f'{c["id"]} repeat={rep+1}: {"PASS" if r["auto_pass"] else "FAIL"} automatic checks',flush=True)
+        outcome="PROVIDER_FILTERED" if r["evaluation_status"]=="provider_filtered" else ("PASS" if r["auto_pass"] else "FAIL")
+        print(f'{c["id"]} repeat={rep+1}: {outcome} automatic checks',flush=True)
         report["summary"]=aggregate(results,args.seed)
         report["campaign_complete"]=not any("Global provider-call cap reached" in f.get("detail","") for x in results for f in x["failures"])
         dump(out/"report.json",report)
-        if client and args.stop_on_provider_error and any(x.get("error") for x in r["provider_calls"]):
+        if client and args.stop_on_provider_error and any(x.get("error") and not x.get("recovered_or_retried") and not is_provider_filtered(x) for x in r["provider_calls"]):
             report["campaign_complete"]=False
             report["stop_reason"]="Provider error: inspect authentication, quota, endpoint and model compatibility before retrying."
             dump(out/"report.json",report)
@@ -119,3 +124,6 @@ def main():
     if replay:print("These are reference replays, NOT AI performance results.")
 
 if __name__=="__main__":main()
+
+
+
