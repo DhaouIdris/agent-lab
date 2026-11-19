@@ -109,6 +109,42 @@ def summarize(rows,planned):
             'human_success_rate':None}
 
 
+def consistency_by_case(rows,cases,repetitions):
+    results=[]
+    expected=set(range(1,repetitions+1))
+    for case in cases:
+        runs=[r for r in rows if r['id']==case['id']]
+        recorded=[r['repetition'] for r in runs]
+        evaluated=[r for r in runs if type(r.get('automatic_checks_pass')) is bool]
+        complete=len(runs)==repetitions and set(recorded)==expected
+        outputs=[r['output'] for r in runs if isinstance(r.get('output'),dict)]
+        abstentions=[o['abstain'] for o in outputs if type(o.get('abstain')) is bool]
+        citations={(tuple(sorted(o.get('document_ids',[]))),tuple(sorted(o.get('place_ids',[])))) for o in outputs}
+        sequences={tuple(r['observed_tools']) for r in runs if isinstance(r.get('observed_tools'),list)}
+        results.append({'id':case['id'],'category':case['category'],'repetitions_planned':repetitions,
+                        'runs_recorded':len(runs),'repetitions_recorded':recorded,
+                        'automatic_checks_evaluable':len(evaluated),
+                        'automatic_passes':sum(r['automatic_checks_pass'] for r in evaluated),
+                        'all_repetitions_passed':all(r['automatic_checks_pass'] for r in evaluated)
+                            if complete and len(evaluated)==repetitions else None,
+                        'statuses':dict(Counter(r['status'] for r in runs)),
+                        'variable_status':len({r['status'] for r in runs})>1 if len(runs)>=2 else None,
+                        'variable_abstention':len(set(abstentions))>1 if len(abstentions)>=2 else None,
+                        'tool_sequence_variants':len(sequences),'citation_set_variants':len(citations)})
+    return results
+
+
+def add_consistency(report,cases,repetitions):
+    per_case=consistency_by_case(report['results'],cases,repetitions)
+    report['per_case']=per_case
+    report['summary'].update(
+        cases_passed_all_repetitions=sum(c['all_repetitions_passed'] is True for c in per_case),
+        cases_failed_with_all_repetitions_evaluable=sum(c['all_repetitions_passed'] is False for c in per_case),
+        cases_awaiting_complete_evaluation=sum(c['all_repetitions_passed'] is None for c in per_case),
+        cases_with_variable_status=sum(c['variable_status'] is True for c in per_case),
+        cases_with_variable_abstention=sum(c['variable_abstention'] is True for c in per_case))
+
+
 def provider(config,budget):
     key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure : ')
     if not key:
@@ -274,6 +310,7 @@ def main():
                 row['automatic_checks_pass']=False
             rows.append(row)
             report['summary']=summarize(rows,planned)
+            add_consistency(report,cases,repeat)
             save_report(out,report,a.private_review)
             if row.get('diagnostic_code') in ('provider_error','turn_deadline_exceeded'):
                 if row['status']=='provider_filtered':
@@ -288,6 +325,7 @@ def main():
     report.update(campaign_complete=len(rows)==planned and stop is None,stop_reason=stop,summary=summarize(rows,planned))
     report['per_category']={k:summarize([r for r in rows if r['category']==k],sum(c['category']==k for c in cases)*repeat)
                             for k in sorted({c['category'] for c in cases})}
+    add_consistency(report,cases,repeat)
     save_report(out,report,a.private_review)
     if a.private_review and a.live:
         write_json(out/'grades.private.json',{'run_id':stamp,'rows':[{'id':r['id'],'repetition':r['repetition'],
