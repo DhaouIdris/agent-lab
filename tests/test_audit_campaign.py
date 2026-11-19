@@ -178,3 +178,50 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(len(data['rows']),1)
         self.assertEqual(data['rows'][0]['output']['answer'],'Réponse privée')
         self.client.chat.assert_not_called()
+
+    def test_abstention_diagnostic_does_not_override_required_evidence(self):
+        case={'outcome_checks':{'status':'model_output','abstain':True},
+              'required_tools':['search_documents'],'evidence_checks':{'document_prefix':'UNESCO_'}}
+        row={'status':'model_output','outcome_checks':{'status':True,'abstain':False},
+             'observed_tools':['search_documents'],'output':{'answer':'Une explication.',
+                          'document_ids':['UNESCO_TEST'],'place_ids':[],'abstain':False}}
+        score_response(row,case)
+        self.assertFalse(row['automatic_checks_pass'])
+        score_response(row,{**case,'abstain_is_diagnostic':True})
+        self.assertTrue(row['automatic_checks_pass'])
+        self.assertFalse(row['abstention_convention_match'])
+        row['output']['document_ids']=[]
+        score_response(row,{**case,'abstain_is_diagnostic':True})
+        self.assertFalse(row['automatic_checks_pass'])
+        self.assertFalse(row['quality_checks']['cited_source'])
+
+    def test_diagnosis_distinguishes_redacted_evidence_from_empty_search(self):
+        row={'id':'a','repetition':1,'output':{},'automatic_checks_pass':False,
+             'trace':[{'tool':'search_documents','result_count':2,'result_status':'returned'},
+                      {'tool':'search_documents','result':{'passages':[]}},
+                      {'tool':'search_documents','result':{'passages':[{'id':'d','title':'Titre',
+                                                                       'text':'Extrait disponible.'}]}}]}
+        save_report(self.dir,{'config':{'run_id':'r'},'results':[row]},private=True)
+        diagnose(self.dir)
+        sources=json.loads((self.dir/'diagnosis.private.json').read_text(encoding='utf8'))['rows'][0]['observed_sources']
+        self.assertFalse(sources[0]['evidence_available'])
+        self.assertIsNone(sources[0]['document_ids'])
+        self.assertEqual(sources[0]['result_count'],2)
+        self.assertTrue(sources[1]['evidence_available'])
+        self.assertEqual(sources[1]['document_ids'],[])
+        self.assertEqual(sources[2]['passages'][0]['text'],'Extrait disponible.')
+
+    def test_followup_is_separately_versioned_and_covers_failed_cases(self):
+        from experiments.audit_campaign import load_cases
+        cases=load_cases(Path('data/audit_followup_16.json'),False)
+        self.assertEqual(len(cases),16)
+        self.assertTrue(all(c['abstain_is_diagnostic'] for c in cases))
+        self.assertEqual(sum(c['question_revised'] for c in cases),3)
+        original={c['id']:c for c in json.loads(CASES.read_text(encoding='utf8'))}
+        for case in cases:
+            if not case['question_revised']:
+                self.assertEqual(case['question'],original[case['id']]['question'])
+        conceptual=next(c for c in cases if c['id']=='AFFAIRES-02')
+        self.assertEqual(conceptual['required_tools'],[])
+        sufficiency=next(c for c in cases if c['id']=='PREUVES-07')
+        self.assertEqual(sufficiency['evidence_checks']['document_prefix'],'UNESCO_BASSAM__')

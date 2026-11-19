@@ -40,6 +40,8 @@ def score_response(row,case):
         checks['forbidden_tools']=not bool(set(case['forbidden_tools']) & set(row.get('observed_tools',[])))
     if case.get('required_tools'):
         checks['required_tools']=set(case['required_tools'])<=set(row.get('observed_tools',[]))
+    if case.get('abstain_is_diagnostic',False):
+        row['abstention_convention_match']=checks.pop('abstain',None)
     row['quality_checks']=checks
     # A status alone, or an empty set of required tools, never establishes quality.
     substantive=bool(rules or case.get('required_tools') or case.get('forbidden_tools') or case.get('tool_arg_checks') or set(case.get('outcome_checks',{}))-{'status'})

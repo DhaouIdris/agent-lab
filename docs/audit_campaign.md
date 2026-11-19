@@ -56,3 +56,5 @@ Pour une vérification ciblée après lecture et correction, --failed-from séle
 ~~~
 
 Ce sous-ensemble comprend seize questions de chat et fixe un plafond de 80 tentatives, retries inclus. Il mesure une régression ciblée sur des cas déjà vus. Avant de lancer un test de consistance, relire la signification d’abstention et les annotations litigieuses, notamment une question demandant si les extraits suffisent à déduire les horaires. Une réponse négative bien justifiée peut répondre à cette question même si les horaires précis restent inconnus. Le drapeau seul ne permet pas cet arbitrage.
+
+La relecture des seize réponses et le nouveau jeu de suivi sont décrits dans [le diagnostic après relecture](audit_followup.md).

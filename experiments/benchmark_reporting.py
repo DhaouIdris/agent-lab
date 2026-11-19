@@ -15,7 +15,7 @@ def save_report(out, report, private=False):
     # error strings and even provider metadata. Only case IDs from test manifests are public.
     fields=('id','category','status','repetition','diagnostic_code','tool_selection_match',
             'outcome_checks_pass','argument_checks_pass','forbidden_tools_pass','outcome_checks',
-            'route_status','provider_http_status','elapsed_seconds','response_origin','automatic_checks_pass','quality_checks','human_review_required')
+            'route_status','provider_http_status','elapsed_seconds','response_origin','automatic_checks_pass','quality_checks','human_review_required','abstention_convention_match')
     safe={key:report[key] for key in ('kind','campaign_complete','stop_reason','summary','per_category','per_case','config') if key in report}
     safe['results']=[]
     for row in report['results']:

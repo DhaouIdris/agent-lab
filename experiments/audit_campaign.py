@@ -98,6 +98,7 @@ def summarize(rows,planned):
     tokens=[c.get('usage',{}).get('total_tokens') for c in calls]
     return {'planned':planned,'visited':len(rows),'automatically_evaluable':evaluated,
             'automatic_passes':passed,'automatic_failures':evaluated-passed,
+            'abstention_convention_mismatches':sum(r.get('abstention_convention_match') is False for r in rows),
             'statuses':dict(Counter(r['status'] for r in rows)),'provider_attempts':len(calls),
             'total_reported_tokens':sum(tokens) if all(isinstance(x,int) for x in tokens) else None,
             'route_statuses':dict(Counter(r['route_status'] for r in rows if r.get('route_status'))),
@@ -159,6 +160,7 @@ def load_cases(path,consistency):
         if (not isinstance(case,dict) or not all(isinstance(case.get(k),str) and case[k].strip()
                 for k in ('id','category','goal','question','human_expectation'))
                 or not re.fullmatch(r'[A-Za-z0-9_-]{1,48}',case['id']) or case['id'] in ids
+                or type(case.get('abstain_is_diagnostic',False)) is not bool
                 or case['goal'] not in goals or len(case['question'])>2000 or type(case.get('consistency')) is not bool):
             raise ValueError('Invalid or duplicate scenario')
         ids.add(case['id'])
@@ -193,8 +195,18 @@ def diagnose(directory):
         if key not in failed:
             continue
         failed.remove(key)
-        sources=[{'tool':t['tool'],'document_ids':[d['id'] for d in t.get('result',{}).get('passages',[])],
-                  'place_ids':[d['source_id'] for d in t.get('result',{}).get('items',[])]} for t in row.get('trace',[])]
+        sources=[]
+        for tool in row.get('trace',[]):
+            evidence_available=isinstance(tool.get('result'),dict)
+            result=tool.get('result') or {}
+            passages=result.get('passages',[])
+            items=result.get('items',[])
+            sources.append({'tool':tool['tool'],'evidence_available':evidence_available,
+                            'document_ids':[d['id'] for d in passages] if evidence_available else None,
+                            'place_ids':[d['source_id'] for d in items] if evidence_available else None,
+                            'result_count':len(passages)+len(items) if evidence_available else tool.get('result_count'),
+                            'passages':[{k:d[k] for k in ('id','title','text','url','publisher') if k in d} for d in passages],
+                            'places':[{k:d[k] for k in ('source_id','name','category','district') if k in d} for d in items]})
         rows.append({k:row.get(k) for k in ('id','repetition','question','human_expectation','output','diagnostic_code',
                                             'diagnostic_metadata','quality_checks','rejected_responses_private')})
         rows[-1]['observed_sources']=sources
@@ -239,7 +251,7 @@ def main():
     stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     out=a.out or Path('runs')/('audit_'+stamp)
     out.mkdir(parents=True,exist_ok=False)
-    metadata={'run_id':stamp,'selected_case_ids':[c['id'] for c in cases],'repetitions':repeat,'cases_sha256':digest(a.cases),'corpus_sha256':digest(CORPUS),
+    metadata={'run_id':stamp,'abstention_policy':{c['id']:'diagnostic' if c.get('abstain_is_diagnostic') else 'scored' for c in cases},'selected_case_ids':[c['id'] for c in cases],'repetitions':repeat,'cases_sha256':digest(a.cases),'corpus_sha256':digest(CORPUS),
               'catalogue_sha256_start':digest(a.db) if a.db.is_file() else None,
               'model':config.get('underlying_model'),'model_version':config.get('model_version'),
               'max_provider_calls':planned*5 if a.live else 0,
