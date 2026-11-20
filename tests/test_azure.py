@@ -136,6 +136,27 @@ class AzureProtocol(unittest.TestCase):
         self.assertTrue(c.calls[0]['recovered_or_retried'])
         self.assertEqual(c.calls[0]['http_status'],429)
 
+    def test_malformed_success_body_retries_with_bounded_jitter_and_safe_reason(self):
+        c=client([]);c.max_calls=3
+        good=io.BytesIO(json.dumps({'choices':[{'message':{'content':'{}'}}], 'usage':{}}).encode())
+        c.opener.open.side_effect=[io.BytesIO(b'{broken'), good]
+        with patch('ci_agentlab.providers.time.sleep') as sleep, patch('ci_agentlab.providers.random.uniform',return_value=.5):
+            self.assertEqual(c.chat([],timeout=30)['content'],'{}')
+        sleep.assert_called_once_with(.5)
+        self.assertEqual(c.attempts,2)
+        self.assertEqual(c.calls[0]['error_kind'],'response_json')
+        self.assertTrue(c.calls[0]['recovered_or_retried'])
+        self.assertNotIn('broken',json.dumps(c.calls))
+
+    def test_repeated_invalid_response_stops_after_three_calls_and_labels_schema(self):
+        c=client([]);c.max_calls=3
+        c.opener.open.side_effect=[io.BytesIO(b'{"choices":[]}') for _ in range(3)]
+        with patch('ci_agentlab.providers.time.sleep'), patch('ci_agentlab.providers.random.uniform',return_value=.1):
+            with self.assertRaises(ProviderError):c.chat([],timeout=30)
+        self.assertEqual(c.attempts,3)
+        self.assertEqual([x['error_kind'] for x in c.calls],['response_schema']*3)
+        self.assertFalse(c.calls[-1].get('recovered_or_retried',False))
+
     def test_safe_diagnostic_does_not_log_body_or_secret(self):
         c=client([])
         body=io.BytesIO(b'{"error":{"code":"content_filter","message":"TEST_SECRET"}}')

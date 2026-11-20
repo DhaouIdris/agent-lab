@@ -25,6 +25,8 @@ def save_report(out, report, private=False):
         item['diagnostic_metadata']={key:metadata[key] for key in counts if type(metadata.get(key)) is int}
         if metadata.get('content_kind') in ('empty','string','non_string'):
             item['diagnostic_metadata']['content_kind']=metadata['content_kind']
+        if metadata.get('provider_error_kind') in ('timeout','transport','response_json','response_schema'):
+            item['diagnostic_metadata']['provider_error_kind']=metadata['provider_error_kind']
         item['abstain']=(row.get('output') or {}).get('abstain')
         item['provider_attempts']=len(row.get('provider_calls',[]))
         item['tools']=[t for t in row.get('observed_tools',[]) if t in ('search_catalogue','search_documents','calculate_route')]

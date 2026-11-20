@@ -186,12 +186,18 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
     for turn in range(max_rounds):
         remaining=deadline-time.monotonic()
         if remaining<=0:raise AgentDiagnosticError('turn_deadline_exceeded',trace)
+        existing_calls=getattr(client,'calls',None)
+        before_calls=len(existing_calls) if isinstance(existing_calls,list) else 0
         try:
             no_tools=force_final or turn==max_rounds-1
             available=[] if no_tools else ([CATALOGUE_TOOL] if len(document_queries)>=2 else TOOLS)
             reply=client.chat(messages,timeout=remaining,tools_override=available,response_format={'type':'json_object'})
         except ProviderError:
-            raise AgentDiagnosticError('provider_error',trace) from None
+            calls=getattr(client,'calls',None)
+            last=calls[-1] if isinstance(calls,list) and len(calls)>before_calls else {}
+            kind=last.get('error_kind') if isinstance(last,dict) else None
+            metadata={'provider_error_kind':kind} if kind in ('timeout','transport','response_json','response_schema') else {}
+            raise AgentDiagnosticError('provider_error',trace,metadata) from None
         calls=reply.get('tool_calls') or []
         if not calls:
             result,error=validate_final(reply.get('content'),observed_documents,observed_places)
