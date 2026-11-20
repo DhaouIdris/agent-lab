@@ -245,6 +245,15 @@ class AuditTests(unittest.TestCase):
             self.assertNotIn(secret,(self.dir/'report.json').read_text(encoding='utf8'))
             self.assertFalse((self.dir/'review.private.json').exists())
 
+    def test_public_provider_failure_classification_is_an_allowlist(self):
+        row={'id':'X','category':'catalogue','status':'execution_error',
+             'diagnostic_metadata':{'provider_error_kind':'response_json','unsafe':'PRIVATE'},
+             'provider_calls':[{'error':'transport_or_format','error_kind':'response_json'}]}
+        save_report(self.dir,{'kind':'test','results':[row]})
+        public=json.loads((self.dir/'report.json').read_text(encoding='utf8'))
+        self.assertEqual(public['results'][0]['diagnostic_metadata'],{'provider_error_kind':'response_json'})
+        self.assertNotIn('PRIVATE',json.dumps(public))
+
     def test_grading_requires_actual_decisions(self):
         write_json(self.dir/'report.json',{'kind':'live_development','config':{'run_id':'a','repetitions':1},
                    'summary':{'planned':1},'campaign_complete':True,

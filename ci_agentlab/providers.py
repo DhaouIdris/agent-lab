@@ -3,6 +3,7 @@
 No paid or network requests are issued by replay/validate commands.
 """
 import json
+import http.client
 import os
 import random
 import socket
@@ -160,9 +161,19 @@ class ChatClient:
             retry_after=max(0,min(retry_after,86400))
             raise ProviderError(f"Endpoint HTTP {exc.code}"+(f"; code={code}" if code else ""),
                                 retryable=exc.code in (429,500,502,503,504),retry_after=retry_after) from None
-        except (OSError,ValueError,KeyError,IndexError,TypeError) as exc:
-            entry.update(latency_seconds=time.monotonic()-start,error="transport_or_format")
-            raise ProviderError("Transport or response-format error: "+type(exc).__name__,retryable=isinstance(exc,(TimeoutError,socket.timeout,ConnectionError))) from None
+        except (OSError,http.client.HTTPException,ValueError,KeyError,IndexError,TypeError) as exc:
+            if isinstance(exc,(TimeoutError,socket.timeout)):
+                kind="timeout"
+            elif isinstance(exc,(OSError,http.client.HTTPException)):
+                kind="transport"
+            elif isinstance(exc,(ValueError,json.JSONDecodeError)):
+                kind="response_json" if isinstance(exc,json.JSONDecodeError) else "response_schema"
+            else:
+                kind="response_schema"
+            entry.update(latency_seconds=time.monotonic()-start,error="transport_or_format",error_kind=kind)
+            # A 2xx response can be truncated or malformed at a transient gateway.
+            # Retry only the same request within the three-attempt and turn limits.
+            raise ProviderError("Transport or response-format error: "+kind,retryable=True) from None
         except ProviderError:
             entry.update(latency_seconds=time.monotonic()-start,error="provider_guard")
             raise

@@ -45,6 +45,19 @@ class UnifiedTests(unittest.TestCase):
         client=Mock();client.chat.return_value=call('search_catalogue',{},1)
         with self.assertRaises(ProviderError):ask(client,self.db,self.docs,'test',max_rounds=2,catalogue_search=self.catalogue)
 
+    def test_provider_error_reports_safe_transport_classification(self):
+        from experiments.unified_agent import AgentDiagnosticError
+        client=Mock();client.calls=[]
+        def fail(*args,**kwargs):
+            client.calls.append({'error':'transport_or_format','error_kind':'response_json'})
+            raise ProviderError('UNTRUSTED_PROVIDER_TEXT')
+        client.chat.side_effect=fail
+        with self.assertRaises(AgentDiagnosticError) as raised:
+            ask(client,self.db,self.docs,'Explique la Comoé.')
+        self.assertEqual(raised.exception.code,'provider_error')
+        self.assertEqual(raised.exception.metadata,{'provider_error_kind':'response_json'})
+        self.assertNotIn('UNTRUSTED_PROVIDER_TEXT',str(raised.exception))
+
     def test_fallback_explains_unverified_hours_without_fake_next_step(self):
         client=Mock();client.chat.return_value=final(answer='Le café ouvre à 9 h.')
         result=ask(client,self.db,self.docs,'Le café sera-t-il ouvert à 9 h ?')
