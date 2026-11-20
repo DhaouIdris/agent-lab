@@ -31,6 +31,10 @@ def score_response(row,case):
         checks['required_place_ids']=set(rules['required_place_ids'])<=set(output.get('place_ids',[]))
     if 'min_places' in rules:
         checks['cited_places']=len(set(output.get('place_ids',[])))>=rules['min_places']
+    if 'max_answer_chars' in rules:
+        checks['max_answer_chars']=len(output.get('answer',''))<=rules['max_answer_chars']
+    if rules.get('no_place_ids'):
+        checks['no_place_ids']=not output.get('place_ids') and not re.search(r'\b(?:node|way|relation)/\d+\b',output.get('answer',''))
     if 'argument' in rules:
         tool,field,value=rules['argument']
         checks['search_argument']=any(t.get('tool')==tool and t.get('arguments',{}).get(field)==value for t in row.get('trace',[]))

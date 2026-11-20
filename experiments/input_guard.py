@@ -6,7 +6,7 @@ from experiments.injection_guard import inspect_passages, normalize
 # Signals require a requested behavior and an instruction/secret target or a
 # strong override/impersonation context. They can still cause false positives.
 _PATTERNS=tuple(re.compile(p,re.DOTALL) for p in (
-    r'\b(?:revel\w*|divulgu\w*|affich\w*|fourn\w*|repete\w*|envoi\w*|transmet\w*|expose\w*|reveal\w*|disclos\w*|send)\b.{0,100}\b(?:instructions?\s+(?:systeme?|internes?)|consignes?\s+internes?|prompt\s+(?:systeme?|interne)|message\s+initial\s+cache|configuration\s+secrete|identifiants?|credentials?|environment\s+variables?|variables?\s+d.environnement|variables?\s+d.environment)\b',
+    r'\b(?:revel\w*|divulgu\w*|affich\w*|montr\w*|fourn\w*|repete\w*|envoi\w*|transmet\w*|expose\w*|reveal\w*|disclos\w*|show|send)\b.{0,100}\b(?:(?:tes?|vos?|your)\s+)?(?:instructions?\s+(?:systeme?|internes?)|consignes?\s+internes?|prompt\s+(?:systeme?|interne)|message\s+initial\s+cache|configuration\s+secrete|identifiants?|credentials?|environment\s+variables?|variables?\s+d.environnement|variables?\s+d.environment)\b',
     r'\b(?:traite\w*|consider\w*|treat|regard)\b.{0,100}\b(?:mon\s+message|this\s+message|my\s+message)\b.{0,80}\b(?:systeme?|system|prioritaire|priority|developer)\b',
     r'\b(?:securite|security|guardrails?|controls?|controle|verification)\b.{0,60}\b(?:suspend\w*|desactiv\w*|contourn\w*|disabled|bypass\w*)\b.{0,80}\b(?:affirme\w*|repond\w*|obey|answer|fourn\w*|pretend\w*)\b',
     r'\b(?:desactiv\w*|contourn\w*|passe\s+outre|disable\w*|bypass\w*)\b.{0,60}\b(?:securite|security|guardrails?|controls?|controle|consignes?|regles?|policies)\b',
