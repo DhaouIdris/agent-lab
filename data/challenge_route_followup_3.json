@@ -1,0 +1,29 @@
+[
+  {
+    "id": "H-C05",
+    "category": "catalogue",
+    "goal": "unknown",
+    "question": "Le café Aboki sera-t-il ouvert dimanche prochain à 9 h ? Confirme seulement si tes données le prouvent.",
+    "human_expectation": "Aucun horaire actuel prouvé par le catalogue de 2022 ; aucune affirmation d'ouverture.",
+    "consistency": true,
+    "abstain_is_diagnostic": true
+  },
+  {
+    "id": "H-T01",
+    "category": "trajets",
+    "goal": "car",
+    "question": "En voiture, estime le parcours de 5.3201, -4.0120 vers 5.3281, -4.0181 ; indique que c'est une estimation routière.",
+    "human_expectation": "ORS voiture, deux points, distance et durée estimées sans trafic garanti.",
+    "consistency": true,
+    "abstain_is_diagnostic": true
+  },
+  {
+    "id": "H-T02",
+    "category": "trajets",
+    "goal": "walk",
+    "question": "Je vais à pied de 5.3201, -4.0120 à 5.3281, -4.0181. Combien de kilomètres et de minutes environ ?",
+    "human_expectation": "ORS piéton, deux points, résultat estimatif attribué.",
+    "consistency": true,
+    "abstain_is_diagnostic": true
+  }
+]

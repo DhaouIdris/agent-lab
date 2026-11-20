@@ -48,7 +48,7 @@ _OTHER_TASK = re.compile(r"\b(?:decris|explique|resume|cite|liste|que dit|donne|
 _PRICE_OR_TIME = re.compile(r"\b(?:\d{1,2}:[0-5]\d|\d+(?:[ .,\u00a0\u202f]\d+)*\s*(?:fcfa|xof|euros?|cfa|heures?|h(?:\s*\d{1,2})?))\b", re.I)
 
 _FACT_CONTEXT = re.compile(r"\b(?:ouvr\w*|ouvert\w*|ouvre|ferm\w*|horaires?|tarifs?|prix|billets?|chambres?|entree|tickets?|opens?|closes?|opening|closing|fees?|prices?)\b")
-_DENIED_FACT = re.compile(r"\b(?:ne\s+(?:peux|peut|sais|dispose|confirme|garantis|sont|sera|serait|sera-t-il|suffit)\b[^.!?;]*?\b(?:pas|plus)|aucun(?:e)?|impossible|non\s+(?:verifie|confirme|prouve)|sans\s+(?:preuve|confirmation|source))\b")
+_DENIED_FACT = re.compile(r"\b(?:ne\s+(?:peux|peut|sais|dispose|confirme|garantis|sont|sera|serait|sera-t-il|suffit|prouve|prouvent|etablit|etablissent|permet|permettent)\b[^.!?;]*?\b(?:pas|plus)|aucun(?:e)?|impossible|non\s+(?:verifie|confirme|prouve)|sans\s+(?:preuve|confirmation|source))\b")
 _HYPOTHETICAL = re.compile(r"\b(?:exemple\s+(?:fictif|hypothetique)|par\s+exemple\s+(?:fictif|hypothetique)|supposons\s+(?:fictivement|pour\s+l.exemple))\b")
 
 

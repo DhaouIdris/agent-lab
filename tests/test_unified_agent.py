@@ -72,6 +72,12 @@ class UnifiedTests(unittest.TestCase):
         self.assertNotIn('guard_status',result)
         self.assertIn('9 h',result['output']['answer'])
         self.assertEqual(unverified_amounts_or_hours('Je ne peux pas confirmer à 9 h, mais le café ouvre à 8 h.',[]),['8 h'])
+        # Regression from H-C05: a second sentence denying proof must not
+        # turn a valid abstention into a generic fallback.
+        actual=('Je ne peux pas confirmer que le Café Aboki sera ouvert dimanche prochain à 9 h. '
+                'Ces données ne prouvent donc pas l’ouverture à 9 h.')
+        self.assertEqual(unverified_amounts_or_hours(actual,[]),[])
+        self.assertEqual(unverified_amounts_or_hours('Ces données prouvent une ouverture à 9 h.',[]),['9 h'])
 
     def test_generic_validation_fallback_does_not_claim_missing_knowledge(self):
         client=Mock();client.chat.return_value={'content':'pas du JSON'}

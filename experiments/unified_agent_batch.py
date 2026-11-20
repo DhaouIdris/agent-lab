@@ -79,7 +79,7 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
             row={'id':case['id'],'question':case['question'],'human_expectation':case['human_expectation'],
                  'response_origin':result.get('response_origin','local' if guard else 'model'),'category':case.get('category'), 'argument_checks':arg_checks, 'forbidden_tools_used':forbidden,
                  'required_tools':case['required_tools'],'observed_tools':used,'output':result['output'],
-                 'trace':result['trace'],'status':guard or 'model_output',
+                 'trace':result['trace'],'status':guard or ('route_unavailable' if result.get('response_origin')=='route_service' and result['output']['abstain'] else 'model_output'),
                  'diagnostic_code':result.get('diagnostic_code'), 'diagnostic_metadata':result.get('diagnostic_metadata',{}), 'trace_redacted':result.get('trace_redacted',False),
                  'tool_selection_match':None if guard else set(case['required_tools'])<=set(used),
                  'argument_checks_pass':None if guard or not arg_checks else all(c['passed'] for c in arg_checks),
