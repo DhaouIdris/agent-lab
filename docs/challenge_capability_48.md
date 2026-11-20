@@ -6,6 +6,16 @@ Après les campagnes du 20 novembre, la revue humaine a changé la politique pro
 
 H-C05 et H-S02 ont déclenché `unsupported_price_or_time` : le contrôle rejetait une mention chiffrée même lorsqu'elle niait une confirmation ou illustrait une explication générale. L'agent préserve désormais les dénégations explicites, garde le blocage des horaires ou prix affirmés sans preuve et explique le motif des replis sans proposer de reformulation inutile. H-L08 perdait « du parc » lors du découpage de la demande : la partie documentaire conserve maintenant le contexte « parc » avant recherche ; si une question reste réellement imprécise, l'agent doit proposer des choix directement. Ces changements restent à vérifier sur Azure par revue des réponses, des citations et des éventuels nouveaux faux positifs. Un repli de validation est toujours distingué d'une réponse du modèle dans le rapport automatique, même lorsque sa formulation est pertinente.
 
+La campagne `20261120T095249546255Z` a couvert 48 cas : 45 réussites automatiques, dont deux trajets directs H-T01/H-T02 échoués côté ORS (`transport_or_response`, environ 2 secondes chacun), alors que le trajet aux mêmes coordonnées H-T07 a ensuite réussi. Le diagnostic exact des anciens échecs ORS est impossible : transport et format étaient confondus. Le client routier retente désormais les interruptions temporaires ou réponses mal formées dans un délai total borné ; un échec direct est étiqueté `route_unavailable` au lieu de `model_output`. H-C05 était une réponse du modèle correctement prudente : le validateur refusait à tort la deuxième phrase « ces données ne prouvent pas l’ouverture à 9 h ». La négation est désormais reconnue, tandis qu'une ouverture affirmée sans source reste rejetée. Les anciens résultats restent figés ; une nouvelle exécution sera nécessaire pour mesurer les corrections.
+
+Le suivi `data/challenge_route_followup_3.json` reprend **à l'identique les questions et attentes** H-C05, H-T01 et H-T02 ; seuls leurs indicateurs de répétition autorisent `--consistency` sur les trois. Après fusion du correctif, tester une fois ces trois cas avec le catalogue et les clés locaux :
+
+~~~powershell
+.\.venv\Scripts\python.exe -m experiments.audit_campaign --live --cases data/challenge_route_followup_3.json --db local_data/lieux.sqlite --private-review
+~~~
+
+Puis générer le Markdown privé avec `python -m experiments.readable_review runs/NOM_DU_RUN`, en utilisant le chemin du rapport affiché. Si les trois cas réussissent, la même commande avec `--consistency` donne trois répétitions par question (neuf exécutions) ; cela coûte des appels Azure et ORS. Le résultat local du modèle et la disponibilité d'ORS peuvent varier d'une exécution à l'autre ; comparer les statuts et les réponses, sans recalculer le score de la campagne initiale.
+
 | Famille | Situations couvertes |
 | --- | --- |
 | Catalogue | plusieurs entrées, ID exact, district manquant, fraîcheur, disponibilité, réservation et catégorie musée absente |

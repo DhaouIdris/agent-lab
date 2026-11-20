@@ -64,6 +64,37 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(route((float('nan'),0),(0,0),'car','x',opener=transport)['status'],'invalid_coordinates')
         transport.open.side_effect=urllib.error.HTTPError('https://example.invalid',429,'x',{},None)
         self.assertEqual(route((5.32,-4.02),(5.34,-4.01),'car','x',opener=transport)['reason'],'rate_limited')
+        self.assertEqual(transport.open.call_count,1)
+
+    def test_transient_transport_then_success_keeps_one_route_result(self):
+        transport=Mock()
+        body=io.BytesIO(json.dumps({'routes':[{'summary':{'distance':2043.8,'duration':1471.5}}]}).encode())
+        transport.open.side_effect=[ConnectionResetError('PRIVATE_DETAIL'),body]
+        with patch('experiments.route_service.time.sleep'),patch('experiments.route_service.random.uniform',return_value=0.1):
+            result=route((5.3201,-4.0120),(5.3281,-4.0181),'walk','SYNTHETIC_KEY',opener=transport)
+        self.assertEqual(result['status'],'ok')
+        self.assertEqual(result['attempts'],2)
+        self.assertEqual(transport.open.call_count,2)
+        self.assertNotIn('PRIVATE_DETAIL',str(result))
+        self.assertNotIn('SYNTHETIC_KEY',str(result))
+
+    def test_repeated_transport_stops_at_three_attempts(self):
+        transport=Mock()
+        transport.open.side_effect=ConnectionResetError('PRIVATE_DETAIL')
+        with patch('experiments.route_service.time.sleep'),patch('experiments.route_service.random.uniform',return_value=0.1):
+            result=route((5.32,-4.02),(5.34,-4.01),'car','SYNTHETIC_KEY',opener=transport)
+        self.assertEqual(result,{'status':'unavailable','reason':'transport','attempts':3})
+        self.assertEqual(transport.open.call_count,3)
+
+    def test_malformed_ors_body_can_recover_but_invalid_summary_does_not(self):
+        transport=Mock()
+        good=io.BytesIO(json.dumps({'routes':[{'summary':{'distance':100,'duration':20}}]}).encode())
+        transport.open.side_effect=[io.BytesIO(b'{broken'),good]
+        with patch('experiments.route_service.time.sleep'),patch('experiments.route_service.random.uniform',return_value=0.1):
+            self.assertEqual(route((5.32,-4.02),(5.34,-4.01),'walk','x',opener=transport)['attempts'],2)
+        transport.open.side_effect=None
+        transport.open.return_value=io.BytesIO(json.dumps({'routes':[{'summary':{'distance':-1,'duration':20}}]}).encode())
+        self.assertEqual(route((5.32,-4.02),(5.34,-4.01),'walk','x',opener=transport)['status'],'invalid_response')
     def test_agent_faithfully_returns_route_and_does_not_log_positions(self):
         with tempfile.TemporaryDirectory() as d:
             db=Path(d)/'x';db.touch();client=Mock()
@@ -99,3 +130,16 @@ class RouteTests(unittest.TestCase):
             client.chat.assert_not_called()
             self.assertNotIn('1 km',result['output']['answer'])
             self.assertTrue(result['output']['abstain'])
+
+    def test_unavailable_route_is_not_labelled_model_output(self):
+        from experiments.unified_agent_batch import run
+        with tempfile.TemporaryDirectory() as d:
+            db=Path(d)/'x';db.touch();client=Mock();client.calls=[]
+            case={'id':'r','question':'Trajet à pied de 5.32, -4.02 à 5.34, -4.01 ?',
+                  'human_expectation':'ORS piéton','required_tools':['calculate_route'],
+                  'outcome_checks':{'status':'model_output','route_status':'ok','route_mode':'walk'}}
+            row=run(client,db,[],[case],route_service=lambda *a,**k:{'status':'unavailable','reason':'transport'})['results'][0]
+            self.assertEqual(row['status'],'route_unavailable')
+            self.assertEqual(row['route_status'],'unavailable')
+            self.assertTrue(row['tool_selection_match'])
+            client.chat.assert_not_called()

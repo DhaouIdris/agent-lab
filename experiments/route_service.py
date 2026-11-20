@@ -2,6 +2,9 @@
 import json
 import math
 import os
+import random
+import socket
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -30,21 +33,40 @@ def route(origin, destination, mode, api_key, opener=None, timeout=12):
         lat,lon=point
         coords.append([lon,lat])
     request=urllib.request.Request(ENDPOINT+PROFILES[mode]+'/json',data=json.dumps({'coordinates':coords,'instructions':False}).encode('utf-8'),headers={'Authorization':api_key,'Content-Type':'application/json','Accept':'application/json'},method='POST')
-    try:
-        # Reject redirects to ensure the credential is never forwarded to a new host.
-        transport=opener or urllib.request.build_opener(_NoRedirect())
-        with transport.open(request,timeout=timeout) as response:
-            body=response.read(1000001)
-        if len(body)>1000000: return {'status':'invalid_response'}
-        data=json.loads(body)
-        summary=data['routes'][0]['summary']; distance=summary['distance']; duration=summary['duration']
-        if any(type(x) not in (int,float) or not math.isfinite(x) or x<0 for x in (distance,duration)):return {'status':'invalid_response'}
-        return {'status':'ok','distance_m':distance,'duration_s':duration,'mode':mode,
-                'source':'openrouteservice / OpenStreetMap','traffic_verified':False}
-    except urllib.error.HTTPError as exc:
-        return {'status':'unavailable','reason':'rate_limited' if exc.code==429 else ('authentication_or_quota' if exc.code in (401,403) else 'service_error'),'http_status':exc.code}
-    except (OSError,ValueError,KeyError,IndexError,TypeError,OverflowError):
-        return {'status':'unavailable','reason':'transport_or_response'}
+    # One route lookup has a single deadline across all attempts, not 12 seconds per retry.
+    deadline=time.monotonic()+max(0,timeout)
+    transport=opener or urllib.request.build_opener(_NoRedirect())
+    last={'status':'unavailable','reason':'timeout','attempts':0}
+    for attempt in range(1,4):
+        remaining=deadline-time.monotonic()
+        if remaining<=0:return last
+        try:
+            # Reject redirects to ensure the credential is never forwarded to a new host.
+            with transport.open(request,timeout=max(.1,min(6,remaining))) as response:
+                body=response.read(1000001)
+            if len(body)>1000000:return {'status':'invalid_response','attempts':attempt}
+            data=json.loads(body)
+            summary=data['routes'][0]['summary']; distance=summary['distance']; duration=summary['duration']
+            if any(type(x) not in (int,float) or not math.isfinite(x) or x<0 for x in (distance,duration)):
+                return {'status':'invalid_response','attempts':attempt}
+            return {'status':'ok','distance_m':distance,'duration_s':duration,'mode':mode,
+                    'source':'openrouteservice / OpenStreetMap','traffic_verified':False,'attempts':attempt}
+        except urllib.error.HTTPError as exc:
+            last={'status':'unavailable','reason':'rate_limited' if exc.code==429 else (
+                  'authentication_or_quota' if exc.code in (401,403) else 'service_error'),
+                  'http_status':exc.code,'attempts':attempt}
+            if exc.code not in (500,502,503,504):return last
+        except (TimeoutError,socket.timeout):
+            last={'status':'unavailable','reason':'timeout','attempts':attempt}
+        except OSError:
+            last={'status':'unavailable','reason':'transport','attempts':attempt}
+        except (ValueError,KeyError,IndexError,TypeError,OverflowError):
+            last={'status':'invalid_response','reason':'response_format','attempts':attempt}
+        if attempt==3:return last
+        delay=random.uniform(0,min(1,0.25*2**(attempt-1)))
+        if time.monotonic()+delay>=deadline:return last
+        time.sleep(delay)
+    return last
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):

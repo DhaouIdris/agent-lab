@@ -165,6 +165,17 @@ class AuditTests(unittest.TestCase):
         self.assertTrue(result['automatic_checks_pass'])
         self.client.chat.assert_not_called()
 
+    def test_route_followup_reuses_original_questions_with_optional_repetition(self):
+        from experiments.audit_campaign import load_cases
+        original={r['id']:r for r in json.loads(Path('data/challenge_capability_48_policy_v2.json').read_text(encoding='utf8'))}
+        followup=load_cases(Path('data/challenge_route_followup_3.json'),False)
+        repeated=load_cases(Path('data/challenge_route_followup_3.json'),True)
+        self.assertEqual([r['id'] for r in followup],['H-C05','H-T01','H-T02'])
+        self.assertEqual([r['id'] for r in repeated],[r['id'] for r in followup])
+        for row in followup:
+            self.assertEqual(row['question'],original[row['id']]['question'])
+            self.assertEqual(row['goal'],original[row['id']]['goal'])
+
     def test_new_challenge_exact_evidence_and_safe_mixed_route(self):
         from experiments.audit_campaign import scenario
         from experiments.unified_agent_batch import score_response
