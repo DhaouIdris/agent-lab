@@ -65,7 +65,9 @@ def is_route(text):
     q=re.sub(r"\b(?:partager|share|publier|enregistrer)\s+(?:mon|un|le|a|my|the)\s+(?:trajet|itineraire|route)\b", "", q)
     if re.search(r"\b(?:sans calculer|ne calcule(?:z)? pas|do not calculate|don't calculate)\b",q):
         return False
-    return bool(_ROUTE.search(q))
+    return bool(_ROUTE.search(q) or (len(_PAIR.findall(text))==2 and
+                (re.search(r'\b(?:parcours|je vais|je me rends|i am going|travel)\b',q) and
+                 re.search(r'\b(?:a pied|en voiture|on foot|by car)\b',q))))
 
 
 def route_request(question):

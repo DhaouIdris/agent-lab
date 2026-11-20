@@ -132,6 +132,75 @@ class AuditTests(unittest.TestCase):
             score_response(row,case)
             self.assertTrue(row['quality_checks']['no_unavailable_lookup_offer'])
 
+    def test_new_challenge_manifest_is_balanced_and_freezes_new_questions(self):
+        import re
+        from experiments.audit_campaign import load_cases
+        path=Path('data/challenge_capability_48.json')
+        cases=load_cases(path,False)
+        repeated=load_cases(path,True)
+        self.assertEqual(len(cases),48)
+        self.assertEqual(sorted(Counter(c['category'] for c in cases).values()),[8]*6)
+        self.assertEqual(len(repeated),12)
+        self.assertEqual(sorted(Counter(c['category'] for c in repeated).values()),[2]*6)
+        old=json.loads(CASES.read_text(encoding='utf8'))
+        old+=json.loads(Path('data/audit_followup_16.json').read_text(encoding='utf8'))
+        old+=json.loads(Path('data/audit_consistency_12.json').read_text(encoding='utf8'))
+        normalize_question=lambda q:tuple(re.findall(r'\w+',q.casefold()))
+        previous={normalize_question(c['question']) for c in old}
+        self.assertTrue(all(normalize_question(c['question']) not in previous for c in cases))
+        self.assertEqual(sum(c['goal']=='block' for c in cases),5)
+        self.assertEqual(sum(c['goal']=='mixed_route' for c in cases),1)
+
+    def test_new_challenge_exact_evidence_and_safe_mixed_route(self):
+        from experiments.audit_campaign import scenario
+        from experiments.unified_agent_batch import score_response
+        cases=json.loads(Path('data/challenge_capability_48.json').read_text(encoding='utf8'))
+        doc=scenario(next(c for c in cases if c['id']=='H-D01'))
+        row={'status':'model_output','outcome_checks':{'status':True},'observed_tools':['search_documents'],
+             'output':{'answer':'N’zima.', 'document_ids':['UNESCO_BASSAM__0001'],'place_ids':[],'abstain':False}}
+        score_response(row,doc)
+        self.assertFalse(row['quality_checks']['required_document_ids'])
+        row['output']['document_ids']=['UNESCO_BASSAM__0002']
+        score_response(row,doc)
+        self.assertTrue(row['quality_checks']['required_document_ids'])
+        mixed=scenario(next(c for c in cases if c['id']=='H-T07'))
+        self.assertEqual(set(mixed['required_tools']),{'search_documents','calculate_route'})
+        self.assertEqual(mixed['outcome_checks']['route_mode'],'walk')
+        self.assertNotIn('calculate_route',mixed['forbidden_tools'])
+
+    def test_new_challenge_mixed_route_runs_both_allowed_boundaries(self):
+        from experiments.audit_campaign import scenario
+        from experiments.document_rag import load_corpus
+        cases=json.loads(Path('data/challenge_capability_48.json').read_text(encoding='utf8'))
+        case=scenario(next(c for c in cases if c['id']=='H-T07'))
+        self.client.calls=[]
+        self.client.chat.side_effect=[{'content':None,'tool_calls':[{'id':'doc','function':{
+            'name':'search_documents','arguments':json.dumps({'query':'Parc national de Taï'})}}]},
+            self.reply('La forêt primaire de Taï est documentée.',docs=['UNESCO_TAI__0001'])]
+        with patch('experiments.audit_campaign.fetch_route',return_value={'status':'ok','distance_m':1200,
+                                                                            'duration_s':950}) as route:
+            row=evaluate_case(case,self.client,True,self.db,load_corpus('data/rag_integrated_dev.json'),180)
+        self.assertEqual(row['status'],'model_output')
+        self.assertTrue(row['automatic_checks_pass'])
+        self.assertEqual(row['observed_tools'],['search_documents','calculate_route'])
+        route.assert_called_once()
+
+    def test_new_challenge_category_selection_keeps_original_manifest_hash(self):
+        import hashlib
+        import subprocess
+        import sys
+        manifest=Path('data/challenge_capability_48.json')
+        out=self.dir/'security_subset'
+        process=subprocess.run([sys.executable,'-m','experiments.audit_campaign','--cases',str(manifest),
+                                '--category','securite','--out',str(out)],capture_output=True,text=True)
+        self.assertEqual(process.returncode,0,process.stderr)
+        report=json.loads((out/'report.json').read_text(encoding='utf8'))
+        self.assertEqual(report['summary']['planned'],8)
+        self.assertEqual(len(report['config']['selected_case_ids']),8)
+        self.assertEqual(report['config']['cases_sha256'],hashlib.sha256(manifest.read_bytes()).hexdigest())
+        self.assertTrue(all(r['category']=='securite' for r in report['results']))
+        self.assertNotIn('prompt système',(out/'report.json').read_text(encoding='utf8'))
+
     def test_evidence_followup_is_small_and_reuses_original_questions(self):
         from experiments.audit_campaign import load_cases
         cases=load_cases(Path('data/audit_evidence_followup_3.json'),True)

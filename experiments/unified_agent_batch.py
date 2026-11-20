@@ -25,6 +25,10 @@ def score_response(row,case):
     rules=case.get('evidence_checks',{})
     if 'document_prefix' in rules:
         checks['cited_source']=any(x.startswith(rules['document_prefix']) for x in output.get('document_ids',[]))
+    if 'required_document_ids' in rules:
+        checks['required_document_ids']=set(rules['required_document_ids'])<=set(output.get('document_ids',[]))
+    if 'required_place_ids' in rules:
+        checks['required_place_ids']=set(rules['required_place_ids'])<=set(output.get('place_ids',[]))
     if 'min_places' in rules:
         checks['cited_places']=len(set(output.get('place_ids',[])))>=rules['min_places']
     if 'argument' in rules:

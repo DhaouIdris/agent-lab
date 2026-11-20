@@ -20,7 +20,8 @@ from run_azure import load_config
 CASES=Path('data/audit_campaign_60.json')
 CORPUS=Path('data/rag_integrated_dev.json')
 DOCS={'tai':'UNESCO_TAI__','comoe':'UNESCO_COMOE__','nimba':'UNESCO_NIMBA__',
-      'bassam':'UNESCO_BASSAM__','mosque':'UNESCO_MOSQUEES__','gdp':'WB_CIV_GDP_','mixed':'UNESCO_COMOE__'}
+      'bassam':'UNESCO_BASSAM__','mosque':'UNESCO_MOSQUEES__','gdp':'WB_CIV_GDP_',
+      'mixed':'UNESCO_COMOE__','mixed_route':'UNESCO_TAI__'}
 LOCAL={'coords':'unsupported_routing','invalid':'invalid_coordinates','block':'blocked_suspected_injection'}
 REVIEW=('useful_and_complete','facts_supported','citations_relevant','limits_accurate','no_unauthorized_promise')
 
@@ -35,15 +36,18 @@ def scenario(entry):
     if goal in DOCS:
         tools.append('search_documents')
         evidence['document_prefix']=DOCS[goal]
-    if goal in ('places','places2','search','mixed'):
+    if goal in ('places','places2','places3','search','mixed'):
         tools.append('search_catalogue')
         if goal!='search':
-            evidence['min_places']=2 if goal=='places2' else 1
+            evidence['min_places']=3 if goal=='places3' else (2 if goal=='places2' else 1)
     if goal in LOCAL:
         checks.update(max_provider_calls=0,max_tool_calls=0,abstain=True)
     elif goal in ('car','walk'):
         tools.append('calculate_route')
         checks.update(route_status='ok',route_mode=goal,abstain=False,max_provider_calls=0)
+    elif goal=='mixed_route':
+        tools.append('calculate_route')
+        checks.update(route_status='ok',route_mode='walk',abstain=False)
     elif goal in ('unknown','clarify'):
         checks['abstain']=True
     elif goal!='search':
@@ -51,7 +55,7 @@ def scenario(entry):
     checks.update(entry.get('outcome_checks',{}))
     evidence.update(entry.get('evidence_checks',{}))
     return {**entry,'required_tools':tools,'outcome_checks':checks,'evidence_checks':evidence,
-            'forbidden_tools':[] if goal in ('walk','car') else ['calculate_route']}
+            'forbidden_tools':[] if goal in ('walk','car','mixed_route') else ['calculate_route']}
 
 
 class ExternalBoundary(Exception):
@@ -78,7 +82,7 @@ def digest(path):
 def evaluate_case(case,client,live,db,docs,timeout,capture_rejected=False):
     goal=case['goal']
     allow_chat=goal not in {*LOCAL,'walk','car'}
-    allow_route=goal in ('walk','car')
+    allow_route=goal in ('walk','car','mixed_route')
     chat=client if live and allow_chat else NoChat()
     router=fetch_route if live and allow_route else no_route
     before=len(chat.calls)
@@ -190,7 +194,7 @@ def adjudicate(directory):
 
 def load_cases(path,consistency):
     data=json.loads(path.read_text(encoding='utf-8-sig'))
-    goals=set(DOCS)|set(LOCAL)|{'places','places2','search','general','unknown','clarify','car','walk'}
+    goals=set(DOCS)|set(LOCAL)|{'places','places2','places3','search','general','unknown','clarify','car','walk'}
     if not isinstance(data,list) or not 1<=len(data)<=60:
         raise ValueError('Provide 1..60 scenarios')
     ids=set()
@@ -204,8 +208,11 @@ def load_cases(path,consistency):
                 or case['goal'] not in goals or len(case['question'])>2000 or type(case.get('consistency')) is not bool
                 or not isinstance(extra_outcome,dict) or not set(extra_outcome)<={'max_tool_calls','max_provider_calls'}
                 or any(type(value) is not int or not 0<=value<=10 for value in extra_outcome.values())
-                or not isinstance(extra_evidence,dict) or not set(extra_evidence)<={'no_unavailable_lookup_offer'}
-                or any(type(value) is not bool for value in extra_evidence.values())):
+                or not isinstance(extra_evidence,dict) or not set(extra_evidence)<={'no_unavailable_lookup_offer','required_document_ids','required_place_ids'}
+                or any(type(value) is not bool for key,value in extra_evidence.items() if key=='no_unavailable_lookup_offer')
+                or any(not isinstance(extra_evidence.get(key),list) or not extra_evidence[key]
+                       or any(not isinstance(item,str) or not item for item in extra_evidence[key])
+                       for key in ('required_document_ids','required_place_ids') if key in extra_evidence)):
             raise ValueError('Invalid or duplicate scenario')
         ids.add(case['id'])
     selected=[scenario(case) for case in data if not consistency or case['consistency']]
@@ -273,6 +280,7 @@ def main():
     p.add_argument('--adjudicate',type=Path)
     p.add_argument('--diagnose',type=Path,help='Extract failed answers from a local private review without network calls')
     p.add_argument('--failed-from',type=Path,help='Run only failures from an earlier frozen-panel report')
+    p.add_argument('--category',action='append',help='Select one or more categories from the supplied panel')
     a=p.parse_args()
     if a.diagnose:
         diagnose(a.diagnose)
@@ -281,8 +289,12 @@ def main():
         adjudicate(a.adjudicate)
         return
     cases=load_cases(a.cases,a.consistency)
+    if a.category:
+        if len(set(a.category))!=len(a.category) or not set(a.category)<={c['category'] for c in cases}:
+            p.error('Unknown or duplicate category in selected panel')
+        cases=[c for c in cases if c['category'] in set(a.category)]
     if a.failed_from:
-        if a.consistency or a.cases!=CASES:
+        if a.consistency or a.cases!=CASES or a.category:
             p.error('--failed-from requires the full frozen default panel')
         cases=failed_cases(cases,a.failed_from)
     repeat=3 if a.consistency else 1
