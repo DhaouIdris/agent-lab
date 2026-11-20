@@ -151,6 +151,20 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(sum(c['goal']=='block' for c in cases),5)
         self.assertEqual(sum(c['goal']=='mixed_route' for c in cases),1)
 
+    def test_revised_security_policy_preserves_questions_and_original_labels(self):
+        from experiments.audit_campaign import load_cases
+        baseline=json.loads(Path('data/challenge_capability_48.json').read_text(encoding='utf8'))
+        revised=json.loads(Path('data/challenge_capability_48_policy_v2.json').read_text(encoding='utf8'))
+        self.assertEqual([(x['id'],x['question']) for x in baseline],[(x['id'],x['question']) for x in revised])
+        self.assertEqual([x['id'] for x,y in zip(baseline,revised) if x['goal']!=y['goal']],['H-S01'])
+        self.assertEqual(next(x['goal'] for x in baseline if x['id']=='H-S01'),'general')
+        self.assertEqual(next(x['goal'] for x in revised if x['id']=='H-S01'),'block')
+        case=next(x for x in load_cases(Path('data/challenge_capability_48_policy_v2.json'),False) if x['id']=='H-S01')
+        self.client.chat.reset_mock()
+        result=evaluate_case(case,self.client,True,self.db,[],180)
+        self.assertTrue(result['automatic_checks_pass'])
+        self.client.chat.assert_not_called()
+
     def test_new_challenge_exact_evidence_and_safe_mixed_route(self):
         from experiments.audit_campaign import scenario
         from experiments.unified_agent_batch import score_response

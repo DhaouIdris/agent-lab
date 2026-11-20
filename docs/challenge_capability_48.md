@@ -2,6 +2,10 @@
 
 Le fichier `data/challenge_capability_48.json` fige 48 situations formulées autrement que dans les panels précédents : huit par famille (catalogue, preuves, affaires, trajets, dialogue et sécurité). Douze questions, deux par famille, sont aussi marquées pour trois répétitions en sessions indépendantes. Les attentes ont été écrites avant tout appel Azure sur ce panel. Les libellés et exemples restent rédigés par l'équipe de développement : ce n'est ni une annotation indépendante ni un échantillon représentatif de toutes les questions possibles.
 
+Après les campagnes du 20 novembre, la revue humaine a changé la politique produit pour H-S01 : la citation d'une instruction de contournement est arrêtée avant le modèle, même dans une question de formation. `data/challenge_capability_48_policy_v2.json` conserve les 48 questions mais modifie cette attente et son motif. Le panel initial et ses rapports restent intacts ; leurs scores 44/48 et 33/36 ne doivent pas être réécrits rétroactivement. Les nouvelles campagnes doivent nommer explicitement le fichier `policy_v2` afin de comparer des évaluations portant sur la même politique.
+
+H-C05 et H-S02 ont déclenché `unsupported_price_or_time` : le contrôle rejetait une mention chiffrée même lorsqu'elle niait une confirmation ou illustrait une explication générale. L'agent préserve désormais les dénégations explicites, garde le blocage des horaires ou prix affirmés sans preuve et explique le motif des replis sans proposer de reformulation inutile. H-L08 perdait « du parc » lors du découpage de la demande : la partie documentaire conserve maintenant le contexte « parc » avant recherche ; si une question reste réellement imprécise, l'agent doit proposer des choix directement. Ces changements restent à vérifier sur Azure par revue des réponses, des citations et des éventuels nouveaux faux positifs. Un repli de validation est toujours distingué d'une réponse du modèle dans le rapport automatique, même lorsque sa formulation est pertinente.
+
 | Famille | Situations couvertes |
 | --- | --- |
 | Catalogue | plusieurs entrées, ID exact, district manquant, fraîcheur, disponibilité, réservation et catégorie musée absente |
@@ -39,5 +43,15 @@ Pour échelonner la première campagne sans changer les questions, `--category c
 ## Lecture et décision
 
 Conserver `review.private.json` localement. `report.json` est la projection partageable : pas de questions, réponses, traces ni clé. Vérifier les hashes de la configuration et distinguer tout statut `provider_filtered`, `execution_error` ou `awaiting_*` d'un échec de l'agent. Comparer les résultats par famille, puis remplir les cinq dimensions de `grades.private.json` à partir des réponses et passages observés, idéalement par une personne qui n'a pas écrit le panel : complétude, faits étayés, citations pertinentes, limites exactes et absence de promesse non autorisée. Ensuite lancer `python -m experiments.audit_campaign --adjudicate runs/NOM_DU_RUN` pour chaque campagne.
+
+Pour une lecture humaine, créer un Markdown **privé** à partir d'un dossier de campagne, sans clé Azure ni appel réseau :
+
+~~~powershell
+.\.venv\Scripts\python.exe -m experiments.readable_review runs/NOM_DU_RUN
+.\.venv\Scripts\python.exe -m experiments.readable_review runs/NOM_DU_RUN --failed-only
+.\.venv\Scripts\python.exe -m experiments.readable_review runs/NOM_DU_RUN --case H-C05 --case H-S02
+~~~
+
+La première commande écrit `runs/NOM_DU_RUN/review.readable.private.md` : bilan, question, attente, réponse, diagnostic, contrôles en défaut, passages cités, identifiants des autres passages et cinq cases de relecture pour chaque exécution, répétitions comprises. `--all-sources` affiche aussi les textes des passages non cités ; `--failed-only` est un filtre de lecture, **pas** un nouveau score. Un fichier `review.private.json` peut aussi être donné directement à la commande, ainsi que plusieurs dossiers à la fois. Le Markdown est sensible comme le JSON privé : ne pas le publier ni le joindre à la PR. Il ne modifie ni les rapports ni la grille `grades.private.json` ; les cases cochées dans le Markdown ne sont pas importées automatiquement pour l'adjudication.
 
 Les blocages avant modèle, les appels routiers non autorisés, les paiements ou réservations prétendument effectués, les valeurs actuelles inventées et les instructions de source suivies sont des incidents à examiner individuellement, même si le score agrégé est élevé. Un succès sur ces 48 cas ne certifie ni la sécurité universelle ni le déploiement en production. En cas de corrections inspirées par ce panel, conserver son premier résultat comme référence et créer ensuite de nouveaux cas non vus pour confirmer l'amélioration.

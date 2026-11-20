@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock
 from ci_agentlab.providers import ProviderError
 from experiments.document_rag import load_corpus
-from experiments.unified_agent import ask
+from experiments.unified_agent import ask, unverified_amounts_or_hours
 
 
 def call(name,args,idx):
@@ -44,6 +44,37 @@ class UnifiedTests(unittest.TestCase):
     def test_round_limit(self):
         client=Mock();client.chat.return_value=call('search_catalogue',{},1)
         with self.assertRaises(ProviderError):ask(client,self.db,self.docs,'test',max_rounds=2,catalogue_search=self.catalogue)
+
+    def test_fallback_explains_unverified_hours_without_fake_next_step(self):
+        client=Mock();client.chat.return_value=final(answer='Le café ouvre à 9 h.')
+        result=ask(client,self.db,self.docs,'Le café sera-t-il ouvert à 9 h ?')
+        self.assertEqual(result['diagnostic_code'],'unsupported_price_or_time')
+        self.assertIn('ne vérifie pas les horaires',result['output']['answer'])
+        self.assertNotIn('réessayer',result['output']['answer'])
+        self.assertNotIn('9 h',result['output']['answer'])
+
+    def test_negated_hours_are_not_rejected_but_positive_claim_still_is(self):
+        client=Mock();client.chat.return_value=final(answer='Je ne peux pas confirmer une ouverture à 9 h : ces données sont anciennes.',abstain=True)
+        result=ask(client,self.db,self.docs,'Ce café est-il ouvert dimanche à 9 h ?')
+        self.assertNotIn('guard_status',result)
+        self.assertIn('9 h',result['output']['answer'])
+        self.assertEqual(unverified_amounts_or_hours('Je ne peux pas confirmer à 9 h, mais le café ouvre à 8 h.',[]),['8 h'])
+
+    def test_generic_validation_fallback_does_not_claim_missing_knowledge(self):
+        client=Mock();client.chat.return_value={'content':'pas du JSON'}
+        result=ask(client,self.db,self.docs,'Explique une frontière de confiance.')
+        self.assertEqual(result['diagnostic_code'],'invalid_json')
+        self.assertIn('vérifications de fiabilité',result['output']['answer'])
+        self.assertNotIn('reformuler',result['output']['answer'])
+
+    def test_proximity_clause_retains_park_context_without_a_route_call(self):
+        client=Mock();client.chat.return_value=final(answer='Je décris le parc.')
+        route_service=Mock()
+        result=ask(client,self.db,self.docs,'Décris la Comoé et dis si tu peux calculer les cafés les plus proches du parc.',route_service=route_service)
+        self.assertIn('parc mentionné',client.chat.call_args.args[0][1]['content'])
+        self.assertNotIn('plus proches',client.chat.call_args.args[0][1]['content'])
+        self.assertIn('proximité',result['output']['answer'])
+        route_service.assert_not_called()
 
 class UnifiedBatchTests(unittest.TestCase):
     def test_two_tool_selection_and_error_stops(self):
