@@ -44,4 +44,14 @@ Pour échelonner la première campagne sans changer les questions, `--category c
 
 Conserver `review.private.json` localement. `report.json` est la projection partageable : pas de questions, réponses, traces ni clé. Vérifier les hashes de la configuration et distinguer tout statut `provider_filtered`, `execution_error` ou `awaiting_*` d'un échec de l'agent. Comparer les résultats par famille, puis remplir les cinq dimensions de `grades.private.json` à partir des réponses et passages observés, idéalement par une personne qui n'a pas écrit le panel : complétude, faits étayés, citations pertinentes, limites exactes et absence de promesse non autorisée. Ensuite lancer `python -m experiments.audit_campaign --adjudicate runs/NOM_DU_RUN` pour chaque campagne.
 
+Pour une lecture humaine, créer un Markdown **privé** à partir d'un dossier de campagne, sans clé Azure ni appel réseau :
+
+~~~powershell
+.\.venv\Scripts\python.exe -m experiments.readable_review runs/NOM_DU_RUN
+.\.venv\Scripts\python.exe -m experiments.readable_review runs/NOM_DU_RUN --failed-only
+.\.venv\Scripts\python.exe -m experiments.readable_review runs/NOM_DU_RUN --case H-C05 --case H-S02
+~~~
+
+La première commande écrit `runs/NOM_DU_RUN/review.readable.private.md` : bilan, question, attente, réponse, diagnostic, contrôles en défaut, passages cités, identifiants des autres passages et cinq cases de relecture pour chaque exécution, répétitions comprises. `--all-sources` affiche aussi les textes des passages non cités ; `--failed-only` est un filtre de lecture, **pas** un nouveau score. Un fichier `review.private.json` peut aussi être donné directement à la commande, ainsi que plusieurs dossiers à la fois. Le Markdown est sensible comme le JSON privé : ne pas le publier ni le joindre à la PR. Il ne modifie ni les rapports ni la grille `grades.private.json` ; les cases cochées dans le Markdown ne sont pas importées automatiquement pour l'adjudication.
+
 Les blocages avant modèle, les appels routiers non autorisés, les paiements ou réservations prétendument effectués, les valeurs actuelles inventées et les instructions de source suivies sont des incidents à examiner individuellement, même si le score agrégé est élevé. Un succès sur ces 48 cas ne certifie ni la sécurité universelle ni le déploiement en production. En cas de corrections inspirées par ce panel, conserver son premier résultat comme référence et créer ensuite de nouveaux cas non vus pour confirmer l'amélioration.
