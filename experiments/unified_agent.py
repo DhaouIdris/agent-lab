@@ -38,6 +38,7 @@ The catalogue supports fast_food as a category. Use search_catalogue to compare 
 When asked to choose, list or compare any two inventory entries, select two entries yourself with the relevant category filter. Read-only inventory searches are already authorized by the question; ask for clarification only when a missing constraint prevents answering.
 The exposed catalogue categories are hotel, cafe, restaurant, bar, fast_food and ice_cream; there is no museum inventory or museum-hours lookup. The documentary corpus is finite and local; there is no web browsing, retrieval of a museum site, or ingestion of a new document. Do not offer to search unavailable sources or catalogue categories, even as a proposed next step. A museum name does not enable catalogue lookup or proximity ranking: the catalogue searches names of listed establishments only. If evidence is insufficient, give the limit directly. Ask the user to identify an ambiguous establishment without suggesting that a museum name enables proximity search. Search only for facts the user actually requested; do not expand queries to imagined details. After two distinct documentary searches, answer from the evidence already returned; other tools remain available only for requested place tasks.
 Do not say you completed actions you cannot perform.'''
+SYSTEM+='''\nResolve a reference using the full request, including another clause that identifies a park or place. If a reference truly needs clarification, list the plausible choices briefly and ask which one the user means; do not begin with a statement that the request is ambiguous. Never invent a district or a live condition. When denying a current opening time or price, explain that the historical catalogue does not verify it; do not suggest retrying or rephrasing when that cannot add evidence. In general conceptual explanations, avoid unrelated numeric examples about opening hours or prices.'''
 
 _ROUTE = re.compile(r"\b(?:trajet|itineraire|distance routiere|distance a pied|route|driving distance|walking distance|proximite|nearest|closest|plus proches?|a vol d.oiseau)\b")
 _CULTURAL = re.compile(r"\bitineraire (?:culturel|touristique|historique|de (?:visite|voyage))\b")
@@ -47,6 +48,8 @@ _OTHER_TASK = re.compile(r"\b(?:decris|explique|resume|cite|liste|que dit|donne|
 _PRICE_OR_TIME = re.compile(r"\b(?:\d{1,2}:[0-5]\d|\d+(?:[ .,\u00a0\u202f]\d+)*\s*(?:fcfa|xof|euros?|cfa|heures?|h(?:\s*\d{1,2})?))\b", re.I)
 
 _FACT_CONTEXT = re.compile(r"\b(?:ouvr\w*|ouvert\w*|ouvre|ferm\w*|horaires?|tarifs?|prix|billets?|chambres?|entree|tickets?|opens?|closes?|opening|closing|fees?|prices?)\b")
+_DENIED_FACT = re.compile(r"\b(?:ne\s+(?:peux|peut|sais|dispose|confirme|garantis|sont|sera|serait|sera-t-il|suffit)\b[^.!?;]*?\b(?:pas|plus)|aucun(?:e)?|impossible|non\s+(?:verifie|confirme|prouve)|sans\s+(?:preuve|confirmation|source))\b")
+_HYPOTHETICAL = re.compile(r"\b(?:exemple\s+(?:fictif|hypothetique)|par\s+exemple\s+(?:fictif|hypothetique)|supposons\s+(?:fictivement|pour\s+l.exemple))\b")
 
 
 def unverified_amounts_or_hours(answer, cited_texts):
@@ -54,8 +57,10 @@ def unverified_amounts_or_hours(answer, cited_texts):
     evidence={normalize(fact) for text in cited_texts for fact in _PRICE_OR_TIME.findall(text)}
     mentions=[]
     for sentence in re.split(r"(?<=[.!?;\n])\s+",answer):
-        if _FACT_CONTEXT.search(normalize(sentence)):
-            mentions.extend(fact for fact in _PRICE_OR_TIME.findall(sentence) if normalize(fact) not in evidence)
+        for clause in re.split(r"[,;]|\s+\bmais\b\s+",sentence,flags=re.I):
+            plain=normalize(clause)
+            if _FACT_CONTEXT.search(plain) and not (_DENIED_FACT.search(plain) or _HYPOTHETICAL.search(plain)):
+                mentions.extend(fact for fact in _PRICE_OR_TIME.findall(clause) if normalize(fact) not in evidence)
     return mentions
 
 
@@ -82,6 +87,15 @@ def route_request(question):
         if _OTHER_TASK.search(normalize(other)):
             return routing,other
     return question,None
+
+
+def retain_route_reference(other,routing):
+    """Keep a non-sensitive park reference when splitting a mixed proximity question."""
+    if (_NEAREST.search(normalize(routing)) and re.search(r'\b(?:du|de ce|the) parc\b',normalize(routing))
+            and re.search(r'\b(?:la|le) (?:comoe|tai)\b',normalize(other))
+            and not re.search(r'\bparc\b',normalize(other))):
+        return other+' (il s’agit du parc mentionné dans la même demande).'
+    return other
 
 
 def fetch_route(origin,destination,mode,timeout):
@@ -147,7 +161,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
     if not isinstance(question,str) or not question.strip() or len(question)>2000:raise ValueError('Question must contain 1..2000 characters')
     if type(max_rounds) is not int or not 1<=max_rounds<=10:raise ValueError('Invalid round limit')
     if inspect_user_input(question):
-        return local_response('La demande a été interrompue car elle contient une instruction suspecte. Reformulez votre question.', 'blocked_suspected_injection')
+        return local_response('La demande a été interrompue car elle contient une instruction suspecte.', 'blocked_suspected_injection')
     deadline=time.monotonic()+timeout
     routing,other=route_request(question)
     if routing:
@@ -155,7 +169,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
             return route_answer(routing,timeout,route_service)
         if any(not valid_coordinates(tuple(map(float,p))) for p in _PAIR.findall(routing)):
             return local_response('Coordonnées invalides. Vérifiez latitude et longitude.', 'invalid_coordinates')
-        partial=ask(client,db,docs,other,max_rounds,timeout,catalogue_search,route_service,diagnostics)
+        partial=ask(client,db,docs,retain_route_reference(other,routing),max_rounds,timeout,catalogue_search,route_service,diagnostics)
         if partial.get('guard_status')=='blocked_suspected_injection':
             return partial
         remaining=deadline-time.monotonic()
@@ -206,7 +220,13 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                     diagnostics.append({'validation_error':error,'rejected_model_content':content,
                                         'observed_document_ids':sorted(observed_documents),
                                         'observed_place_ids':sorted(observed_places)})
-                fallback=local_response('Je ne peux pas formuler une réponse fiable pour cette demande. Veuillez réessayer ou reformuler.', 'fallback_invalid_response', error)
+                if error=='unsupported_price_or_time':
+                    explanation=('Je ne peux pas confirmer cet horaire ou ce tarif : les sources consultées ne le prouvent pas. '
+                                 'Le catalogue historique de 2022 ne vérifie pas les horaires ni les prix actuels.')
+                else:
+                    explanation=('La réponse produite n’a pas passé les vérifications de fiabilité ; '
+                                 'je ne peux pas en afficher le contenu comme une réponse vérifiée.')
+                fallback=local_response(explanation, 'fallback_invalid_response', error)
                 fallback['trace']=AgentDiagnosticError(error,trace).trace
                 fallback['trace_redacted']=True
                 fallback['diagnostic_metadata']=metadata
