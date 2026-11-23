@@ -5,7 +5,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from experiments.nearby_places import candidates
 from experiments.route_service import matrix
@@ -123,6 +123,21 @@ class NearbyTests(unittest.TestCase):
             self.assertNotIn('Café deuxième',public)
         local=next(c for c in cases if c['id']=='G08')
         self.assertEqual(evaluate_case(local,model,False,self.db,[],5)['status'],'no_nearby_candidates')
+
+    def test_live_runner_uses_matrix_not_single_destination_route(self):
+        case=next(c for c in load_cases(Path('data/natural_nearby_8.json'),False) if c['id']=='G02')
+        result={'status':'ok','distances_m':[1500,300,900],
+                'durations_s':[1200,240,600],'source':'openrouteservice / OpenStreetMap'}
+        client=Mock(calls=[])
+        with patch('experiments.audit_campaign.fetch_matrix',return_value=result) as matrix_service, \
+             patch('experiments.audit_campaign.fetch_route') as single_route:
+            row=evaluate_case(case,client,True,self.db,[],5)
+        self.assertTrue(row['automatic_checks_pass'])
+        self.assertEqual(row['status'],'nearby_result')
+        self.assertEqual(row['route_status'],'ok')
+        self.assertEqual(len(matrix_service.call_args.args[1]),3)
+        single_route.assert_not_called()
+        client.chat.assert_not_called()
 
 
 if __name__=='__main__':

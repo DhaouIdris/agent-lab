@@ -13,7 +13,7 @@ import statistics
 from ci_agentlab.providers import ChatClient
 from experiments.benchmark_reporting import save_report, write_json
 from experiments.document_rag import load_corpus
-from experiments.unified_agent import fetch_route
+from experiments.unified_agent import fetch_route, fetch_matrix
 from experiments.route_service import valid_coordinates
 from experiments.unified_agent_batch import run
 from run_azure import load_config
@@ -91,10 +91,11 @@ def evaluate_case(case,client,live,db,docs,timeout,capture_rejected=False):
     allow_route=goal in ('walk','car','mixed_route','nearby')
     chat=client if live and allow_chat else NoChat()
     router=fetch_route if live and allow_route else no_route
+    matrix_router=fetch_matrix if live and allow_route else no_route
     before=len(chat.calls)
     try:
         return run(chat,db,docs,[case],timeout=timeout,route_service=router,
-                   matrix_service=router,capture_rejected=capture_rejected)['results'][0]
+                   matrix_service=matrix_router,capture_rejected=capture_rejected)['results'][0]
     except ExternalBoundary as exc:
         requested=exc.args[0]
         permitted=allow_chat if requested=='chat' else allow_route
