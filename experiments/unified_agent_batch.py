@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from ci_agentlab.providers import ChatClient, ProviderError
 from experiments.document_rag import load_corpus
-from experiments.unified_agent import ask, AgentDiagnosticError, fetch_route
+from experiments.unified_agent import ask, AgentDiagnosticError, fetch_route, fetch_matrix
 from run_azure import load_config
 
 
@@ -64,7 +64,8 @@ def score_response(row,case):
     row['human_review_required']=True
 
 
-def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_route,capture_rejected=False):
+def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_route,capture_rejected=False,
+        matrix_service=fetch_matrix):
     rows=[];complete=True
     for case in cases:
         started=time.monotonic()
@@ -72,7 +73,8 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
         diagnostics=[]
         options={'diagnostics':diagnostics} if capture_rejected else {}
         try:
-            result=ask(client,db,docs,case['question'],timeout=timeout,route_service=route_service,**options)
+            result=ask(client,db,docs,case['question'],timeout=timeout,route_service=route_service,
+                       user_location=case.get('user_location'),matrix_service=matrix_service,**options)
             used=[x['tool'] for x in result['trace']]
             guard=result.get('guard_status')
             arg_checks=[]
@@ -83,7 +85,8 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
             row={'id':case['id'],'question':case['question'],'human_expectation':case['human_expectation'],
                  'response_origin':result.get('response_origin','local' if guard else 'model'),'category':case.get('category'), 'argument_checks':arg_checks, 'forbidden_tools_used':forbidden,
                  'required_tools':case['required_tools'],'observed_tools':used,'output':result['output'],
-                 'trace':result['trace'],'status':guard or ('route_unavailable' if result.get('response_origin')=='route_service' and result['output']['abstain'] else 'model_output'),
+                 'trace':result['trace'],'status':guard or ('nearby_result' if 'rank_nearby' in used and not result['output']['abstain'] else
+                    'route_unavailable' if result.get('response_origin')=='route_service' and result['output']['abstain'] else 'model_output'),
                  'diagnostic_code':result.get('diagnostic_code'), 'diagnostic_metadata':result.get('diagnostic_metadata',{}), 'trace_redacted':result.get('trace_redacted',False),
                  'tool_selection_match':None if guard else set(case['required_tools'])<=set(used),
                  'argument_checks_pass':None if guard or not arg_checks else all(c['passed'] for c in arg_checks),
@@ -94,8 +97,8 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
                 validations={}
                 if 'status' in checks:validations['status']=row['status']==checks['status']
                 if 'abstain' in checks:validations['abstain']=row['output'].get('abstain') is checks['abstain']
-                if 'route_status' in checks:validations['route_status']=any(t.get('result',{}).get('status')==checks['route_status'] for t in route_calls)
-                if 'route_mode' in checks:validations['route_mode']=any(t.get('arguments',{}).get('mode')==checks['route_mode'] for t in route_calls)
+                if 'route_status' in checks:validations['route_status']=any(t.get('result',{}).get('status')==checks['route_status'] for t in row['trace'] if t['tool'] in ('calculate_route','rank_nearby'))
+                if 'route_mode' in checks:validations['route_mode']=any(t.get('arguments',{}).get('mode')==checks['route_mode'] for t in row['trace'] if t['tool'] in ('calculate_route','rank_nearby'))
                 if 'max_tool_calls' in checks:validations['max_tool_calls']=len(used)<=checks['max_tool_calls']
                 row['outcome_checks']=validations
                 row['outcome_checks_pass']=all(validations.values())
@@ -112,7 +115,7 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
         if 'outcome_checks' in row and 'max_provider_calls' in case.get('outcome_checks',{}):
             row['outcome_checks']['max_provider_calls']=len(row['provider_calls'])<=case['outcome_checks']['max_provider_calls']
             row['outcome_checks_pass']=all(row['outcome_checks'].values())
-        route_status=next((t.get('result',{}).get('status') for t in row.get('trace',[]) if t['tool']=='calculate_route'),None)
+        route_status=next((t.get('result',{}).get('status') for t in row.get('trace',[]) if t['tool'] in ('calculate_route','rank_nearby')),None)
         if route_status in ('ok','unavailable','invalid_response','invalid_coordinates'):
             row['route_status']=route_status
         provider_status=(row['provider_calls'] or [{}])[-1].get('http_status')
@@ -145,7 +148,7 @@ def main():
     a=p.parse_args();db=Path(a.db);corpus=Path(a.corpus);casefile=Path(a.cases)
     if not db.is_file():p.error('Catalogue database missing')
     docs=load_corpus(corpus);cases=json.loads(casefile.read_text(encoding='utf8'))
-    allowed={'search_catalogue','search_documents','calculate_route'}
+    allowed={'search_catalogue','search_documents','calculate_route','rank_nearby'}
     if not isinstance(cases,list) or not 1<=len(cases)<=10 or any(not isinstance(c,dict) or not isinstance(c.get('id'),str) or not isinstance(c.get('question'),str) or not c['question'].strip() or len(c['question'])>2000 or not isinstance(c.get('human_expectation'),str) or not isinstance(c.get('required_tools'),list) or any(t not in allowed for t in c['required_tools']) for c in cases) or len({c['id'] for c in cases})!=len(cases):p.error('Invalid cases')
     for case in cases:
         checks=case.get('tool_arg_checks',[]);forbidden=case.get('forbidden_tools',[])

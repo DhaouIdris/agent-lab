@@ -17,6 +17,8 @@ from experiments.input_guard import inspect_user_input
 from experiments.place_catalog import search
 from run_azure import load_config
 from experiments.route_service import route, load_route_key, valid_coordinates
+from experiments.route_service import matrix
+from experiments.nearby_places import candidates, MAX_CANDIDATES, RADIUS_KM
 
 class DocumentInput(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
@@ -40,10 +42,18 @@ The exposed catalogue categories are hotel, cafe, restaurant, bar, fast_food and
 Do not say you completed actions you cannot perform.'''
 SYSTEM+='''\nResolve a reference using the full request, including another clause that identifies a park or place. If a reference truly needs clarification, list the plausible choices briefly and ask which one the user means; do not begin with a statement that the request is ambiguous. Never invent a district or a live condition. When denying a current opening time or price, explain that the historical catalogue does not verify it; do not suggest retrying or rephrasing when that cannot add evidence. For a simple opening-hours question, answer in one or two short sentences: say you cannot confirm and why. Do not list inventory records or raw IDs unless the user asks for them. A name search returns possible matches, not proof that they refer to one business or to distinct businesses; mention multiple matches only when identification is necessary to answer. In general conceptual explanations, avoid unrelated numeric examples about opening hours or prices.
 User-facing style: Speak like a helpful local guide, not a database report. Answer directly and proportionally to the question. Keep the evidence checks and exact IDs in the JSON fields; do not expose tool names, raw IDs, database/catalogue/POI vocabulary or field names in the answer unless the user asks how the information was obtained. For a place discovery question, give a few names actually returned by search_catalogue, not every result just because the tool returned ten. A singular request can be answered with one or a few useful examples. A brief note on uncertainty is enough when activity matters; do not append a generic paragraph listing every unknown field. Do not imply a listed place is still operating. If the user asks for an unavailable action such as a reservation, state the limit briefly and offer at most one feasible next step; do not draft a call script unless requested. Offer a city follow-up only when it helps, and say you can try checking entries with a recorded locality. Do not promise a complete search by city or neighborhood: most district fields are empty and this tool has no neighborhood lookup. Keep the provenance and 2022 source date available when asked or when necessary to explain uncertainty. Never trade factual grounding or material limits for a more natural tone.'''
+SYSTEM+='''\nFor any request for restaurants, cafes, fast food or hotels without a specified city, search the relevant category and give examples; a city is optional. For mixed requests, carry out each supported part before asking a follow-up. When only current opening, access, availability, exchange rate or payment is requested and cannot be verified or performed, give one brief reason and stop. Do not list candidate records, offer another search that cannot verify the current fact, or request reservation details. Keep general explanations short. Never promise to search a budget, museum, route, or event data source that is not available. A name match does not prove distinct businesses or a chain.'''
 
 _ROUTE = re.compile(r"\b(?:trajet|itineraire|distance routiere|distance a pied|route|driving distance|walking distance|proximite|nearest|closest|plus proches?|a vol d.oiseau)\b")
 _CULTURAL = re.compile(r"\bitineraire (?:culturel|touristique|historique|de (?:visite|voyage))\b")
 _NEAREST = re.compile(r"\b(?:nearest|closest|plus proches?|a vol d.oiseau)\b")
+_NEARBY_USER = re.compile(r"\b(?:pres de moi|proches? de moi|autour de moi|a proximite de (?:moi|ma position)|near me|(?:le|la|les) plus proches?(?!\s+(?:du|de|des|d.un)\b)|(?:restaurants?|cafes?|hotels?|glaciers?|bars?)\s+proches?)\b")
+_NEARBY_CATEGORIES=((re.compile(r'\b(?:restaurants?|restos?)\b'),'restaurant'),
+                    (re.compile(r'\b(?:cafes?)\b'),'cafe'),
+                    (re.compile(r'\b(?:hotels?)\b'),'hotel'),
+                    (re.compile(r'\b(?:glaciers?|glaces?)\b'),'ice_cream'),
+                    (re.compile(r'\b(?:bars?)\b'),'bar'),
+                    (re.compile(r'\b(?:fast[ -]?foods?|snacks?)\b'),'fast_food'))
 _PAIR = re.compile(r"(?<![\w.])(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)(?!\w|\.\d)")
 _OTHER_TASK = re.compile(r"\b(?:decris|explique|resume|cite|liste|que dit|donne|quel|quelle|peux.tu|summarize|describe|list|what)\b")
 _PRICE_OR_TIME = re.compile(r"\b(?:\d{1,2}:[0-5]\d|\d+(?:[ .,\u00a0\u202f]\d+)*\s*(?:fcfa|xof|euros?|cfa|heures?|h(?:\s*\d{1,2})?))\b", re.I)
@@ -103,6 +113,48 @@ def fetch_route(origin,destination,mode,timeout):
     return route(origin,destination,mode,load_route_key(),timeout=timeout)
 
 
+def fetch_matrix(origin,destinations,mode,timeout):
+    return matrix(origin,destinations,mode,load_route_key(),timeout=timeout)
+
+
+def nearby_answer(db,question,origin,timeout,matrix_service):
+    q=normalize(question)
+    category=next((name for pattern,name in _NEARBY_CATEGORIES if pattern.search(q)),None)
+    if category is None:
+        return local_response('Quel type de lieu cherchez-vous près de vous ?', 'unsupported_routing')
+    if re.search(r'\b(?:velo|bike|bus|transport)\b',q):
+        return local_response('Je peux comparer les trajets à pied ou en voiture.', 'unsupported_routing')
+    mode='car' if re.search(r'\b(?:voiture|auto|by car|driving)\b',q) else 'walk'
+    places,total=candidates(db,origin,category)
+    if inspect_passages([{'id':p['source_id'],'text':' '.join(str(p.get(k,'')) for k in ('name','district','source_id'))} for p in places]):
+        return local_response('La recherche a été interrompue car une fiche contient une instruction suspecte.', 'blocked_suspected_injection')
+    if not places:
+        return local_response('Je ne trouve aucun lieu de ce type dans la zone explorée ; les données de 2022 sont incomplètes.', 'no_nearby_candidates')
+    result=matrix_service(origin,[(p['latitude'],p['longitude']) for p in places],mode,timeout=min(12,timeout))
+    trace=[{'tool':'rank_nearby','arguments':{'category':category,'mode':mode,'candidate_limit':MAX_CANDIDATES},
+            'result':{'status':result['status'],'candidate_count':len(places),'matching_in_radius':total,
+                      'radius_km':RADIUS_KM,'source':result.get('source')}}]
+    if result['status']!='ok':
+        return {'output':{'answer':'Je ne peux pas calculer les distances d’itinéraire pour ces lieux actuellement.',
+                          'document_ids':[],'place_ids':[],'abstain':True},'trace':trace,'response_origin':'route_service'}
+    ranked=[]
+    for place,distance,duration in zip(places,result['distances_m'],result['durations_s']):
+        if distance is not None:
+            ranked.append((distance,place['source_id'],place,duration))
+    ranked.sort(key=lambda item:(item[0],item[1]))
+    if not ranked:
+        return {'output':{'answer':'Aucun itinéraire n’a pu être calculé vers les lieux trouvés.',
+                          'document_ids':[],'place_ids':[],'abstain':True},'trace':trace,'response_origin':'route_service'}
+    selected=ranked[:1 if re.search(r'\b(?:le|la) plus proche\b',q) else 3]
+    label='en voiture' if mode=='car' else 'à pied'
+    lines=[f"{p['name']} : {distance/1000:.2f} km, environ {duration/60:.0f} min" for distance,_,p,duration in selected]
+    text='Quelques lieux classés par distance d’itinéraire '+label+' parmi les candidats examinés :\n'+'\n'.join(f'- {line}' for line in lines)
+    text+='\nDonnées des lieux : 2022 ; activité non vérifiée. Itinéraires estimés par openrouteservice / OpenStreetMap, sans trafic en direct. Recherche limitée à un rayon de 10 km et aux 12 candidats les plus proches sur la carte.'
+    trace[0]['result']['ranked']=[{'source_id':p['source_id'],'name':p['name'],'distance_m':distance,'duration_s':duration} for distance,_,p,duration in selected]
+    return {'output':{'answer':text,'document_ids':[],'place_ids':[p['source_id'] for _,_,p,_ in selected],
+                      'abstain':False},'trace':trace,'response_origin':'route_service'}
+
+
 def route_answer(question, timeout, route_service):
     q=normalize(question)
     coords=[tuple(map(float,pair)) for pair in _PAIR.findall(question)]
@@ -158,11 +210,16 @@ def validate_final(raw, observed_documents, observed_places):
         if not set(value)<=allowed:return None,'unobserved_'+field
     return {key:result[key] for key in ('answer','abstain','document_ids','place_ids')},None
 
-def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=search, route_service=fetch_route, diagnostics=None):
+def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=search, route_service=fetch_route, diagnostics=None,
+        user_location=None, matrix_service=fetch_matrix):
     if not isinstance(question,str) or not question.strip() or len(question)>2000:raise ValueError('Question must contain 1..2000 characters')
     if type(max_rounds) is not int or not 1<=max_rounds<=10:raise ValueError('Invalid round limit')
     if inspect_user_input(question):
         return local_response('La demande a été interrompue car elle contient une instruction suspecte.', 'blocked_suspected_injection')
+    if user_location is not None and not valid_coordinates(user_location):
+        return local_response('Coordonnées invalides. Vérifiez latitude et longitude.', 'invalid_coordinates')
+    if user_location is not None and _NEARBY_USER.search(normalize(question)):
+        return nearby_answer(db,question,user_location,timeout,matrix_service)
     deadline=time.monotonic()+timeout
     routing,other=route_request(question)
     if routing:
@@ -170,7 +227,8 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
             return route_answer(routing,timeout,route_service)
         if any(not valid_coordinates(tuple(map(float,p))) for p in _PAIR.findall(routing)):
             return local_response('Coordonnées invalides. Vérifiez latitude et longitude.', 'invalid_coordinates')
-        partial=ask(client,db,docs,retain_route_reference(other,routing),max_rounds,timeout,catalogue_search,route_service,diagnostics)
+        partial=ask(client,db,docs,retain_route_reference(other,routing),max_rounds,timeout,catalogue_search,route_service,diagnostics,
+                    user_location,matrix_service)
         if partial.get('guard_status')=='blocked_suspected_injection':
             return partial
         remaining=deadline-time.monotonic()
@@ -295,12 +353,14 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--db',required=True);p.add_argument('--corpus',required=True)
-    p.add_argument('--question',required=True);p.add_argument('--config',default='azure.json');a=p.parse_args()
+    p.add_argument('--question',required=True);p.add_argument('--config',default='azure.json')
+    p.add_argument('--user-location',nargs=2,type=float,metavar=('LAT','LON'),help='Known user position for nearby place ranking')
+    a=p.parse_args()
     docs=load_corpus(a.corpus)
     routing,other=route_request(a.question)
     client=None
     timeout=180
-    if not inspect_user_input(a.question) and (not routing or other):
+    if not inspect_user_input(a.question) and not (a.user_location and _NEARBY_USER.search(normalize(a.question))) and (not routing or other):
         cfg=load_config(a.config)
         timeout=cfg['turn_timeout_seconds']
         key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure (saisie masquée) : ')
@@ -309,7 +369,8 @@ def main():
             max_output_tokens=cfg['max_output_tokens'],max_calls=5,auth_header=cfg['auth_header'],
             token_parameter=cfg['token_parameter'],min_interval_seconds=cfg['min_interval_seconds'])
     try:
-        result=ask(client,a.db,docs,a.question,timeout=timeout);result['provider_calls']=client.calls if client else []
+        result=ask(client,a.db,docs,a.question,timeout=timeout,user_location=a.user_location)
+        result['provider_calls']=client.calls if client else []
         print(json.dumps(result,ensure_ascii=False,indent=2))
     except (ValueError,ProviderError) as exc:p.exit(1,'Erreur : '+str(exc)+'\n')
 

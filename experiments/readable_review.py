@@ -89,8 +89,8 @@ def review_markdown(data, case_ids=(), failed_only=False, all_sources=False):
             if not isinstance(result, dict):
                 lines += ['Résultat expurgé ou indisponible ; ne pas en déduire une absence de preuve.', '']
                 continue
-            if tool.get('tool') == 'calculate_route':
-                lines += ['Résultat du trajet :', short(json.dumps(result, ensure_ascii=False, indent=2))]
+            if tool.get('tool') in ('calculate_route','rank_nearby'):
+                lines += ['Résultat du trajet ou du classement :', short(json.dumps(result, ensure_ascii=False, indent=2))]
             for passage in result.get('passages', []):
                 if not isinstance(passage, dict):
                     continue
