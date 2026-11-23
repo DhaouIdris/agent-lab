@@ -284,7 +284,7 @@ def diagnose(directory):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--live',action='store_true')
-    p.add_argument('--consistency',action='store_true',help='Repeat 12 selected cases three times')
+    p.add_argument('--consistency',action='store_true',help='Repeat cases marked consistency=true three times')
     p.add_argument('--cases',type=Path,default=CASES,help='Frozen panel or a separately authored private panel')
     p.add_argument('--db',type=Path,default=Path('local_data/lieux.sqlite'))
     p.add_argument('--config',default='azure.json')
