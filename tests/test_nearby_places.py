@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 
 from experiments.nearby_places import candidates
 from experiments.route_service import matrix
-from experiments.unified_agent import ask
+from experiments.unified_agent import ask, nearby_place_lines
 from experiments.unified_agent_batch import run
 from experiments.audit_campaign import load_cases, evaluate_case
 from experiments.benchmark_reporting import save_report
@@ -64,6 +64,42 @@ class NearbyTests(unittest.TestCase):
         result=ask(Mock(),self.db,[],'Des cafés près de moi ?',user_location=self.origin,matrix_service=route)
         self.assertTrue(result['output']['abstain'])
         self.assertFalse(result['output']['place_ids'])
+
+    def test_generic_name_links_to_source_without_exposing_user_location(self):
+        con=sqlite3.connect(self.db)
+        try:
+            con.execute('UPDATE places SET name=? WHERE source_id=?',('Café','node/1'))
+            con.commit()
+        finally:con.close()
+        service=Mock(return_value={'status':'ok','distances_m':[300,900,1500],
+                                   'durations_s':[300,600,900],'source':'ORS'})
+        result=ask(Mock(),self.db,[],'Des cafés près de moi ?',user_location=self.origin,matrix_service=service)
+        answer=result['output']['answer']
+        self.assertIn('Café (nom générique) : 300 m',answer)
+        self.assertIn('https://www.openstreetmap.org/node/1',answer)
+        self.assertNotIn('https://www.openstreetmap.org/node/2',answer)
+        self.assertNotIn('5.3201',answer)
+        self.assertEqual(result['output']['place_ids'],['node/1','node/2','node/3'])
+
+    def test_same_or_similar_names_are_flagged_without_merging(self):
+        places=[
+            {'name':'Seen hôtel Abidjan','source_id':'node/1','latitude':5.32,'longitude':-4.01},
+            {'name':'Seen Hotel Abidjan Plateau','source_id':'way/2','latitude':5.3202,'longitude':-4.01},
+            {'name':'Garbadrome','source_id':'node/3','latitude':5.33,'longitude':-4.01},
+            {'name':'Garbadrome','source_id':'node/4','latitude':5.34,'longitude':-4.01},
+        ]
+        rows=[(100+i*50,p['source_id'],p,120+i*20) for i,p in enumerate(places)]
+        lines,ambiguous=nearby_place_lines(rows)
+        self.assertTrue(ambiguous)
+        self.assertEqual(len(lines),4)
+        self.assertTrue(all('voir la fiche OSM' in line for line in lines))
+        self.assertIn('https://www.openstreetmap.org/way/2',lines[1])
+
+    def test_source_links_reject_malformed_ids_and_unsafe_markdown(self):
+        p={'name':'Café [test]','source_id':'node/1?x=evil','latitude':5.32,'longitude':-4}
+        lines,_=nearby_place_lines([(100,p['source_id'],p,200)])
+        self.assertNotIn('https://',lines[0])
+        self.assertIn(r'\[test\]',lines[0])
 
     def test_invalid_location_and_malicious_question_stop_before_services(self):
         model=Mock();routing=Mock()
