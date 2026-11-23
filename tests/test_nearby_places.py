@@ -20,7 +20,8 @@ class NearbyTests(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.db=Path(self.temp.name)/'places.sqlite'
-        with sqlite3.connect(self.db) as con:
+        con=sqlite3.connect(self.db)
+        try:
             con.execute('CREATE TABLE places (source_id TEXT PRIMARY KEY,name TEXT,category TEXT,district TEXT,latitude REAL,longitude REAL)')
             con.executemany('INSERT INTO places VALUES (?,?,?,?,?,?)',[
                 ('node/1','Café premier','cafe','',5.3205,-4.0120),
@@ -29,6 +30,9 @@ class NearbyTests(unittest.TestCase):
                 ('node/4','Autre catégorie','hotel','',5.3201,-4.0120),
                 ('node/5','Loin','cafe','',6.0,-4.0120),
             ])
+            con.commit()
+        finally:
+            con.close()
         self.origin=(5.3201,-4.0120)
 
     def test_shortlist_bounds_and_category(self):
