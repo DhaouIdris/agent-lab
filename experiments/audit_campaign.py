@@ -14,6 +14,7 @@ from ci_agentlab.providers import ChatClient
 from experiments.benchmark_reporting import save_report, write_json
 from experiments.document_rag import load_corpus
 from experiments.unified_agent import fetch_route
+from experiments.route_service import valid_coordinates
 from experiments.unified_agent_batch import run
 from run_azure import load_config
 
@@ -22,7 +23,8 @@ CORPUS=Path('data/rag_integrated_dev.json')
 DOCS={'tai':'UNESCO_TAI__','comoe':'UNESCO_COMOE__','nimba':'UNESCO_NIMBA__',
       'bassam':'UNESCO_BASSAM__','mosque':'UNESCO_MOSQUEES__','gdp':'WB_CIV_GDP_',
       'mixed':'UNESCO_COMOE__','mixed_route':'UNESCO_TAI__'}
-LOCAL={'coords':'unsupported_routing','invalid':'invalid_coordinates','block':'blocked_suspected_injection'}
+LOCAL={'coords':'unsupported_routing','invalid':'invalid_coordinates','block':'blocked_suspected_injection',
+       'nearby_invalid':'invalid_coordinates','nearby_empty':'no_nearby_candidates'}
 REVIEW=('useful_and_complete','facts_supported','citations_relevant','limits_accurate','no_unauthorized_promise')
 
 
@@ -48,6 +50,10 @@ def scenario(entry):
     elif goal=='mixed_route':
         tools.append('calculate_route')
         checks.update(route_status='ok',route_mode='walk',abstain=False)
+    elif goal=='nearby':
+        tools.append('rank_nearby')
+        evidence['min_places']=1
+        checks.update(status='nearby_result',route_status='ok',abstain=False,max_provider_calls=0)
     elif goal in ('unknown','clarify'):
         checks['abstain']=True
     elif goal!='search':
@@ -55,7 +61,7 @@ def scenario(entry):
     checks.update(entry.get('outcome_checks',{}))
     evidence.update(entry.get('evidence_checks',{}))
     return {**entry,'required_tools':tools,'outcome_checks':checks,'evidence_checks':evidence,
-            'forbidden_tools':[] if goal in ('walk','car','mixed_route') else ['calculate_route']}
+            'forbidden_tools':[] if goal in ('walk','car','mixed_route','nearby') else ['calculate_route','rank_nearby']}
 
 
 class ExternalBoundary(Exception):
@@ -81,13 +87,14 @@ def digest(path):
 
 def evaluate_case(case,client,live,db,docs,timeout,capture_rejected=False):
     goal=case['goal']
-    allow_chat=goal not in {*LOCAL,'walk','car'}
-    allow_route=goal in ('walk','car','mixed_route')
+    allow_chat=goal not in {*LOCAL,'walk','car','nearby'}
+    allow_route=goal in ('walk','car','mixed_route','nearby')
     chat=client if live and allow_chat else NoChat()
     router=fetch_route if live and allow_route else no_route
     before=len(chat.calls)
     try:
-        return run(chat,db,docs,[case],timeout=timeout,route_service=router,capture_rejected=capture_rejected)['results'][0]
+        return run(chat,db,docs,[case],timeout=timeout,route_service=router,
+                   matrix_service=router,capture_rejected=capture_rejected)['results'][0]
     except ExternalBoundary as exc:
         requested=exc.args[0]
         permitted=allow_chat if requested=='chat' else allow_route
@@ -110,6 +117,7 @@ def summarize(rows,planned):
             'route_statuses':dict(Counter(r['route_status'] for r in rows if r.get('route_status'))),
             'model_outputs':sum(r.get('response_origin')=='model' for r in rows),
             'route_calls':sum(r.get('observed_tools',[]).count('calculate_route') for r in rows),
+            'matrix_calls':sum(r.get('observed_tools',[]).count('rank_nearby') for r in rows),
             'latency_p50_seconds':statistics.median(timed) if timed else None,
             'latency_p95_seconds':timed[(95*len(timed)+99)//100-1] if timed else None,
             'human_success_rate':None}
@@ -194,7 +202,7 @@ def adjudicate(directory):
 
 def load_cases(path,consistency):
     data=json.loads(path.read_text(encoding='utf-8-sig'))
-    goals=set(DOCS)|set(LOCAL)|{'places','places2','places3','search','general','unknown','clarify','car','walk'}
+    goals=set(DOCS)|set(LOCAL)|{'places','places2','places3','search','general','unknown','clarify','car','walk','nearby'}
     if not isinstance(data,list) or not 1<=len(data)<=60:
         raise ValueError('Provide 1..60 scenarios')
     ids=set()
@@ -206,6 +214,8 @@ def load_cases(path,consistency):
                 or not re.fullmatch(r'[A-Za-z0-9_-]{1,48}',case['id']) or case['id'] in ids
                 or type(case.get('abstain_is_diagnostic',False)) is not bool
                 or case['goal'] not in goals or len(case['question'])>2000 or type(case.get('consistency')) is not bool
+                or (case['goal'] in ('nearby','nearby_invalid','nearby_empty') and 'user_location' not in case)
+                or ('user_location' in case and not valid_coordinates(case['user_location']) and case['goal']!='nearby_invalid')
                 or not isinstance(extra_outcome,dict) or not set(extra_outcome)<={'max_tool_calls','max_provider_calls'}
                 or any(type(value) is not int or not 0<=value<=10 for value in extra_outcome.values())
                 or not isinstance(extra_evidence,dict) or not set(extra_evidence)<={'no_unavailable_lookup_offer','required_document_ids','required_place_ids','max_answer_chars','no_place_ids'}
@@ -283,6 +293,7 @@ def main():
     p.add_argument('--diagnose',type=Path,help='Extract failed answers from a local private review without network calls')
     p.add_argument('--failed-from',type=Path,help='Run only failures from an earlier frozen-panel report')
     p.add_argument('--category',action='append',help='Select one or more categories from the supplied panel')
+    p.add_argument('--case',action='append',help='Select individual case IDs from the supplied panel')
     a=p.parse_args()
     if a.diagnose:
         diagnose(a.diagnose)
@@ -295,8 +306,12 @@ def main():
         if len(set(a.category))!=len(a.category) or not set(a.category)<={c['category'] for c in cases}:
             p.error('Unknown or duplicate category in selected panel')
         cases=[c for c in cases if c['category'] in set(a.category)]
+    if a.case:
+        if len(set(a.case))!=len(a.case) or not set(a.case)<={c['id'] for c in cases}:
+            p.error('Unknown or duplicate case ID in selected panel')
+        cases=[c for c in cases if c['id'] in set(a.case)]
     if a.failed_from:
-        if a.consistency or a.cases!=CASES or a.category:
+        if a.consistency or a.cases!=CASES or a.category or a.case:
             p.error('--failed-from requires the full frozen default panel')
         cases=failed_cases(cases,a.failed_from)
     repeat=3 if a.consistency else 1
