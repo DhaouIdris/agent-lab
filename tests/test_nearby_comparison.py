@@ -16,10 +16,14 @@ class ShortlistComparisonTests(unittest.TestCase):
     def test_comparison_same_matrix_response_and_no_public_names_or_coordinates(self):
         with tempfile.TemporaryDirectory() as tmp:
             db=Path(tmp)/'pois.sqlite'
-            with sqlite3.connect(db) as con:
+            con=sqlite3.connect(db)
+            try:
                 con.execute('CREATE TABLE places (source_id TEXT,name TEXT,category TEXT,district TEXT,latitude REAL,longitude REAL)')
                 con.executemany('INSERT INTO places VALUES (?,?,?,?,?,?)',[
                     (f'node/{i}',f'Cafe {i}','cafe','',5.3201+i*.0001,-4.012) for i in range(1,15)])
+                con.commit()
+            finally:
+                con.close()
             case={'id':'NC00','origin':[5.3201,-4.012],'category':'cafe','mode':'walk'}
             service=Mock(return_value={'status':'ok','distances_m':[1000+i for i in range(12)]+[20,30],
                                        'durations_s':[100]*14})
