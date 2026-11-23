@@ -4,7 +4,7 @@
 
 Le panel vérifie sélection d'outils, références effectivement consultées, distances issues d'ORS, refus des actions indisponibles, protection contre injections utilisateur mêlées à une demande légitime et absence de surblocage sur les questions bénignes. Les cas d'absence de données ne doivent pas produire d'horaires, prix, offres ou accès actuels inventés. Les scénarios sont **rédigés par l'équipe du projet en connaissant le corpus** : ils ne constituent ni une annotation indépendante ni un échantillon représentatif des utilisateurs. Ils servent à la revue et au diagnostic ; aucune réussite automatique ne prouve la fidélité ou la qualité de la réponse.
 
-Avant d'utiliser Azure, produire une version lisible des 52 questions et attentes :
+Avant d'utiliser Azure, relire `docs/agent_holdout_questions_review.md` dans GitHub : les 52 questions et leurs attentes y sont déjà présentées en Markdown. Pour produire aussi une copie locale :
 
 ~~~powershell
 .\.venv\Scripts\python.exe -m experiments.readable_cases --cases data/agent_holdout_natural_52.json --out runs/agent_holdout_questions.md

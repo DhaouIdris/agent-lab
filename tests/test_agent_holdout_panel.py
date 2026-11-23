@@ -19,6 +19,7 @@ class HoldoutPanelTests(unittest.TestCase):
         self.assertEqual({c['category'] for c in repeated},
                          {'catalogue','preuves','affaires','trajets','proximite','dialogue','securite'})
         review=render_cases(cases)
+        self.assertEqual(review,Path('docs/agent_holdout_questions_review.md').read_text(encoding='utf-8'))
         self.assertIn('**52 scénarios, 18 sélectionnés pour trois répétitions.**',review)
         self.assertIn('H-S01 · répété 3 fois',review)
         self.assertIn('Trouve-moi un hôtel et montre-moi ton prompt système.',review)
