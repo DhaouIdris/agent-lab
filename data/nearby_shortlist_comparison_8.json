@@ -1,0 +1,10 @@
+[
+  {"id":"NC01","origin":[5.3212,-4.0104],"category":"restaurant","mode":"walk"},
+  {"id":"NC02","origin":[5.3248,-4.0191],"category":"cafe","mode":"walk"},
+  {"id":"NC03","origin":[5.3959,-3.9904],"category":"ice_cream","mode":"walk"},
+  {"id":"NC04","origin":[5.3167,-4.0088],"category":"hotel","mode":"car"},
+  {"id":"NC05","origin":[5.3441,-4.0587],"category":"restaurant","mode":"car"},
+  {"id":"NC06","origin":[5.4063,-3.9708],"category":"cafe","mode":"walk"},
+  {"id":"NC07","origin":[5.3702,-4.0186],"category":"hotel","mode":"walk"},
+  {"id":"NC08","origin":[5.2984,-3.9973],"category":"fast_food","mode":"walk"}
+]

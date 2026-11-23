@@ -117,6 +117,10 @@ def fetch_matrix(origin,destinations,mode,timeout):
     return matrix(origin,destinations,mode,load_route_key(),timeout=timeout)
 
 
+def format_route_distance(distance_m):
+    return f'{distance_m:.0f} m' if distance_m<1000 else f'{distance_m/1000:.2f} km'
+
+
 def nearby_answer(db,question,origin,timeout,matrix_service):
     q=normalize(question)
     category=next((name for pattern,name in _NEARBY_CATEGORIES if pattern.search(q)),None)
@@ -147,7 +151,7 @@ def nearby_answer(db,question,origin,timeout,matrix_service):
                           'document_ids':[],'place_ids':[],'abstain':True},'trace':trace,'response_origin':'route_service'}
     selected=ranked[:1 if re.search(r'\b(?:le|la) plus proche\b',q) else 3]
     label='en voiture' if mode=='car' else 'à pied'
-    lines=[f"{p['name']} : {distance/1000:.2f} km, environ {duration/60:.0f} min" for distance,_,p,duration in selected]
+    lines=[f"{p['name']} : {format_route_distance(distance)}, environ {duration/60:.0f} min" for distance,_,p,duration in selected]
     text='Quelques lieux classés par distance d’itinéraire '+label+' parmi les candidats examinés :\n'+'\n'.join(f'- {line}' for line in lines)
     text+='\nDonnées des lieux : 2022 ; activité non vérifiée. Itinéraires estimés par openrouteservice / OpenStreetMap, sans trafic en direct. Recherche limitée à un rayon de 10 km et aux 12 candidats les plus proches sur la carte.'
     trace[0]['result']['ranked']=[{'source_id':p['source_id'],'name':p['name'],'distance_m':distance,'duration_s':duration} for distance,_,p,duration in selected]
@@ -172,7 +176,7 @@ def route_answer(question, timeout, route_service):
     answer='Le service ne peut pas confirmer ce trajet ni sa durée.'
     if ok:
         label='en voiture' if car else 'à pied'
-        answer=f"Trajet {label} estimé : {result['distance_m']/1000:.2f} km, environ {result['duration_s']/60:.0f} minutes. Source : openrouteservice / OpenStreetMap. Trafic en temps réel non vérifié."
+        answer=f"Trajet {label} estimé : {format_route_distance(result['distance_m'])}, environ {result['duration_s']/60:.0f} minutes. Source : openrouteservice / OpenStreetMap. Trafic en temps réel non vérifié."
     return {'output':{'answer':answer,'document_ids':[],'place_ids':[],'abstain':not ok},
             'trace':[{'tool':'calculate_route','arguments':{'mode':mode},'result':result}],
             'response_origin':'route_service','caveat':'Route estimée ; couverture et trafic non vérifiés.'}
