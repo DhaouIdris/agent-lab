@@ -24,10 +24,11 @@ def candidates(db_path, origin, category):
         raise ValueError('Invalid nearby query')
     con=sqlite3.connect(Path(db_path).resolve().as_uri()+'?mode=ro',uri=True)
     con.row_factory=sqlite3.Row
+    cursor=None
     try:
-        rows=con.execute('SELECT source_id,name,category,district,latitude,longitude FROM places WHERE category=?',(category,))
+        cursor=con.execute('SELECT source_id,name,category,district,latitude,longitude FROM places WHERE category=?',(category,))
         matched=[]
-        for row in rows:
+        for row in cursor:
             place=dict(row)
             pos=(place['latitude'],place['longitude'])
             if not valid_coordinates(pos):continue
@@ -35,4 +36,6 @@ def candidates(db_path, origin, category):
             if distance<=RADIUS_KM:matched.append((distance,place['source_id'],place))
         matched.sort(key=lambda item:(item[0],item[1]))
         return [place for _,_,place in matched[:MAX_CANDIDATES]],len(matched)
-    finally:con.close()
+    finally:
+        if cursor is not None:cursor.close()
+        con.close()
