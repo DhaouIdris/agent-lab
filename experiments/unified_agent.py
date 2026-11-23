@@ -19,6 +19,8 @@ from run_azure import load_config
 from experiments.route_service import route, load_route_key, valid_coordinates
 from experiments.route_service import matrix
 from experiments.nearby_places import candidates, MAX_CANDIDATES, RADIUS_KM
+from experiments.audit_place_quality import generic_name, name_words, similar_name
+from experiments.nearby_places import air_distance_km
 
 class DocumentInput(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
@@ -121,6 +123,30 @@ def format_route_distance(distance_m):
     return f'{distance_m:.0f} m' if distance_m<1000 else f'{distance_m/1000:.2f} km'
 
 
+def nearby_place_lines(selected):
+    """Identify vague or repeating places without guessing a district or user position."""
+    ambiguous=set()
+    for i,(_,_,first,_) in enumerate(selected):
+        for _,_,second,_ in selected[i+1:]:
+            same_name=name_words(first['name'])==name_words(second['name'])
+            nearby_name=(similar_name(first['name'],second['name']) and
+                         air_distance_km((first['latitude'],first['longitude']),
+                                         (second['latitude'],second['longitude']))<=.075)
+            if same_name or nearby_name:
+                ambiguous.update((first['source_id'],second['source_id']))
+    lines=[]
+    for distance,_,place,duration in selected:
+        vague=generic_name(place['name'])
+        name=re.sub(r'([\\`*_[\]<>])',r'\\\1',' '.join(place['name'].split()))
+        if vague:name+=' (nom générique)'
+        line=f"{name} : {format_route_distance(distance)}, environ {duration/60:.0f} min"
+        source_id=place['source_id']
+        if (vague or source_id in ambiguous) and re.fullmatch(r'(?:node|way|relation)/[0-9]+',source_id):
+            line+=f' — [voir la fiche OSM](https://www.openstreetmap.org/{source_id})'
+        lines.append(line)
+    return lines, bool(ambiguous)
+
+
 def nearby_answer(db,question,origin,timeout,matrix_service):
     q=normalize(question)
     category=next((name for pattern,name in _NEARBY_CATEGORIES if pattern.search(q)),None)
@@ -151,8 +177,9 @@ def nearby_answer(db,question,origin,timeout,matrix_service):
                           'document_ids':[],'place_ids':[],'abstain':True},'trace':trace,'response_origin':'route_service'}
     selected=ranked[:1 if re.search(r'\b(?:le|la) plus proche\b',q) else 3]
     label='en voiture' if mode=='car' else 'à pied'
-    lines=[f"{p['name']} : {format_route_distance(distance)}, environ {duration/60:.0f} min" for distance,_,p,duration in selected]
+    lines,ambiguous=nearby_place_lines(selected)
     text='Quelques lieux classés par distance d’itinéraire '+label+' parmi les candidats examinés :\n'+'\n'.join(f'- {line}' for line in lines)
+    if ambiguous:text+='\nDes fiches portent des noms semblables ; elles ne sont pas confirmées comme établissements distincts.'
     text+='\nDonnées des lieux : 2022 ; activité non vérifiée. Itinéraires estimés par openrouteservice / OpenStreetMap, sans trafic en direct. Recherche limitée à un rayon de 10 km et aux 12 candidats les plus proches sur la carte.'
     trace[0]['result']['ranked']=[{'source_id':p['source_id'],'name':p['name'],'distance_m':distance,'duration_s':duration} for distance,_,p,duration in selected]
     return {'output':{'answer':text,'document_ids':[],'place_ids':[p['source_id'] for _,_,p,_ in selected],
