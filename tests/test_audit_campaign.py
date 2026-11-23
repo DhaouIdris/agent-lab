@@ -74,7 +74,7 @@ class AuditTests(unittest.TestCase):
     def test_valid_route_and_independent_question(self):
         self.router.return_value={'status':'ok','distance_m':500,'duration_s':60}
         row=ask(self.client,self.db,[],'Décris Taï et donne le trajet en voiture entre 5.320, -4.020 et 5.330, -4.018.',route_service=self.router)
-        self.assertIn('0.50 km',row['output']['answer'])
+        self.assertIn('500 m',row['output']['answer'])
         self.assertIn('patrimoine',row['output']['answer'])
         self.assertNotIn('5.320',str(self.client.chat.call_args))
         self.router.assert_called_once()

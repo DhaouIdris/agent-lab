@@ -78,7 +78,7 @@ def matrix(origin, destinations, mode, api_key, opener=None, timeout=12):
     """One-to-many route distances; never return the supplied coordinates or key."""
     if mode not in PROFILES or not isinstance(api_key,str) or not api_key.strip():
         return {'status':'unavailable','reason':'missing_key_or_invalid_mode'}
-    if not valid_coordinates(origin) or not isinstance(destinations,(list,tuple)) or not 1<=len(destinations)<=12 or any(not valid_coordinates(p) for p in destinations):
+    if not valid_coordinates(origin) or not isinstance(destinations,(list,tuple)) or not 1<=len(destinations)<=50 or any(not valid_coordinates(p) for p in destinations):
         return {'status':'invalid_coordinates'}
     locations=[[p[1],p[0]] for p in [origin,*destinations]]
     payload={'locations':locations,'sources':['0'],

@@ -48,6 +48,8 @@ class NearbyTests(unittest.TestCase):
         result=ask(client,self.db,[],'Quels cafés sont proches de moi ?',user_location=self.origin,matrix_service=route)
         self.assertEqual(result['output']['place_ids'],['node/2','node/3','node/1'])
         self.assertLess(result['output']['answer'].find('Café deuxième'),result['output']['answer'].find('Café premier'))
+        self.assertIn('300 m',result['output']['answer'])
+        self.assertIn('1.50 km',result['output']['answer'])
         self.assertNotIn('5.3201',json.dumps(result,ensure_ascii=False))
         self.assertEqual(result['trace'][0]['tool'],'rank_nearby')
         self.assertEqual(route.call_count,1)
@@ -94,7 +96,7 @@ class NearbyTests(unittest.TestCase):
     def test_matrix_rejects_bad_points_and_malformed_result_without_network_retry(self):
         opener=Mock()
         self.assertEqual(matrix((91,-4),[self.origin],'walk','SECRET',opener=opener)['status'],'invalid_coordinates')
-        self.assertEqual(matrix(self.origin,[self.origin]*13,'walk','SECRET',opener=opener)['status'],'invalid_coordinates')
+        self.assertEqual(matrix(self.origin,[self.origin]*51,'walk','SECRET',opener=opener)['status'],'invalid_coordinates')
         self.assertEqual(matrix(self.origin,[self.origin],'walk','',opener=opener)['status'],'unavailable')
         opener.open.assert_not_called()
         opener.open.return_value=io.BytesIO(json.dumps({'distances':[[500]],'durations':[[None]]}).encode())
