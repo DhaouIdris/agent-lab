@@ -1,0 +1,10 @@
+[
+  {"id":"G01","name":"Novotel Abidjan Plateau","address":"10 Avenue du Général de Gaulle, Plateau, Abidjan","reference_lat":5.316425,"reference_lon":-4.016372,"reference_url":"https://all.accor.com/hotel/0481/index.fr.shtml"},
+  {"id":"G02","name":"Sofitel Abidjan Hôtel Ivoire","address":"Boulevard Hassan II, Cocody, Abidjan","reference_lat":5.326842,"reference_lon":-4.005485,"reference_url":"https://all.accor.com/hotel/8844/index.fr.shtml"},
+  {"id":"G03","name":"Pullman Abidjan","address":"Rue Abdoulaye Fadiga, Plateau, Abidjan","reference_lat":5.322324,"reference_lon":-4.013679,"reference_url":"https://all.accor.com/hotel/1146/index.fr.shtml"},
+  {"id":"G04","name":"Ibis Styles Abidjan Plateau","address":"7 Boulevard Roume, Plateau, Abidjan","reference_lat":5.32651,"reference_lon":-4.02292,"reference_url":"https://all.accor.com/hotel/0732/index.fr.shtml"},
+  {"id":"G05","name":"Ibis Styles Abidjan Marcory","address":"Boulevard Valéry Giscard d'Estaing, Marcory, Abidjan","reference_lat":5.29028,"reference_lon":-3.973103,"reference_url":"https://all.accor.com/hotel/0667/index.fr.shtml"},
+  {"id":"G06","name":"Novotel Abidjan Marcory","address":"Boulevard Valéry Giscard d'Estaing, Marcory, Abidjan","reference_lat":5.299264,"reference_lon":-3.985784,"reference_url":"https://all.accor.com/hotel/B1I4/index.fr.shtml"},
+  {"id":"G07","name":"Mövenpick Hotel Abidjan","address":"Avenue Terrasson de Fougères, angle Rue Gourgas, Plateau, Abidjan","reference_lat":5.324061,"reference_lon":-4.018453,"reference_url":"https://all.accor.com/hotel/B4X4/index.fr.shtml"},
+  {"id":"G08","name":"Aparthotel Adagio Abidjan Marcory","address":"Boulevard Félix Houphouët-Boigny, Marcory, Abidjan","reference_lat":5.29956,"reference_lon":-3.98586,"reference_url":"https://meetings.accor.com/hotel/B1J6/index.fr.shtml"}
+]
