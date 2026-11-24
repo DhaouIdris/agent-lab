@@ -1,0 +1,15 @@
+:root { font-family: system-ui, sans-serif; color: #182c31; background: #f5f7f6; }
+body { margin: 0; }
+main { max-width: 940px; margin: 0 auto; padding: 20px; }
+h1 { font-size: 1.7rem; margin: 0 0 8px; }
+header p { margin: 0 0 16px; }
+#map { height: min(65vh, 560px); min-height: 330px; border: 1px solid #b6c8c5; border-radius: 12px; }
+.hint, .note { font-size: .95rem; color: #3c5a5a; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 18px 0; }
+.controls label { display: grid; gap: 5px; font-weight: 600; }
+select, button { font: inherit; padding: 10px; border: 1px solid #789391; border-radius: 7px; background: white; }
+button { background: #075b51; color: white; border-color: #075b51; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+#results { padding-left: 23px; }
+#results li { margin: 10px 0; }
+a { color: #075b51; }
