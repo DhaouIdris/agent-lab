@@ -1,5 +1,6 @@
 """Resolve an explicitly named starting place, without guessing among matches."""
 import json
+import math
 import re
 import sqlite3
 import urllib.error
@@ -11,7 +12,9 @@ from experiments.injection_guard import normalize
 from experiments.route_service import valid_coordinates
 
 GEOCODER='https://api.heigit.org/pelias/v1/search'
-_ORIGIN=re.compile(r'\b(?:(?:je suis|je me trouve|je loge)\s+(?:à|a|au|aux|chez|dans)|je pars\s+(?:de|du|de la)|depuis)\s+(.+?)(?:[,;?]|\.\s|\s+et\s+)',re.I)
+_ORIGIN=re.compile(
+    r'\b(?:(?:je suis|je me trouve|je loge)\s+(?:à|a|au|aux|chez|dans)|je pars\s+(?:de|du|de la)|depuis)\s+'
+    r'(.+?)(?:,\s*(?=(?:quel|quelle|où|ou|tu|je cherche|y a)\b)|[;?]|\.\s+|\s+et\s+(?=(?:quel|quelle|où|ou|tu|je)\b))',re.I)
 _TYPE=re.compile(r'\b(?:restaurants?|restos?|cafés?|hotels?|hôtels?|bars?|glaciers?|fast[ -]?foods?)\b',re.I)
 _NEAR=re.compile(r'\b(?:plus proche|près|pres|à côté|a cote|pas loin|autour)\b',re.I)
 
@@ -63,7 +66,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def geocode_origin(name, api_key, opener=None, timeout=8):
     """Bounded Côte d'Ivoire search; send no keys or coordinates back to the model."""
-    if not isinstance(api_key,str) or not api_key.strip():return {'status':'unavailable'}
+    if not isinstance(api_key,str) or not api_key.strip():return {'status':'unavailable','reason':'missing_key'}
     if not isinstance(name,str) or not 4<=len(name)<=120:return {'status':'not_found'}
     requested_number=re.match(r'^\s*(\d+[A-Za-z]?)\s+',name)
     url=GEOCODER+'?'+urllib.parse.urlencode({'text':name,'boundary.country':'CIV',
@@ -72,25 +75,61 @@ def geocode_origin(name, api_key, opener=None, timeout=8):
     try:
         with (opener or urllib.request.build_opener(_NoRedirect())).open(req,timeout=max(.1,min(timeout,8))) as response:
             raw=response.read(1000001)
-        if len(raw)>1000000:return {'status':'unavailable'}
+        if len(raw)>1000000:return {'status':'unavailable','reason':'oversized_response'}
         data=json.loads(raw)
         features=data['features']
         if not isinstance(features,list):raise ValueError()
         matches=[]
+        rejected={'wrong_country':0,'unsupported_layer':0,'not_exact_match':0,
+                  'low_confidence':0,'wrong_house_number':0,'invalid_record':0}
+        layers={};match_types={}
         for feature in features[:5]:
-            props=feature['properties']; lon,lat=feature['geometry']['coordinates'][:2]
+            try:
+                props=feature['properties']; lon,lat=feature['geometry']['coordinates'][:2]
+                if not isinstance(props,dict):raise ValueError()
+            except (KeyError,IndexError,TypeError,ValueError):
+                rejected['invalid_record']+=1
+                continue
             label=props.get('label')
             country=props.get('country_a')
             confidence=props.get('confidence')
-            if (country not in ('CIV','CI') or not isinstance(label,str) or len(label)>180
-                    or type(confidence) not in (int,float) or confidence<.8
-                    or not valid_coordinates((lat,lon)) or props.get('layer') not in ('venue','address')):
+            layer=props.get('layer');match_type=props.get('match_type')
+            if isinstance(layer,str) and layer in ('venue','address','street','neighbourhood','locality','localadmin','region','country'):
+                layers[layer]=layers.get(layer,0)+1
+            else:
+                layers['other']=layers.get('other',0)+1
+            if isinstance(match_type,str) and match_type in ('exact','interpolated','fallback'):
+                match_types[match_type]=match_types.get(match_type,0)+1
+            if (not isinstance(label,str) or len(label)>180 or
+                    not valid_coordinates((lat,lon))):
+                rejected['invalid_record']+=1
+                continue
+            if country not in ('CIV','CI'):
+                rejected['wrong_country']+=1
+                continue
+            if layer not in ('venue','address'):
+                rejected['unsupported_layer']+=1
+                continue
+            if match_type not in (None,'exact'):
+                rejected['not_exact_match']+=1
+                continue
+            if (type(confidence) not in (int,float) or not math.isfinite(confidence)
+                    or confidence<.8):
+                rejected['low_confidence']+=1
                 continue
             if requested_number and str(props.get('housenumber','')).casefold()!=requested_number.group(1).casefold():
+                rejected['wrong_house_number']+=1
                 continue
             matches.append({'name':label,'location':(lat,lon),'source':'geocoding'})
         if len(matches)>1:return {'status':'ambiguous','choices':[{'name':x['name']} for x in matches[:4]]}
         if matches:return {'status':'ok',**matches[0]}
-        return {'status':'not_found'}
-    except (urllib.error.HTTPError,urllib.error.URLError,TimeoutError,OSError,ValueError,KeyError,IndexError,TypeError):
-        return {'status':'unavailable'}
+        return {'status':'not_found','reason':'no_results' if not features else 'no_confident_match',
+                'candidate_count':len(features),
+                'diagnostics':{'layers':layers,'match_types':match_types,'rejected':rejected}}
+    except urllib.error.HTTPError as exc:
+        return {'status':'unavailable','reason':'rate_limited' if exc.code==429 else
+                'authentication_or_quota' if exc.code in (401,403) else 'service_error'}
+    except (urllib.error.URLError,TimeoutError,OSError):
+        return {'status':'unavailable','reason':'transport'}
+    except (ValueError,KeyError,IndexError,TypeError):
+        return {'status':'unavailable','reason':'response_format'}

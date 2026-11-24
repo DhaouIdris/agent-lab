@@ -4,6 +4,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -77,6 +78,76 @@ class NamedOriginTests(unittest.TestCase):
         self.assertIn('260 m',result['output']['answer'])
         geocode.assert_called_once_with('12 rue des Jardins',8)
         self.client.chat.assert_not_called()
+
+    def test_full_address_keeps_commas_and_street_intersection(self):
+        geocode=Mock(return_value={'status':'not_found'})
+        question='Je suis à II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan, quel café est le plus proche ?'
+        self.assertEqual(named_origin_request(question),'II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan')
+        result=ask(self.client,self.db,[],question,geocode_service=geocode)
+        self.assertEqual(result['guard_status'],'origin_not_found')
+        self.assertIn('lieu connu à proximité',result['output']['answer'])
+        self.assertNotIn('préciser son nom ou son adresse',result['output']['answer'])
+        geocode.assert_called_once_with('II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan',8)
+        self.client.chat.assert_not_called();self.matrix.assert_not_called()
+
+    def test_numbered_address_keeps_city(self):
+        question='Je suis au 12 rue des Jardins, Abidjan, quel restaurant est le plus proche ?'
+        self.assertEqual(named_origin_request(question),'12 rue des Jardins, Abidjan')
+
+    def test_service_failure_is_not_described_as_unknown_address(self):
+        geocode=Mock(return_value={'status':'unavailable','reason':'rate_limited'})
+        result=ask(self.client,self.db,[],'Je suis au 12 rue des Jardins, quel café est le plus proche ?',
+                   geocode_service=geocode)
+        self.assertEqual(result['guard_status'],'geocoding_unavailable')
+        self.assertEqual(result['diagnostic_code'],'rate_limited')
+        self.assertNotIn('préciser',result['output']['answer'])
+
+    def test_low_confidence_is_reported_without_guessing(self):
+        opener=Mock()
+        payload={'features':[{'properties':{'label':'Rue proche','country_a':'CIV',
+                                  'confidence':.5,'layer':'address','housenumber':'12'},
+                             'geometry':{'coordinates':[-4.0,5.33]}}]}
+        opener.open.return_value=io.BytesIO(json.dumps(payload).encode())
+        result=geocode_origin('12 rue des Jardins','SECRET',opener=opener)
+        self.assertEqual(result['status'],'not_found')
+        self.assertEqual(result['reason'],'no_confident_match')
+        self.assertEqual(result['candidate_count'],1)
+        self.assertEqual(result['diagnostics']['rejected']['low_confidence'],1)
+
+    def test_fallback_street_does_not_become_route_origin(self):
+        opener=Mock()
+        feature={'properties':{'label':'II Plateaux, Abidjan','country_a':'CIV',
+                               'confidence':.9,'layer':'street','match_type':'fallback'},
+                 'geometry':{'coordinates':[-4.0,5.33]}}
+        opener.open.return_value=io.BytesIO(json.dumps({'features':[feature]}).encode())
+        diagnostic=geocode_origin('II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan','SECRET',opener=opener)
+        self.assertEqual(diagnostic['status'],'not_found')
+        self.assertEqual(diagnostic['diagnostics']['layers'],{'street':1})
+        self.assertEqual(diagnostic['diagnostics']['match_types'],{'fallback':1})
+        self.assertEqual(diagnostic['diagnostics']['rejected']['unsupported_layer'],1)
+        geocode=Mock(return_value=diagnostic)
+        result=ask(self.client,self.db,[],
+                   'Je suis à II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan, quel café est le plus proche ?',
+                   matrix_service=self.matrix,geocode_service=geocode)
+        self.assertEqual(result['geocoding_diagnostics'],diagnostic['diagnostics'])
+        self.matrix.assert_not_called();self.client.chat.assert_not_called()
+
+    def test_high_confidence_fallback_address_is_not_exact_origin(self):
+        opener=Mock()
+        feature={'properties':{'label':'1 Rue des Carrossiers, Abidjan','country_a':'CIV',
+                               'confidence':.99,'layer':'address','match_type':'fallback',
+                               'housenumber':'1'},
+                 'geometry':{'coordinates':[-4.0,5.33]}}
+        opener.open.return_value=io.BytesIO(json.dumps({'features':[feature]}).encode())
+        result=geocode_origin('1 Rue des Carrossiers, Zone 3C, Abidjan','SECRET',opener=opener)
+        self.assertEqual(result['status'],'not_found')
+        self.assertEqual(result['diagnostics']['rejected']['not_exact_match'],1)
+
+    def test_geocoder_rate_limit_has_safe_reason(self):
+        opener=Mock()
+        opener.open.side_effect=urllib.error.HTTPError('https://example.invalid',429,'rate limited',{},None)
+        result=geocode_origin('12 rue des Jardins','SECRET',opener=opener)
+        self.assertEqual(result,{'status':'unavailable','reason':'rate_limited'})
 
     def test_geocoder_filters_country_and_never_sends_key_in_url(self):
         opener=Mock()
