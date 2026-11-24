@@ -79,6 +79,15 @@ class AuditTests(unittest.TestCase):
         self.assertNotIn('5.320',str(self.client.chat.call_args))
         self.router.assert_called_once()
 
+    def test_natural_mixed_heritage_question_keeps_both_parts(self):
+        self.router.return_value={'status':'ok','distance_m':2020,'duration_s':1440}
+        row=ask(self.client,self.db,[],
+                'Qu’est-ce qu’on sait sur la faune de Taï ? Et à pied, combien de temps entre 5.3212, -4.0104 et 5.3248, -4.0191 ?',
+                route_service=self.router)
+        self.assertIn('patrimoine',row['output']['answer'])
+        self.assertIn('2.02 km',row['output']['answer'])
+        self.assertEqual([t['tool'] for t in row['trace']],['calculate_route'])
+
     def test_evidence_for_prices_and_hours(self):
         for phrase in ('Le site ouvre à 8 h.', 'Ouverture à 08:30.', 'Le billet coûte 500 FCFA.'):
             self.client.chat.return_value=self.reply(phrase)

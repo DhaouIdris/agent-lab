@@ -20,6 +20,7 @@ class CatalogueTests(unittest.TestCase):
         self.assertEqual(m['counts'],{'rows':4,'inserted':2,'rejected':1,'duplicates':1})
         r=search(self.db,category='cafe',district='cocody',query='etoile')
         self.assertEqual([x['source_id'] for x in r['items']],['way/1'])
+        self.assertEqual(r['items'][0]['map_url'],'https://www.openstreetmap.org/way/1')
         self.assertFalse(r['current_status_verified'])
         self.assertIn('OpenStreetMap',r['attribution'])
     def test_rejects_overwrite_and_sql_wildcard(self):

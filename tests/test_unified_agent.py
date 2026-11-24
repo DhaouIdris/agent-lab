@@ -62,9 +62,19 @@ class UnifiedTests(unittest.TestCase):
         client=Mock();client.chat.return_value=final(answer='Le café ouvre à 9 h.')
         result=ask(client,self.db,self.docs,'Le café sera-t-il ouvert à 9 h ?')
         self.assertEqual(result['diagnostic_code'],'unsupported_price_or_time')
-        self.assertIn('ne vérifie pas les horaires',result['output']['answer'])
+        self.assertIn('ne vérifient pas les horaires',result['output']['answer'])
+        self.assertNotIn('2022',result['output']['answer'])
         self.assertNotIn('réessayer',result['output']['answer'])
         self.assertNotIn('9 h',result['output']['answer'])
+
+    def test_current_only_refusal_does_not_cite_unrelated_place_matches(self):
+        client=Mock()
+        client.chat.side_effect=[call('search_catalogue',{'query':'Chez Georges'},1),
+                                 final(answer='Je ne peux pas confirmer le service ce soir.',
+                                       abstain=True,place_ids=['node/1'])]
+        result=ask(client,self.db,self.docs,'Chez Georges sert ce soir ?',catalogue_search=self.catalogue)
+        self.assertEqual(result['output']['place_ids'],[])
+        self.assertTrue(result['output']['abstain'])
 
     def test_negated_hours_are_not_rejected_but_positive_claim_still_is(self):
         client=Mock();client.chat.return_value=final(answer='Je ne peux pas confirmer une ouverture à 9 h : ces données sont anciennes.',abstain=True)

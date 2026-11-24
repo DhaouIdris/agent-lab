@@ -13,7 +13,8 @@ import statistics
 from ci_agentlab.providers import ChatClient
 from experiments.benchmark_reporting import save_report, write_json
 from experiments.document_rag import load_corpus
-from experiments.unified_agent import fetch_route, fetch_matrix
+from experiments.unified_agent import fetch_route, fetch_matrix, _NEARBY_USER
+from experiments.injection_guard import normalize
 from experiments.route_service import valid_coordinates
 from experiments.unified_agent_batch import run
 from run_azure import load_config
@@ -44,6 +45,8 @@ def scenario(entry):
             evidence['min_places']=3 if goal=='places3' else (2 if goal=='places2' else 1)
     if goal in LOCAL:
         checks.update(max_provider_calls=0,max_tool_calls=0,abstain=True)
+    elif goal=='clarify' and entry.get('user_location') is None and _NEARBY_USER.search(normalize(entry['question'])) and re.search(r'\b(?:moi|ma position|near me)\b',normalize(entry['question'])):
+        checks.update(status='location_required',max_provider_calls=0,max_tool_calls=0,abstain=True)
     elif goal in ('car','walk'):
         tools.append('calculate_route')
         checks.update(route_status='ok',route_mode=goal,abstain=False,max_provider_calls=0)
