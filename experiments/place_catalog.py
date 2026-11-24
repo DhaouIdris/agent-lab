@@ -115,7 +115,7 @@ def search(db_path,category=None,district=None,query=None,limit=10):
         items=[dict(x) for x in con.execute(sql,params)]
         for place in items:
             place['map_url']=osm_place_url(place['source_id'])
-        return {'items':items,'limit':limit,'current_status_verified':False,'warning':'Historical 2022 data; opening, availability and current activity are unverified; incomplete inventory. No verified street address is stored.','source':SOURCE,'attribution':ATTRIBUTION}
+        return {'items':items,'limit':limit,'current_status_verified':False,'warning':'Names and mapped positions are used as place data for this experiment. Street addresses, current opening hours, prices and availability are not supplied; locality filtering can miss entries.','source':SOURCE,'attribution':ATTRIBUTION}
     finally:con.close()
 
 def main():

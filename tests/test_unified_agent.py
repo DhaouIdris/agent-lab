@@ -62,7 +62,8 @@ class UnifiedTests(unittest.TestCase):
         client=Mock();client.chat.return_value=final(answer='Le café ouvre à 9 h.')
         result=ask(client,self.db,self.docs,'Le café sera-t-il ouvert à 9 h ?')
         self.assertEqual(result['diagnostic_code'],'unsupported_price_or_time')
-        self.assertIn('ne vérifie pas les horaires',result['output']['answer'])
+        self.assertIn('ne vérifient pas les horaires',result['output']['answer'])
+        self.assertNotIn('2022',result['output']['answer'])
         self.assertNotIn('réessayer',result['output']['answer'])
         self.assertNotIn('9 h',result['output']['answer'])
 
