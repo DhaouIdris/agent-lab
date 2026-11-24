@@ -260,8 +260,11 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
             return local_response('Je ne peux pas localiser ce point de départ pour le moment.',
                                   'geocoding_unavailable',resolved.get('reason'))
         if resolved['status']!='ok':
-            return local_response('Je ne trouve pas ce point de départ avec assez de certitude. Peux-tu préciser son nom ou son adresse ?',
-                                  'origin_not_found',resolved.get('reason'))
+            response=local_response('Je ne trouve pas ce point de départ avec assez de certitude. Peux-tu préciser son nom ou son adresse ?',
+                                    'origin_not_found',resolved.get('reason'))
+            if 'diagnostics' in resolved:
+                response['geocoding_diagnostics']=resolved['diagnostics']
+            return response
         if inspect_passages([{'id':'origin','text':resolved['name']}]):
             return local_response('Le point de départ contient une instruction suspecte.', 'blocked_suspected_injection')
         response=nearby_answer(db,question,resolved['location'],timeout,matrix_service,origin_label=resolved['name'])

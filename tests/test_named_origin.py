@@ -110,6 +110,25 @@ class NamedOriginTests(unittest.TestCase):
         self.assertEqual(result['status'],'not_found')
         self.assertEqual(result['reason'],'no_confident_match')
         self.assertEqual(result['candidate_count'],1)
+        self.assertEqual(result['diagnostics']['rejected']['low_confidence'],1)
+
+    def test_fallback_street_does_not_become_route_origin(self):
+        opener=Mock()
+        feature={'properties':{'label':'II Plateaux, Abidjan','country_a':'CIV',
+                               'confidence':.9,'layer':'street','match_type':'fallback'},
+                 'geometry':{'coordinates':[-4.0,5.33]}}
+        opener.open.return_value=io.BytesIO(json.dumps({'features':[feature]}).encode())
+        diagnostic=geocode_origin('II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan','SECRET',opener=opener)
+        self.assertEqual(diagnostic['status'],'not_found')
+        self.assertEqual(diagnostic['diagnostics']['layers'],{'street':1})
+        self.assertEqual(diagnostic['diagnostics']['match_types'],{'fallback':1})
+        self.assertEqual(diagnostic['diagnostics']['rejected']['unsupported_layer'],1)
+        geocode=Mock(return_value=diagnostic)
+        result=ask(self.client,self.db,[],
+                   'Je suis à II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan, quel café est le plus proche ?',
+                   matrix_service=self.matrix,geocode_service=geocode)
+        self.assertEqual(result['geocoding_diagnostics'],diagnostic['diagnostics'])
+        self.matrix.assert_not_called();self.client.chat.assert_not_called()
 
     def test_geocoder_rate_limit_has_safe_reason(self):
         opener=Mock()

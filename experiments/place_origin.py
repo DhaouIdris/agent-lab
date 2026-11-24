@@ -1,5 +1,6 @@
 """Resolve an explicitly named starting place, without guessing among matches."""
 import json
+import math
 import re
 import sqlite3
 import urllib.error
@@ -79,22 +80,47 @@ def geocode_origin(name, api_key, opener=None, timeout=8):
         features=data['features']
         if not isinstance(features,list):raise ValueError()
         matches=[]
+        rejected={'wrong_country':0,'unsupported_layer':0,'low_confidence':0,
+                  'wrong_house_number':0,'invalid_record':0}
+        layers={};match_types={}
         for feature in features[:5]:
-            props=feature['properties']; lon,lat=feature['geometry']['coordinates'][:2]
+            try:
+                props=feature['properties']; lon,lat=feature['geometry']['coordinates'][:2]
+                if not isinstance(props,dict):raise ValueError()
+            except (KeyError,IndexError,TypeError,ValueError):
+                rejected['invalid_record']+=1
+                continue
             label=props.get('label')
             country=props.get('country_a')
             confidence=props.get('confidence')
-            if (country not in ('CIV','CI') or not isinstance(label,str) or len(label)>180
-                    or type(confidence) not in (int,float) or confidence<.8
-                    or not valid_coordinates((lat,lon)) or props.get('layer') not in ('venue','address')):
+            layer=props.get('layer');match_type=props.get('match_type')
+            if isinstance(layer,str) and layer in ('venue','address','street','neighbourhood','locality','localadmin','region','country'):
+                layers[layer]=layers.get(layer,0)+1
+            if isinstance(match_type,str) and match_type in ('exact','interpolated','fallback'):
+                match_types[match_type]=match_types.get(match_type,0)+1
+            if (not isinstance(label,str) or len(label)>180 or
+                    not valid_coordinates((lat,lon))):
+                rejected['invalid_record']+=1
+                continue
+            if country not in ('CIV','CI'):
+                rejected['wrong_country']+=1
+                continue
+            if layer not in ('venue','address'):
+                rejected['unsupported_layer']+=1
+                continue
+            if (type(confidence) not in (int,float) or not math.isfinite(confidence)
+                    or confidence<.8):
+                rejected['low_confidence']+=1
                 continue
             if requested_number and str(props.get('housenumber','')).casefold()!=requested_number.group(1).casefold():
+                rejected['wrong_house_number']+=1
                 continue
             matches.append({'name':label,'location':(lat,lon),'source':'geocoding'})
         if len(matches)>1:return {'status':'ambiguous','choices':[{'name':x['name']} for x in matches[:4]]}
         if matches:return {'status':'ok',**matches[0]}
         return {'status':'not_found','reason':'no_results' if not features else 'no_confident_match',
-                'candidate_count':len(features)}
+                'candidate_count':len(features),
+                'diagnostics':{'layers':layers,'match_types':match_types,'rejected':rejected}}
     except urllib.error.HTTPError as exc:
         return {'status':'unavailable','reason':'rate_limited' if exc.code==429 else
                 'authentication_or_quota' if exc.code in (401,403) else 'service_error'}
