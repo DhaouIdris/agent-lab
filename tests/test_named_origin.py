@@ -85,6 +85,8 @@ class NamedOriginTests(unittest.TestCase):
         self.assertEqual(named_origin_request(question),'II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan')
         result=ask(self.client,self.db,[],question,geocode_service=geocode)
         self.assertEqual(result['guard_status'],'origin_not_found')
+        self.assertIn('lieu connu à proximité',result['output']['answer'])
+        self.assertNotIn('préciser son nom ou son adresse',result['output']['answer'])
         geocode.assert_called_once_with('II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan',8)
         self.client.chat.assert_not_called();self.matrix.assert_not_called()
 
