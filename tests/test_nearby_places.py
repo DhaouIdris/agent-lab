@@ -81,6 +81,7 @@ class NearbyTests(unittest.TestCase):
         result=ask(Mock(),self.db,[],'Quel hôtel est le plus près de moi, à pied ?',
                    user_location=self.origin,matrix_service=route)
         self.assertEqual(result['output']['place_ids'],['node/6'])
+        self.assertIn('L’hôtel le plus proche',result['output']['answer'])
         self.assertIn('Hôtel deuxième',result['output']['answer'])
         self.assertNotIn('Hôtel troisième',result['output']['answer'])
         route.assert_called_once()
