@@ -20,6 +20,7 @@ from experiments.route_service import route, load_route_key, valid_coordinates
 from experiments.route_service import matrix
 from experiments.nearby_places import candidates, MAX_CANDIDATES, RADIUS_KM
 from experiments.place_links import osm_place_url
+from experiments.place_origin import named_origin_request, local_origin, geocode_origin
 
 class DocumentInput(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
@@ -121,11 +122,15 @@ def fetch_matrix(origin,destinations,mode,timeout):
     return matrix(origin,destinations,mode,load_route_key(),timeout=timeout)
 
 
+def fetch_geocode(name,timeout):
+    return geocode_origin(name,load_route_key(),timeout=timeout)
+
+
 def format_route_distance(distance_m):
     return f'{distance_m:.0f} m' if distance_m<1000 else f'{distance_m/1000:.2f} km'
 
 
-def nearby_answer(db,question,origin,timeout,matrix_service):
+def nearby_answer(db,question,origin,timeout,matrix_service,origin_label=None):
     q=normalize(question)
     category=next((name for pattern,name in _NEARBY_CATEGORIES if pattern.search(q)),None)
     if category is None:
@@ -155,13 +160,20 @@ def nearby_answer(db,question,origin,timeout,matrix_service):
                           'document_ids':[],'place_ids':[],'abstain':True},'trace':trace,'response_origin':'route_service'}
     selected=ranked[:1 if re.search(r'\b(?:le|la) plus proche\b',q) else 3]
     label='en voiture' if mode=='car' else 'à pied'
+    place_type={'restaurant':'restaurant','cafe':'café','hotel':'hôtel','bar':'bar',
+                'fast_food':'fast-food','ice_cream':'glacier'}[category]
     lines=[]
     for distance,_,place,duration in selected:
         link=osm_place_url(place['source_id'])
         name=f"[{place['name']}]({link})" if link else place['name']
         locality=f" ({place['district']})" if place.get('district') else ''
         lines.append(f'{name}{locality} : {format_route_distance(distance)}, environ {duration/60:.0f} min')
-    text='Voici des lieux accessibles '+label+' :\n'+'\n'.join(f'- {line}' for line in lines)
+    if origin_label:
+        intro=(f'Depuis {origin_label}, le {place_type} le plus proche {label} parmi ceux trouvés est :' if len(selected)==1
+               else f'Depuis {origin_label}, voici des {place_type}s accessibles {label} :')
+    else:
+        intro='Voici des lieux accessibles '+label+' :'
+    text=intro+'\n'+'\n'.join(f'- {line}' for line in lines)
     text+='\nDistances et durées estimées à partir des lieux trouvés.'
     trace[0]['result']['ranked']=[{'source_id':p['source_id'],'name':p['name'],'distance_m':distance,'duration_s':duration} for distance,_,p,duration in selected]
     return {'output':{'answer':text,'document_ids':[],'place_ids':[p['source_id'] for _,_,p,_ in selected],
@@ -224,13 +236,29 @@ def validate_final(raw, observed_documents, observed_places):
     return {key:result[key] for key in ('answer','abstain','document_ids','place_ids')},None
 
 def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=search, route_service=fetch_route, diagnostics=None,
-        user_location=None, matrix_service=fetch_matrix):
+        user_location=None, matrix_service=fetch_matrix, geocode_service=fetch_geocode):
     if not isinstance(question,str) or not question.strip() or len(question)>2000:raise ValueError('Question must contain 1..2000 characters')
     if type(max_rounds) is not int or not 1<=max_rounds<=10:raise ValueError('Invalid round limit')
     if inspect_user_input(question):
         return local_response('La demande a été interrompue car elle contient une instruction suspecte.', 'blocked_suspected_injection')
     if user_location is not None and not valid_coordinates(user_location):
         return local_response('Coordonnées invalides. Vérifiez latitude et longitude.', 'invalid_coordinates')
+    origin_name=named_origin_request(question)
+    if origin_name:
+        resolved=local_origin(db,origin_name)
+        if resolved['status']=='not_found':
+            resolved=geocode_service(origin_name,min(8,timeout))
+        if resolved['status']=='ambiguous':
+            choices=' ; '.join(x['name']+(f" ({x['district']})" if x.get('district') else '') for x in resolved['choices'])
+            return local_response(f'Lequel de ces lieux veux-tu dire : {choices} ?', 'ambiguous_origin')
+        if resolved['status']!='ok':
+            return local_response('Je ne trouve pas ce point de départ avec assez de certitude. Peux-tu préciser son nom ou son adresse ?', 'origin_not_found')
+        if inspect_passages([{'id':'origin','text':resolved['name']}]):
+            return local_response('Le point de départ contient une instruction suspecte.', 'blocked_suspected_injection')
+        response=nearby_answer(db,question,resolved['location'],timeout,matrix_service,origin_label=resolved['name'])
+        response['trace'].insert(0,{'tool':'resolve_origin','arguments':{'kind':'named_place'},
+                                    'result':{'status':'ok','source':resolved['source']}})
+        return response
     if user_location is not None and _NEARBY_USER.search(normalize(question)):
         return nearby_answer(db,question,user_location,timeout,matrix_service)
     if user_location is None and _NEARBY_USER.search(normalize(question)) and re.search(r'\b(?:moi|ma position|near me)\b',normalize(question)) and not is_route(question):
@@ -243,7 +271,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
         if any(not valid_coordinates(tuple(map(float,p))) for p in _PAIR.findall(routing)):
             return local_response('Coordonnées invalides. Vérifiez latitude et longitude.', 'invalid_coordinates')
         partial=ask(client,db,docs,retain_route_reference(other,routing),max_rounds,timeout,catalogue_search,route_service,diagnostics,
-                    user_location,matrix_service)
+                    user_location,matrix_service,geocode_service)
         if partial.get('guard_status')=='blocked_suspected_injection':
             return partial
         remaining=deadline-time.monotonic()
@@ -377,7 +405,7 @@ def main():
     routing,other=route_request(a.question)
     client=None
     timeout=180
-    if not inspect_user_input(a.question) and not (a.user_location and _NEARBY_USER.search(normalize(a.question))) and (not routing or other):
+    if not inspect_user_input(a.question) and not named_origin_request(a.question) and not (a.user_location and _NEARBY_USER.search(normalize(a.question))) and (not routing or other):
         cfg=load_config(a.config)
         timeout=cfg['turn_timeout_seconds']
         key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure (saisie masquée) : ')

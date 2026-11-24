@@ -334,7 +334,7 @@ def main():
               'max_provider_calls':planned*5 if a.live else 0,
               'code_sha256':{p.name:digest(p) for p in [Path(__file__),Path('ci_agentlab/providers.py'),
                           *(Path('experiments')/(m+'.py') for m in ('input_guard','injection_guard','unified_agent','route_service',
-                          'document_rag','catalogue_chat','place_catalog','unified_agent_batch','benchmark_reporting'))]}}
+                          'document_rag','catalogue_chat','place_catalog','place_origin','unified_agent_batch','benchmark_reporting'))]}}
     if a.failed_from:
         metadata['previous_report_sha256']=digest(a.failed_from)
     rows=[]
