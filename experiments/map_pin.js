@@ -109,10 +109,15 @@ compareButton.addEventListener('click', async () => {
     }
     renderPlaces(data.short,document.getElementById('short-results'));
     renderPlaces(data.wide,document.getElementById('wide-results'));
+    const coverage = data.top3_bounded_in_catalogue
+      ? 'Les trois premiers couvrent aussi les lieux non testés selon la borne de distance.'
+      : data.nearest_bounded_in_catalogue
+        ? 'Le premier couvre aussi les lieux non testés selon la borne de distance ; le trio peut encore changer.'
+        : 'D’autres lieux recensés pourraient encore donner un trajet plus court.';
     note.textContent=(data.top3_changed
       ? 'La sélection de 12 lieux a écarté au moins un des trois premiers parmi 50.'
       : 'Les trois premiers sont les mêmes avec 12 et 50 lieux.')
-      + ` ${data.candidate_count} lieux testés parmi ${data.matching_in_radius} dans la zone ; ce contrôle ne prouve pas qu’il n’y en a pas de plus proches.`;
+      + ` ${data.reachable_candidates} trajets calculés parmi ${data.candidate_count} lieux testés et ${data.matching_in_radius} recensés dans la zone. ${coverage} Le repère, le catalogue et le réseau routier peuvent rester incomplets.`;
   } catch (_) {
     if (version === selectionVersion) note.textContent='Impossible de joindre le service local pour le moment.';
   } finally {

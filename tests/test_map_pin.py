@@ -72,6 +72,8 @@ class MapPinTests(unittest.TestCase):
         self.assertEqual(result['wide'][0]['name'],'Restaurant 13')
         self.assertEqual(result['wide'][0]['distance'],'80 m')
         self.assertEqual(result['nearest_regret'],'920 m')
+        self.assertTrue(result['nearest_bounded_in_catalogue'])
+        self.assertTrue(result['top3_bounded_in_catalogue'])
         self.assertNotIn('5.33',json.dumps(result))
         self.matrix.assert_called_once()
 

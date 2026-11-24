@@ -76,7 +76,10 @@ def compare_from_pin(payload,db,matrix_service=fetch_matrix):
                 'candidate_count':public['candidate_count'],
                 'nearest_regret':(format_route_distance(public['nearest_regret_m'])
                                   if public['nearest_regret_m'] is not None else None),
-                'top3_changed':public['wide_top3_missing_from_short']>0}
+                'top3_changed':public['wide_top3_missing_from_short']>0,
+                'nearest_bounded_in_catalogue':public['nearest_bounded_in_catalogue'],
+                'top3_bounded_in_catalogue':public['top3_bounded_in_catalogue'],
+                'reachable_candidates':public['reachable_candidates']}
 
 
 def make_handler(db,token,matrix_service=fetch_matrix,clock=time.monotonic):
