@@ -80,8 +80,8 @@ def geocode_origin(name, api_key, opener=None, timeout=8):
         features=data['features']
         if not isinstance(features,list):raise ValueError()
         matches=[]
-        rejected={'wrong_country':0,'unsupported_layer':0,'low_confidence':0,
-                  'wrong_house_number':0,'invalid_record':0}
+        rejected={'wrong_country':0,'unsupported_layer':0,'not_exact_match':0,
+                  'low_confidence':0,'wrong_house_number':0,'invalid_record':0}
         layers={};match_types={}
         for feature in features[:5]:
             try:
@@ -96,6 +96,8 @@ def geocode_origin(name, api_key, opener=None, timeout=8):
             layer=props.get('layer');match_type=props.get('match_type')
             if isinstance(layer,str) and layer in ('venue','address','street','neighbourhood','locality','localadmin','region','country'):
                 layers[layer]=layers.get(layer,0)+1
+            else:
+                layers['other']=layers.get('other',0)+1
             if isinstance(match_type,str) and match_type in ('exact','interpolated','fallback'):
                 match_types[match_type]=match_types.get(match_type,0)+1
             if (not isinstance(label,str) or len(label)>180 or
@@ -107,6 +109,9 @@ def geocode_origin(name, api_key, opener=None, timeout=8):
                 continue
             if layer not in ('venue','address'):
                 rejected['unsupported_layer']+=1
+                continue
+            if match_type not in (None,'exact'):
+                rejected['not_exact_match']+=1
                 continue
             if (type(confidence) not in (int,float) or not math.isfinite(confidence)
                     or confidence<.8):

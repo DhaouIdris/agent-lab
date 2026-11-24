@@ -130,6 +130,17 @@ class NamedOriginTests(unittest.TestCase):
         self.assertEqual(result['geocoding_diagnostics'],diagnostic['diagnostics'])
         self.matrix.assert_not_called();self.client.chat.assert_not_called()
 
+    def test_high_confidence_fallback_address_is_not_exact_origin(self):
+        opener=Mock()
+        feature={'properties':{'label':'1 Rue des Carrossiers, Abidjan','country_a':'CIV',
+                               'confidence':.99,'layer':'address','match_type':'fallback',
+                               'housenumber':'1'},
+                 'geometry':{'coordinates':[-4.0,5.33]}}
+        opener.open.return_value=io.BytesIO(json.dumps({'features':[feature]}).encode())
+        result=geocode_origin('1 Rue des Carrossiers, Zone 3C, Abidjan','SECRET',opener=opener)
+        self.assertEqual(result['status'],'not_found')
+        self.assertEqual(result['diagnostics']['rejected']['not_exact_match'],1)
+
     def test_geocoder_rate_limit_has_safe_reason(self):
         opener=Mock()
         opener.open.side_effect=urllib.error.HTTPError('https://example.invalid',429,'rate limited',{},None)
