@@ -1,0 +1,6 @@
+[
+  {"id":"NS01","question":"Je suis à l'hôtel Sofitel, quel est le restaurant le plus proche ?","human_expectation":"Résoudre Sofitel Abidjan Hôtel Ivoire et comparer le restaurant le plus proche sur 12 et 50 candidats ORS."},
+  {"id":"NS02","question":"Depuis l'hôtel Novotel Abidjan, quel café est le plus proche à pied ?","human_expectation":"Départ hôtel identifié sans saisir de coordonnées ; comparer les cafés joignables par trajet."},
+  {"id":"NS03","question":"Depuis Abidjan Café, quel bar est le plus proche à pied ?","human_expectation":"Départ café identifié sans ambiguïté ; vérifier que les bars classés correspondent à des fiches distinctes."},
+  {"id":"NS04","question":"Je suis à Boule de neige, quel restaurant est le plus proche en voiture ?","human_expectation":"Départ glacier identifié, classement en voiture, pas de distance à vol d'oiseau affichée."}
+]

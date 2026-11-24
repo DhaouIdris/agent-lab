@@ -13,3 +13,13 @@ Test sur un catalogue réel, sans mettre de clé dans la commande :
 ~~~
 
 Comparer aussi des noms présents plusieurs fois, une adresse de rue et un lieu inconnu. Conserver les résultats privés localement pour relire les correspondances proposées par le géocodeur avant de tirer des conclusions. Ce chemin n’est pas encore une recherche générale d’itinéraires entre deux adresses.
+
+Pour mesurer si le préfiltre de 12 candidats écarte des restaurants plus proches par trajet, utiliser le panel distinct de quatre questions naturelles. Une seule matrice ORS évalue les 50 mêmes candidats ; le script compare le classement des 12 premiers à celui des 50 et enregistre les noms dans la revue privée. Le rapport public n’affiche aucune coordonnée ni clé. Ces cas de développement ne sont pas un échantillon représentatif.
+
+~~~powershell
+$run = "runs/named_origin_compare_$(Get-Date -Format yyyyMMddTHHmmss)"
+.\.venv\Scripts\python.exe -m experiments.compare_named_origin_shortlists --cases data/named_origin_shortlist_4.json --db local_data/lieux.sqlite --out $run
+Get-Content "$run/report.json"
+~~~
+
+Lire également `review.private.json` pour vérifier si les lieux nouvellement trouvés à 50 candidats sont plausibles et distincts. Un classement identique entre 12 et 50 n’établit pas que l’on a examiné tous les restaurants du pays ou tous ceux dans le rayon.
