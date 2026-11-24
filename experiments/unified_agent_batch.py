@@ -31,6 +31,8 @@ def score_response(row,case):
         checks['required_place_ids']=set(rules['required_place_ids'])<=set(output.get('place_ids',[]))
     if 'min_places' in rules:
         checks['cited_places']=len(set(output.get('place_ids',[])))>=rules['min_places']
+    if 'max_place_ids' in rules:
+        checks['max_place_ids']=len(set(output.get('place_ids',[])))<=rules['max_place_ids']
     if 'max_answer_chars' in rules:
         checks['max_answer_chars']=len(output.get('answer',''))<=rules['max_answer_chars']
     if rules.get('no_place_ids'):
