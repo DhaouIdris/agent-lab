@@ -67,6 +67,24 @@ class NearbyTests(unittest.TestCase):
         self.assertTrue(result['output']['abstain'])
         self.assertFalse(result['output']['place_ids'])
 
+    def test_singular_plus_pres_returns_one_place(self):
+        con=sqlite3.connect(self.db)
+        try:
+            con.executemany('INSERT INTO places VALUES (?,?,?,?,?,?)',[
+                ('node/6','Hôtel deuxième','hotel','',5.3210,-4.0120),
+                ('node/7','Hôtel troisième','hotel','',5.3220,-4.0120)])
+            con.commit()
+        finally:
+            con.close()
+        route=Mock(return_value={'status':'ok','distances_m':[500,100,300],
+                                 'durations_s':[400,80,250]})
+        result=ask(Mock(),self.db,[],'Quel hôtel est le plus près de moi, à pied ?',
+                   user_location=self.origin,matrix_service=route)
+        self.assertEqual(result['output']['place_ids'],['node/6'])
+        self.assertIn('Hôtel deuxième',result['output']['answer'])
+        self.assertNotIn('Hôtel troisième',result['output']['answer'])
+        route.assert_called_once()
+
     def test_invalid_location_and_malicious_question_stop_before_services(self):
         model=Mock();routing=Mock()
         bad=ask(model,self.db,[],'Quels cafés sont proches ?',user_location=(91,-4),matrix_service=routing)
