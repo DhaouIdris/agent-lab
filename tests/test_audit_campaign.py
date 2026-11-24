@@ -120,6 +120,29 @@ class AuditTests(unittest.TestCase):
         self.assertFalse(row['quality_checks']['required_tools'])
         self.assertFalse(row['automatic_checks_pass'])
 
+    def test_singular_place_ceiling_requires_one_observed_id(self):
+        case={'evidence_checks':{'min_places':1,'max_place_ids':1},
+              'required_tools':['rank_nearby']}
+        def checked(ids):
+            row={'status':'nearby_result','observed_tools':['rank_nearby'],
+                 'output':{'answer':'Réponse','document_ids':[],'place_ids':ids}}
+            score_response(row,case)
+            return row
+        self.assertFalse(checked(['node/1','node/2'])['quality_checks']['max_place_ids'])
+        self.assertFalse(checked(['node/1','node/2'])['automatic_checks_pass'])
+        self.assertTrue(checked(['node/1'])['automatic_checks_pass'])
+        self.assertFalse(checked([])['quality_checks']['cited_places'])
+
+    def test_response_followup_is_separate_from_frozen_holdout(self):
+        from experiments.audit_campaign import load_cases
+        path=Path('data/holdout_response_followup_5.json')
+        cases=load_cases(path,False)
+        self.assertEqual(len(cases),5)
+        self.assertEqual(len(load_cases(path,True)),4)
+        self.assertEqual({c['id'] for c in cases if c['evidence_checks'].get('max_place_ids')==1},
+                         {'RF-P01','RF-P02','RF-C01'})
+        self.assertEqual(next(c for c in cases if c['id']=='RF-P01')['evidence_checks']['min_places'],1)
+
     def test_followup_flags_observed_unavailable_search_offers(self):
         case={'outcome_checks':{'status':'model_output'},'evidence_checks':{'no_unavailable_lookup_offer':True}}
         for answer in (

@@ -222,10 +222,11 @@ def load_cases(path,consistency):
                 or ('user_location' in case and not valid_coordinates(case['user_location']) and case['goal']!='nearby_invalid')
                 or not isinstance(extra_outcome,dict) or not set(extra_outcome)<={'max_tool_calls','max_provider_calls'}
                 or any(type(value) is not int or not 0<=value<=10 for value in extra_outcome.values())
-                or not isinstance(extra_evidence,dict) or not set(extra_evidence)<={'no_unavailable_lookup_offer','required_document_ids','required_place_ids','max_answer_chars','no_place_ids'}
+                or not isinstance(extra_evidence,dict) or not set(extra_evidence)<={'no_unavailable_lookup_offer','required_document_ids','required_place_ids','max_answer_chars','max_place_ids','no_place_ids'}
                 or any(type(value) is not bool for key,value in extra_evidence.items() if key=='no_unavailable_lookup_offer')
                 or any(type(value) is not bool for key,value in extra_evidence.items() if key=='no_place_ids')
                 or ('max_answer_chars' in extra_evidence and (type(extra_evidence['max_answer_chars']) is not int or not 1<=extra_evidence['max_answer_chars']<=1000))
+                or ('max_place_ids' in extra_evidence and (type(extra_evidence['max_place_ids']) is not int or not 0<=extra_evidence['max_place_ids']<=10))
                 or any(not isinstance(extra_evidence.get(key),list) or not extra_evidence[key]
                        or any(not isinstance(item,str) or not item for item in extra_evidence[key])
                        for key in ('required_document_ids','required_place_ids') if key in extra_evidence)):
