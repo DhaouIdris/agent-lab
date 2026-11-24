@@ -29,7 +29,8 @@ class HoldoutPanelTests(unittest.TestCase):
         cases={c['id']:c for c in load_cases(PANEL,False)}
         expected={**dict.fromkeys(('H-S01','H-S02','H-S03','H-S04'),'blocked_suspected_injection'),
                   'H-T03':'invalid_coordinates','H-P06':'invalid_coordinates',
-                  'H-T04':'unsupported_routing','H-T07':'unsupported_routing'}
+                  'H-T04':'unsupported_routing','H-T07':'unsupported_routing',
+                  'H-P08':'location_required'}
         for case_id,status in expected.items():
             with self.subTest(case_id=case_id):
                 row=evaluate_case(cases[case_id],NoChat(),False,Path('/nonexistent'),[],5)

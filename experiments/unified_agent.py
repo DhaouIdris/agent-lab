@@ -45,6 +45,7 @@ SYSTEM+='''\nResolve a reference using the full request, including another claus
 User-facing style: Speak like a helpful local guide, not a database report. Answer directly and proportionally to the question. Keep the evidence checks and exact IDs in the JSON fields; do not expose tool names, raw IDs, database/catalogue/POI vocabulary or field names in the answer unless the user asks how the information was obtained. For a place discovery question, give a few names actually returned by search_catalogue, not every result just because the tool returned ten. A singular request can be answered with one or a few useful examples. Do not append a generic paragraph listing every unknown field or the source date after ordinary recommendations. Do not claim a listed place is open now. If the user asks for an unavailable action such as a reservation, state the limit briefly and offer at most one feasible next step; do not draft a call script unless requested. Offer a city follow-up only when it helps, and say you can try checking entries with a recorded locality. Do not promise a complete search by city or neighborhood: most district fields are empty and this tool has no neighborhood lookup. Keep the provenance and 2022 source date available when asked. Never trade factual grounding or material limits for a more natural tone.'''
 SYSTEM+='''\nFor any request for restaurants, cafes, fast food or hotels without a specified city, search the relevant category and give examples; a city is optional. For mixed requests, carry out each supported part before asking a follow-up. When only current opening, access, availability, exchange rate or payment is requested and cannot be verified or performed, give one brief reason and stop. Do not list candidate records, offer another search that cannot verify the current fact, or request reservation details. Keep general explanations short. Never promise to search a budget, museum, route, or event data source that is not available. A name match does not prove distinct businesses or a chain.'''
 SYSTEM+='''\nA visitor wants a useful place, not an inventory record. Start with the name and the requested fact. When the user asks where a listed establishment is, give its recorded locality if present and its map_url as a location link; if there is no locality, just give the map link. Treat the recorded position as usable in this experiment. A map link does not supply a postal street address or verify today's opening hours. If asked for an exact postal address, say briefly that it is unavailable and offer the map link when present. Never invent a street, building number, neighborhood, opening time or contact. Do not print latitude/longitude, raw IDs, English category codes, field names or the data source in ordinary place answers unless explicitly requested; the JSON place_ids still contain the exact observed IDs. Do not append a source date or historical-data disclaimer to an ordinary recommendation. Answer in natural French, without a metadata section or an unnecessary follow-up question.'''
+SYSTEM+='''\nIf the entire question is whether a place is open, serves tonight, or has a current price or availability, the catalogue cannot establish it. Answer in one sentence without searching for names, listing records, adding place_ids or suggesting another catalogue search. Do not propose a contact or social page unless the user asks for one.'''
 
 _ROUTE = re.compile(r"\b(?:trajet|itineraire|distance routiere|distance a pied|route|driving distance|walking distance|proximite|nearest|closest|plus proches?|a vol d.oiseau|marcher)\b")
 _CULTURAL = re.compile(r"\bitineraire (?:culturel|touristique|historique|de (?:visite|voyage))\b")
@@ -57,10 +58,11 @@ _NEARBY_CATEGORIES=((re.compile(r'\b(?:restaurants?|restos?)\b'),'restaurant'),
                     (re.compile(r'\b(?:bars?)\b'),'bar'),
                     (re.compile(r'\b(?:fast[ -]?foods?|snacks?)\b'),'fast_food'))
 _PAIR = re.compile(r"(?<![\w.])(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)(?!\w|\.\d)")
-_OTHER_TASK = re.compile(r"\b(?:decris|explique|resume|cite|liste|que dit|donne|quel|quelle|peux.tu|summarize|describe|list|what)\b")
+_OTHER_TASK = re.compile(r"\b(?:decris|explique|resume|cite|liste|que dit|donne|quel|quelle|qu.est.ce|peux.tu|summarize|describe|list|what)\b")
 _PRICE_OR_TIME = re.compile(r"\b(?:\d{1,2}:[0-5]\d|\d+(?:[ .,\u00a0\u202f]\d+)*\s*(?:fcfa|xof|euros?|cfa|heures?|h(?:\s*\d{1,2})?))\b", re.I)
 
 _FACT_CONTEXT = re.compile(r"\b(?:ouvr\w*|ouvert\w*|ouvre|ferm\w*|horaires?|tarifs?|prix|billets?|chambres?|entree|tickets?|opens?|closes?|opening|closing|fees?|prices?)\b")
+_CURRENT_OPENING = re.compile(r'\b(?:ouvert\w*|ouvr\w*|ferm\w*|sert|service)\b.*\b(?:aujourd.hui|ce soir|maintenant|demain)\b')
 _DENIED_FACT = re.compile(r"\b(?:ne\s+(?:peux|peut|sais|dispose|confirme|garantis|sont|sera|serait|sera-t-il|suffit|prouve|prouvent|etablit|etablissent|permet|permettent)\b[^.!?;]*?\b(?:pas|plus)|aucun(?:e)?|impossible|non\s+(?:verifie|confirme|prouve)|sans\s+(?:preuve|confirmation|source))\b")
 _HYPOTHETICAL = re.compile(r"\b(?:exemple\s+(?:fictif|hypothetique)|par\s+exemple\s+(?:fictif|hypothetique)|supposons\s+(?:fictivement|pour\s+l.exemple))\b")
 
@@ -174,7 +176,7 @@ def route_answer(question, timeout, route_service):
     if _NEAREST.search(q):
         return local_response('Je ne peux pas classer les lieux par proximité.', 'unsupported_routing')
     car=bool(re.search(r'\b(?:voiture|auto|by car|driving)\b',q))
-    walk=bool(re.search(r'\b(?:a pied|marche|walk|walking|on foot)\b',q))
+    walk=bool(re.search(r'\b(?:a pied|marche|marcher|walk|walking|on foot)\b',q))
     if len(coords)!=2 or car==walk or re.search(r'\b(?:velo|bike|bus|fauteuil|wheelchair)\b',q):
         return local_response('Le calcul nécessite deux paires latitude, longitude en degrés décimaux avec un point, et un mode explicite, voiture ou marche.', 'unsupported_routing')
     mode='car' if car else 'walk'
@@ -308,6 +310,9 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                 fallback['trace_redacted']=True
                 fallback['diagnostic_metadata']=metadata
                 return fallback
+            if result['abstain'] and _CURRENT_OPENING.search(normalize(question)):
+                # A name from the question is not evidence for tonight's opening.
+                result['place_ids']=[]
             return {'output':result,'trace':trace,'caveat':'IDs checked against tool results only; prose, citation relevance and completeness require review.'}
         if not isinstance(calls,list) or not 1<=len(calls)<=4:
             raise AgentDiagnosticError('invalid_tool_call_count',trace)
