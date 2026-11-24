@@ -4,6 +4,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -77,6 +78,44 @@ class NamedOriginTests(unittest.TestCase):
         self.assertIn('260 m',result['output']['answer'])
         geocode.assert_called_once_with('12 rue des Jardins',8)
         self.client.chat.assert_not_called()
+
+    def test_full_address_keeps_commas_and_street_intersection(self):
+        geocode=Mock(return_value={'status':'not_found'})
+        question='Je suis à II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan, quel café est le plus proche ?'
+        self.assertEqual(named_origin_request(question),'II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan')
+        result=ask(self.client,self.db,[],question,geocode_service=geocode)
+        self.assertEqual(result['guard_status'],'origin_not_found')
+        geocode.assert_called_once_with('II Plateaux 7e Tranche, angle rues L129 et L84, Abidjan',8)
+        self.client.chat.assert_not_called();self.matrix.assert_not_called()
+
+    def test_numbered_address_keeps_city(self):
+        question='Je suis au 12 rue des Jardins, Abidjan, quel restaurant est le plus proche ?'
+        self.assertEqual(named_origin_request(question),'12 rue des Jardins, Abidjan')
+
+    def test_service_failure_is_not_described_as_unknown_address(self):
+        geocode=Mock(return_value={'status':'unavailable','reason':'rate_limited'})
+        result=ask(self.client,self.db,[],'Je suis au 12 rue des Jardins, quel café est le plus proche ?',
+                   geocode_service=geocode)
+        self.assertEqual(result['guard_status'],'geocoding_unavailable')
+        self.assertEqual(result['diagnostic_code'],'rate_limited')
+        self.assertNotIn('préciser',result['output']['answer'])
+
+    def test_low_confidence_is_reported_without_guessing(self):
+        opener=Mock()
+        payload={'features':[{'properties':{'label':'Rue proche','country_a':'CIV',
+                                  'confidence':.5,'layer':'address','housenumber':'12'},
+                             'geometry':{'coordinates':[-4.0,5.33]}}]}
+        opener.open.return_value=io.BytesIO(json.dumps(payload).encode())
+        result=geocode_origin('12 rue des Jardins','SECRET',opener=opener)
+        self.assertEqual(result['status'],'not_found')
+        self.assertEqual(result['reason'],'no_confident_match')
+        self.assertEqual(result['candidate_count'],1)
+
+    def test_geocoder_rate_limit_has_safe_reason(self):
+        opener=Mock()
+        opener.open.side_effect=urllib.error.HTTPError('https://example.invalid',429,'rate limited',{},None)
+        result=geocode_origin('12 rue des Jardins','SECRET',opener=opener)
+        self.assertEqual(result,{'status':'unavailable','reason':'rate_limited'})
 
     def test_geocoder_filters_country_and_never_sends_key_in_url(self):
         opener=Mock()

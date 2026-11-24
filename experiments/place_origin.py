@@ -11,7 +11,9 @@ from experiments.injection_guard import normalize
 from experiments.route_service import valid_coordinates
 
 GEOCODER='https://api.heigit.org/pelias/v1/search'
-_ORIGIN=re.compile(r'\b(?:(?:je suis|je me trouve|je loge)\s+(?:à|a|au|aux|chez|dans)|je pars\s+(?:de|du|de la)|depuis)\s+(.+?)(?:[,;?]|\.\s|\s+et\s+)',re.I)
+_ORIGIN=re.compile(
+    r'\b(?:(?:je suis|je me trouve|je loge)\s+(?:à|a|au|aux|chez|dans)|je pars\s+(?:de|du|de la)|depuis)\s+'
+    r'(.+?)(?:,\s*(?=(?:quel|quelle|où|ou|tu|je cherche|y a)\b)|[;?]|\.\s+|\s+et\s+(?=(?:quel|quelle|où|ou|tu|je)\b))',re.I)
 _TYPE=re.compile(r'\b(?:restaurants?|restos?|cafés?|hotels?|hôtels?|bars?|glaciers?|fast[ -]?foods?)\b',re.I)
 _NEAR=re.compile(r'\b(?:plus proche|près|pres|à côté|a cote|pas loin|autour)\b',re.I)
 
@@ -63,7 +65,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def geocode_origin(name, api_key, opener=None, timeout=8):
     """Bounded Côte d'Ivoire search; send no keys or coordinates back to the model."""
-    if not isinstance(api_key,str) or not api_key.strip():return {'status':'unavailable'}
+    if not isinstance(api_key,str) or not api_key.strip():return {'status':'unavailable','reason':'missing_key'}
     if not isinstance(name,str) or not 4<=len(name)<=120:return {'status':'not_found'}
     requested_number=re.match(r'^\s*(\d+[A-Za-z]?)\s+',name)
     url=GEOCODER+'?'+urllib.parse.urlencode({'text':name,'boundary.country':'CIV',
@@ -72,7 +74,7 @@ def geocode_origin(name, api_key, opener=None, timeout=8):
     try:
         with (opener or urllib.request.build_opener(_NoRedirect())).open(req,timeout=max(.1,min(timeout,8))) as response:
             raw=response.read(1000001)
-        if len(raw)>1000000:return {'status':'unavailable'}
+        if len(raw)>1000000:return {'status':'unavailable','reason':'oversized_response'}
         data=json.loads(raw)
         features=data['features']
         if not isinstance(features,list):raise ValueError()
@@ -91,6 +93,12 @@ def geocode_origin(name, api_key, opener=None, timeout=8):
             matches.append({'name':label,'location':(lat,lon),'source':'geocoding'})
         if len(matches)>1:return {'status':'ambiguous','choices':[{'name':x['name']} for x in matches[:4]]}
         if matches:return {'status':'ok',**matches[0]}
-        return {'status':'not_found'}
-    except (urllib.error.HTTPError,urllib.error.URLError,TimeoutError,OSError,ValueError,KeyError,IndexError,TypeError):
-        return {'status':'unavailable'}
+        return {'status':'not_found','reason':'no_results' if not features else 'no_confident_match',
+                'candidate_count':len(features)}
+    except urllib.error.HTTPError as exc:
+        return {'status':'unavailable','reason':'rate_limited' if exc.code==429 else
+                'authentication_or_quota' if exc.code in (401,403) else 'service_error'}
+    except (urllib.error.URLError,TimeoutError,OSError):
+        return {'status':'unavailable','reason':'transport'}
+    except (ValueError,KeyError,IndexError,TypeError):
+        return {'status':'unavailable','reason':'response_format'}
