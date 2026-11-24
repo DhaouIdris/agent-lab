@@ -29,7 +29,7 @@ def save_report(out, report, private=False):
             item['diagnostic_metadata']['provider_error_kind']=metadata['provider_error_kind']
         item['abstain']=(row.get('output') or {}).get('abstain')
         item['provider_attempts']=len(row.get('provider_calls',[]))
-        item['tools']=[t for t in row.get('observed_tools',[]) if t in ('search_catalogue','search_documents','calculate_route','rank_nearby')]
+        item['tools']=[t for t in row.get('observed_tools',[]) if t in ('search_catalogue','search_documents','calculate_route','rank_nearby','resolve_origin')]
         safe['results'].append(item)
     if private:
         write_json(out/'review.private.json',report)
