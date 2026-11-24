@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="map-token" content="__MAP_TOKEN__">
+  <title>Lieux proches sur la carte</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
+  <link rel="stylesheet" href="/map_pin.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+  <script defer src="/map_pin.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Que trouver près de toi ?</h1>
+      <p>Choisis ton point de départ sur la carte. Déplace le repère pour l’ajuster.</p>
+    </header>
+    <div id="map" role="application" aria-label="Carte interactive de la Côte d’Ivoire"></div>
+    <p class="hint" id="selection" role="status">Clique sur la carte pour choisir ton point de départ.</p>
+    <div class="controls">
+      <label>Je cherche
+        <select id="category">
+          <option value="restaurant">un restaurant</option>
+          <option value="cafe">un café</option>
+          <option value="hotel">un hôtel</option>
+          <option value="bar">un bar</option>
+          <option value="fast_food">un fast-food</option>
+          <option value="ice_cream">un glacier</option>
+        </select>
+      </label>
+      <label>Déplacement
+        <select id="mode">
+          <option value="walk">à pied</option>
+          <option value="car">en voiture</option>
+        </select>
+      </label>
+      <button type="button" id="search" disabled>Voir les lieux proches</button>
+      <button type="button" id="compare" disabled>Vérifier le classement (12 / 50)</button>
+    </div>
+    <section aria-live="polite" aria-label="Résultats">
+      <p id="message"></p>
+      <ol id="results"></ol>
+      <div id="comparison" hidden>
+        <p id="comparison-note"></p>
+        <div class="columns">
+          <div><h2>Avec 12 lieux présélectionnés</h2><ol id="short-results"></ol></div>
+          <div><h2>Avec 50 lieux présélectionnés</h2><ol id="wide-results"></ol></div>
+        </div>
+      </div>
+    </section>
+    <p class="note">Les distances et durées sont des estimations d’itinéraire. Choisir un point sur la carte ne vérifie pas l’entrée exacte d’un bâtiment.</p>
+  </main>
+</body>
+</html>

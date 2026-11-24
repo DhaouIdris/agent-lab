@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from experiments.benchmark_reporting import write_json
-from experiments.nearby_places import CATEGORIES, MAX_CANDIDATES, MAX_COMPARISON_CANDIDATES, air_distance_km, candidates
+from experiments.nearby_places import CATEGORIES, MAX_CANDIDATES, MAX_COMPARISON_CANDIDATES, RADIUS_KM, air_distance_km, candidates
 from experiments.route_service import load_route_key, matrix, valid_coordinates
 
 
@@ -70,12 +70,26 @@ def compare_case(case,db,api_key,matrix_service=matrix):
         return public,private
     short=route_ranking(places[:MAX_CANDIDATES],result['distances_m'][:MAX_CANDIDATES])
     wide=route_ranking(places,result['distances_m'])
+    reachable=sum(type(d) in (int,float) and math.isfinite(d) and d>=0
+                  for d in result['distances_m'])
+    # Every untested candidate is at least as far in a straight line as the
+    # last candidate. This is a lower bound, never a displayed route distance.
+    boundary_m=(air_distance_km(case['origin'],
+                                (places[-1]['latitude'],places[-1]['longitude']))*1000
+                if total>len(places) else None)
+    def certified(rank):
+        return (len(wide)>=rank and reachable==len(places)
+                and wide[rank-1][0]<RADIUS_KM*1000
+                and (boundary_m is None or boundary_m>wide[rank-1][0]))
     short_ids={r[1] for r in short};wide_ids={r[1] for r in wide}
     duplicates=duplicate_candidates(places)
-    public.update({'reachable_candidates':sum(d is not None for d in result['distances_m']),
+    public.update({'reachable_candidates':reachable,
                    'top3_overlap':len(short_ids&wide_ids),
                    'wide_top3_missing_from_short':len(wide_ids-short_ids),
                    'nearest_regret_m':round(short[0][0]-wide[0][0],1) if short and wide else None,
+                   'nearest_bounded_in_catalogue':certified(1),
+                   'top3_bounded_in_catalogue':certified(3),
+                   'untested_air_distance_lower_bound_m':round(boundary_m,1) if boundary_m is not None else None,
                    'possible_duplicate_pairs':len(duplicates)})
     private.update(public)
     private['short_top3']=[{'source_id':p['source_id'],'name':p['name'],'distance_m':d}
