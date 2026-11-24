@@ -24,3 +24,15 @@ Pour copier seulement le résumé plutôt que les 48 lignes du rapport :
 Cette expérimentation suit les [règles du Nominatim public](https://operations.osmfoundation.org/policies/nominatim/) : requêtes ponctuelles, un seul processus, au plus une requête par seconde, identification de l'application, résultats conservés localement, attribution OSM/ODbL, aucun autocomplete ni adresse privée. Le service public est inadapté comme dépendance de production sans décision explicite et contrôle du trafic. Le [serveur Photon de Komoot](https://github.com/komoot/photon#demo-server) est une démonstration sans garantie de disponibilité. L'usage de la clé Pelias/ORS reste côté serveur. Les trois services reposent largement sur des données OpenStreetMap : leurs erreurs peuvent être corrélées et un écart entre eux ne prouve pas que l'un est juste.
 
 La suite dépend des résultats : choisir un géocodeur uniquement si les erreurs graves restent acceptables et si les conditions d'exploitation conviennent. Sinon, garder les origines par lieux nommés et prévoir un point choisi sur une carte, sans afficher la latitude et la longitude à l'utilisateur.
+
+## Premier essai réel, 24 novembre 2026
+
+La campagne a exécuté les 48 requêtes sans erreur fournisseur. À moins de 250 m du point publié, le premier résultat était présent dans 1/8, 1/8 et 3/8 des requêtes d'adresse seule pour Pelias, Nominatim et Photon ; puis 0/8, 1/8 et 4/8 pour nom + adresse. **Ces nombres ne sont pas des taux d'identification correcte.** L'inspection des noms et catégories de `review.private.json` montre notamment :
+
+- G01 : le premier résultat Photon à 116 m est une station-service, pas le Novotel.
+- G04 : le premier résultat Pelias à 108 m est une rue en correspondance `fallback`, pas l'hôtel. Photon renvoie « Hôtel Ibis - Plateau » à 22 m, possiblement le même bâtiment ; son identité actuelle reste à vérifier.
+- G08 : le résultat Nominatim à 100 m est un boulevard, pas l'Adagio ; Photon nom + adresse retourne « Hôtel Ibis Abidjan Marcory » à 1,64 km, un autre établissement.
+- G02 : Photon et Nominatim nom + adresse renvoient le Sofitel nommé, à 135 m du point publié.
+- G03 : Photon renvoie le Pullman nommé à 22 m. Pelias renvoie une localité ou une région en `fallback`, et Nominatim ne renvoie rien.
+
+Sur ce jeu, Pelias ne renvoie aucun hôtel identifié comme tel pour les huit entrées ; la présence systématique de résultats ne signifie pas couverture des adresses. Photon est plus prometteur pour certains **lieux nommés**, mais la proximité seule produirait de faux positifs. La correspondance G04, les entrées routables et le seuil de distance nécessitent une revue cartographique. Aucun de ces services n'est intégré automatiquement à l'agent à la suite de ce pilote. Le fichier de revue et le rapport restent locaux ; les chiffres ci-dessus résument leur lecture sans publier leurs coordonnées candidates.
