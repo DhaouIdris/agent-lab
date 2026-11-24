@@ -12,7 +12,7 @@ from experiments.benchmark_reporting import save_report, write_json
 from experiments.input_guard import inspect_user_input
 from experiments.place_catalog import import_csv, search
 from experiments.unified_agent import ask
-from experiments.unified_agent_batch import score_response
+from experiments.unified_agent_batch import run, score_response
 
 
 class AuditTests(unittest.TestCase):
@@ -154,6 +154,28 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(c['evidence_checks'],original[c['id']]['evidence_checks'])
             self.assertNotIn('calculate_route',c['required_tools'])
             self.assertNotIn('rank_nearby',c['required_tools'])
+
+    def test_rag_faithfulness_panel_keeps_private_review_guides(self):
+        from experiments.audit_campaign import load_cases
+        cases=load_cases(Path('data/rag_faithfulness_human_18.json'),False)
+        self.assertEqual(len(cases),18)
+        self.assertEqual(sorted(Counter(c['category'] for c in cases).values()),[3]*6)
+        self.assertEqual(sum(c['consistency'] for c in cases),6)
+        self.assertTrue(all(c['review_guide']['supported'] and c['evidence_checks']['required_document_ids'] for c in cases))
+        documents={d['id'] for d in document_rag.load_corpus(Path('data/rag_integrated_dev.json'))}
+        self.assertTrue(all(set(c['evidence_checks']['required_document_ids'])<=documents for c in cases))
+        case=cases[1]
+        output={'answer':'La source indique un lien, sans détailler le mécanisme.',
+                'abstain':False,'document_ids':['UNESCO_COMOE__0001'],'place_ids':[]}
+        self.client.calls=[]
+        with patch('experiments.unified_agent_batch.ask',return_value={'output':output,'trace':[]}) as agent:
+            result=run(self.client,self.db,[],[case])
+        agent.assert_called_once()
+        self.assertEqual(agent.call_args.args[3],case['question'])
+        self.assertEqual(result['results'][0]['review_guide'],case['review_guide'])
+        save_report(self.dir,result,True)
+        self.assertNotIn('review_guide',(self.dir/'report.json').read_text(encoding='utf8'))
+        self.assertIn('review_guide',(self.dir/'review.private.json').read_text(encoding='utf8'))
 
     def test_followup_flags_observed_unavailable_search_offers(self):
         case={'outcome_checks':{'status':'model_output'},'evidence_checks':{'no_unavailable_lookup_offer':True}}

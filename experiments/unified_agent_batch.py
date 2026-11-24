@@ -85,6 +85,7 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
                 arg_checks.append({'tool':check['tool'],'equals':check['equals'],'passed':matched})
             forbidden=sorted(set(case.get('forbidden_tools',[])) & set(used))
             row={'id':case['id'],'question':case['question'],'human_expectation':case['human_expectation'],
+                 **({'review_guide':case['review_guide']} if 'review_guide' in case else {}),
                  'response_origin':result.get('response_origin','local' if guard else 'model'),'category':case.get('category'), 'argument_checks':arg_checks, 'forbidden_tools_used':forbidden,
                  'required_tools':case['required_tools'],'observed_tools':used,'output':result['output'],
                  'trace':result['trace'],'status':guard or ('nearby_result' if 'rank_nearby' in used and not result['output']['abstain'] else
@@ -107,7 +108,10 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
         except (ProviderError,ValueError) as exc:
             diagnostic = exc.code if isinstance(exc,AgentDiagnosticError) else None
             safe_trace = exc.trace if isinstance(exc,AgentDiagnosticError) else []
-            row={'id':case['id'],'category':case.get('category'),'status':'execution_error','tool_selection_match':None,
+            row={'id':case['id'],'category':case.get('category'),'question':case['question'],
+                 'human_expectation':case['human_expectation'],
+                 **({'review_guide':case['review_guide']} if 'review_guide' in case else {}),
+                 'status':'execution_error','tool_selection_match':None,
                  'output':None,'trace':safe_trace,'error':type(exc).__name__+': '+str(exc)[:160],
                  'diagnostic_code':diagnostic, 'diagnostic_metadata':exc.metadata if isinstance(exc,AgentDiagnosticError) else {}, 'trace_redacted':bool(safe_trace)}
             complete=False
