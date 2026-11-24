@@ -50,6 +50,8 @@ class NearbyTests(unittest.TestCase):
         self.assertLess(result['output']['answer'].find('Café deuxième'),result['output']['answer'].find('Café premier'))
         self.assertIn('300 m',result['output']['answer'])
         self.assertIn('1.50 km',result['output']['answer'])
+        self.assertIn('[Café deuxième](https://www.openstreetmap.org/node/2)',result['output']['answer'])
+        self.assertNotIn('latitude',result['output']['answer'])
         self.assertNotIn('5.3201',json.dumps(result,ensure_ascii=False))
         self.assertEqual(result['trace'][0]['tool'],'rank_nearby')
         self.assertEqual(route.call_count,1)
@@ -79,6 +81,21 @@ class NearbyTests(unittest.TestCase):
         from experiments.injection_guard import normalize
         self.assertIsNone(_NEARBY_USER.search(normalize('Quel café est le plus proche du parc ?')))
         self.assertIsNotNone(_NEARBY_USER.search(normalize('Quel café est le plus proche de moi ?')))
+
+    def test_natural_nearby_phrases_and_missing_position(self):
+        from experiments.unified_agent import is_route
+        for question in ('Des cafés pas loin de moi ?', 'Un café à côté de moi ?'):
+            with self.subTest(question=question):
+                result=ask(Mock(),self.db,[],question,user_location=self.origin,
+                           matrix_service=Mock(return_value={'status':'ok','distances_m':[100,200,300],
+                                                               'durations_s':[60,120,180]}))
+                self.assertEqual(result.get('response_origin'),'route_service')
+        answer=ask(Mock(),self.db,[],'Un café autour de moi ?')
+        self.assertEqual(answer['guard_status'],'location_required')
+        self.assertIn('partager ta position',answer['output']['answer'])
+        self.assertTrue(is_route('Je vais marcher de 5.3212, -4.0104 à 5.3248, -4.0191. Combien de temps ?'))
+        self.assertTrue(is_route('Je pars en voiture de 5.3441, -4.0587 pour aller à 5.3702, -4.0186.'))
+        self.assertTrue(is_route('Et à pied, combien de temps entre 5.3212, -4.0104 et 5.3248, -4.0191 ?'))
 
     def test_matrix_request_order_and_sanitized_result(self):
         opener=Mock()

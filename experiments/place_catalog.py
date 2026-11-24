@@ -7,6 +7,7 @@ import math
 import re
 import sqlite3
 import unicodedata
+from experiments.place_links import osm_place_url
 from collections import Counter
 from pathlib import Path
 
@@ -111,7 +112,10 @@ def search(db_path,category=None,district=None,query=None,limit=10):
                 params.append(term)
         sql='SELECT source_id,name,category,district,latitude,longitude FROM places'+(' WHERE '+' AND '.join(clauses) if clauses else '')+' ORDER BY name_norm,source_id LIMIT ?'
         params.append(limit)
-        return {'items':[dict(x) for x in con.execute(sql,params)],'limit':limit,'current_status_verified':False,'warning':'Historical 2022 data; opening, availability and current activity are unverified; incomplete inventory.','source':SOURCE,'attribution':ATTRIBUTION}
+        items=[dict(x) for x in con.execute(sql,params)]
+        for place in items:
+            place['map_url']=osm_place_url(place['source_id'])
+        return {'items':items,'limit':limit,'current_status_verified':False,'warning':'Historical 2022 data; opening, availability and current activity are unverified; incomplete inventory. No verified street address is stored.','source':SOURCE,'attribution':ATTRIBUTION}
     finally:con.close()
 
 def main():
