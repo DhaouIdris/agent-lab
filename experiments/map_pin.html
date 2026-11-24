@@ -38,10 +38,18 @@
         </select>
       </label>
       <button type="button" id="search" disabled>Voir les lieux proches</button>
+      <button type="button" id="compare" disabled>Vérifier le classement (12 / 50)</button>
     </div>
     <section aria-live="polite" aria-label="Résultats">
       <p id="message"></p>
       <ol id="results"></ol>
+      <div id="comparison" hidden>
+        <p id="comparison-note"></p>
+        <div class="columns">
+          <div><h2>Avec 12 lieux présélectionnés</h2><ol id="short-results"></ol></div>
+          <div><h2>Avec 50 lieux présélectionnés</h2><ol id="wide-results"></ol></div>
+        </div>
+      </div>
     </section>
     <p class="note">Les distances et durées sont des estimations d’itinéraire. Choisir un point sur la carte ne vérifie pas l’entrée exacte d’un bâtiment.</p>
   </main>

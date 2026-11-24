@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 from experiments.nearby_places import CATEGORIES
+from experiments.compare_nearby_shortlists import compare_case
 from experiments.place_links import osm_place_url
 from experiments.route_service import load_route_key, valid_coordinates
 from experiments.unified_agent import ask, fetch_matrix, format_route_distance, format_route_duration
@@ -18,16 +19,23 @@ NAMES={'restaurant':'restaurants','cafe':'cafés','hotel':'hôtels','bar':'bars'
 BOUNDS=(4.0,11.0,-9.0,-2.0)  # broad screening box, not a political boundary
 
 
-def nearby_from_pin(payload,db,matrix_service=fetch_matrix):
-    """Validate untrusted browser input before invoking the existing read-only agent route."""
+def validated_pin(payload):
     if type(payload) is not dict or set(payload)!={'category','mode','lat','lon'}:
-        return 400,{'status':'invalid_request','message':'Choisis un point et un type de lieu.'}
+        return None,(400,{'status':'invalid_request','message':'Choisis un point et un type de lieu.'})
     category=payload['category'];mode=payload['mode'];origin=(payload['lat'],payload['lon'])
     if type(category) is not str or category not in CATEGORIES or mode not in ('walk','car'):
-        return 400,{'status':'invalid_request','message':'Choisis un type de lieu et un mode valides.'}
+        return None,(400,{'status':'invalid_request','message':'Choisis un type de lieu et un mode valides.'})
     if not valid_coordinates(origin) or not (BOUNDS[0]<=origin[0]<=BOUNDS[1]
                                               and BOUNDS[2]<=origin[1]<=BOUNDS[3]):
-        return 400,{'status':'invalid_location','message':'Choisis un point sur la carte en Côte d’Ivoire.'}
+        return None,(400,{'status':'invalid_location','message':'Choisis un point sur la carte en Côte d’Ivoire.'})
+    return (category,mode,origin),None
+
+
+def nearby_from_pin(payload,db,matrix_service=fetch_matrix):
+    """Validate untrusted browser input before invoking the existing read-only agent route."""
+    parsed,error=validated_pin(payload)
+    if error:return error
+    category,mode,origin=parsed
     question=f"Quels {NAMES[category]} sont proches de moi {'en voiture' if mode=='car' else 'à pied'} ?"
     result=ask(None,db,[],question,user_location=origin,matrix_service=matrix_service)
     if result['output']['abstain']:
@@ -42,6 +50,33 @@ def nearby_from_pin(payload,db,matrix_service=fetch_matrix):
         'distance':format_route_distance(item['distance_m']),
         'duration':format_route_duration(item['duration_s'])} for item in ranked],
         'mode':mode}
+
+
+def compare_from_pin(payload,db,matrix_service=fetch_matrix):
+    """On request, compare 12 versus 50 candidates with a single bounded matrix call."""
+    parsed,error=validated_pin(payload)
+    if error:return error
+    category,mode,origin=parsed
+    case={'id':'PIN','category':category,'mode':mode,'origin':origin}
+    def routed_matrix(point,destinations,travel_mode,key,timeout):
+        return matrix_service(point,destinations,travel_mode,timeout=timeout)
+    public,private=compare_case(case,db,'',matrix_service=routed_matrix)
+    if public['status']!='ok':
+        return 200,{'status':public['status'],
+                    'message':'Je ne peux pas comparer ces trajets pour le moment.','places':[]}
+    if not private['wide_top3']:
+        return 200,{'status':'no_reachable_candidates',
+                    'message':'Aucun trajet vers ces lieux n’a pu être calculé.','places':[]}
+    def named(rows):
+        return [{'name':p['name'],'url':osm_place_url(p['source_id']),
+                 'distance':format_route_distance(p['distance_m'])} for p in rows]
+    return 200,{'status':'ok','short':named(private['short_top3']),
+                'wide':named(private['wide_top3']),
+                'matching_in_radius':public['matching_in_radius'],
+                'candidate_count':public['candidate_count'],
+                'nearest_regret':(format_route_distance(public['nearest_regret_m'])
+                                  if public['nearest_regret_m'] is not None else None),
+                'top3_changed':public['wide_top3_missing_from_short']>0}
 
 
 def make_handler(db,token,matrix_service=fetch_matrix,clock=time.monotonic):
@@ -86,7 +121,7 @@ def make_handler(db,token,matrix_service=fetch_matrix,clock=time.monotonic):
 
         def do_POST(self):
             expected=f'http://127.0.0.1:{self.server.server_port}'
-            if (self.path!='/api/nearby' or self.headers.get('Origin')!=expected
+            if (self.path not in ('/api/nearby','/api/compare') or self.headers.get('Origin')!=expected
                     or self.headers.get('Host')!=f'127.0.0.1:{self.server.server_port}'
                     or self.headers.get('X-Map-Token')!=token):
                 self.send_json(403,{'status':'forbidden'})
@@ -107,7 +142,9 @@ def make_handler(db,token,matrix_service=fetch_matrix,clock=time.monotonic):
             if now-self.__class__.last_request<1.5:
                 self.send_json(429,{'status':'slow_down','message':'Attends un instant avant une autre recherche.'})
                 return
-            try:status,response=nearby_from_pin(payload,db,matrix_service)
+            try:
+                action=nearby_from_pin if self.path=='/api/nearby' else compare_from_pin
+                status,response=action(payload,db,matrix_service)
             except (ValueError,sqlite3.Error,KeyError,TypeError):
                 self.send_json(503,{'status':'unavailable','message':'La recherche est momentanément indisponible.'})
                 return

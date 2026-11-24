@@ -9,7 +9,7 @@ from http.server import HTTPServer
 from pathlib import Path
 from unittest.mock import Mock
 
-from experiments.map_pin import make_handler, nearby_from_pin
+from experiments.map_pin import make_handler, nearby_from_pin, compare_from_pin
 
 
 class MapPinTests(unittest.TestCase):
@@ -54,8 +54,30 @@ class MapPinTests(unittest.TestCase):
         self.assertEqual(result['places'],[])
         self.assertNotIn('100 m',json.dumps(result))
 
+    def test_wide_comparison_finds_missed_route_without_claiming_global_nearest(self):
+        con=sqlite3.connect(self.db)
+        con.executemany('INSERT INTO places VALUES (?,?,?,?,?,?)',[
+            (f'node/{i+10}',f'Restaurant {i}','restaurant','',5.33+i*.0001,-4.02)
+            for i in range(20)])
+        con.commit();con.close()
+        distances=[1000+i*10 for i in range(20)]
+        distances[13]=80
+        self.matrix.return_value={'status':'ok','distances_m':distances,
+                                  'durations_s':[max(60,d/1.3) for d in distances]}
+        status,result=compare_from_pin({**self.body,'category':'restaurant'},self.db,self.matrix)
+        self.assertEqual(status,200)
+        self.assertTrue(result['top3_changed'])
+        self.assertEqual(result['matching_in_radius'],20)
+        self.assertEqual(result['candidate_count'],20)
+        self.assertEqual(result['wide'][0]['name'],'Restaurant 13')
+        self.assertEqual(result['wide'][0]['distance'],'80 m')
+        self.assertEqual(result['nearest_regret'],'920 m')
+        self.assertNotIn('5.33',json.dumps(result))
+        self.matrix.assert_called_once()
+
     def test_loopback_http_requires_token_origin_and_does_not_return_location(self):
-        server=HTTPServer(('127.0.0.1',0),make_handler(self.db,'test-token',self.matrix))
+        now=[100.0]
+        server=HTTPServer(('127.0.0.1',0),make_handler(self.db,'test-token',self.matrix,clock=lambda:now[0]))
         thread=threading.Thread(target=server.serve_forever,daemon=True)
         thread.start()
         self.addCleanup(server.server_close)
@@ -83,6 +105,13 @@ class MapPinTests(unittest.TestCase):
         self.assertEqual(json.loads(body)['places'][0]['name'],'Café B')
         self.assertNotIn('5.33',body)
         self.assertEqual(self.matrix.call_count,1)
+        now[0]+=2
+        conn.request('POST','/api/compare',data,headers=headers)
+        comparison=conn.getresponse();body=comparison.read().decode('utf-8')
+        self.assertEqual(comparison.status,200)
+        self.assertEqual(json.loads(body)['wide'][0]['name'],'Café B')
+        self.assertNotIn('5.33',body)
+        self.assertEqual(self.matrix.call_count,2)
 
 
 if __name__=='__main__':unittest.main()
