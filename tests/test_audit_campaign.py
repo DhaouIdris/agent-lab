@@ -143,6 +143,18 @@ class AuditTests(unittest.TestCase):
                          {'RF-P01','RF-P02','RF-C01'})
         self.assertEqual(next(c for c in cases if c['id']=='RF-P01')['evidence_checks']['min_places'],1)
 
+    def test_model_consistency_reuses_prompts_without_route_calls(self):
+        from experiments.audit_campaign import load_cases
+        original={c['id']:c for c in load_cases(Path('data/holdout_response_followup_5.json'),False)}
+        cases=load_cases(Path('data/holdout_model_consistency_3.json'),True)
+        self.assertEqual({c['id'] for c in cases},{'RF-C01','RF-D01','RF-B01'})
+        for c in cases:
+            self.assertEqual(c['question'],original[c['id']]['question'])
+            self.assertEqual(c['human_expectation'],original[c['id']]['human_expectation'])
+            self.assertEqual(c['evidence_checks'],original[c['id']]['evidence_checks'])
+            self.assertNotIn('calculate_route',c['required_tools'])
+            self.assertNotIn('rank_nearby',c['required_tools'])
+
     def test_followup_flags_observed_unavailable_search_offers(self):
         case={'outcome_checks':{'status':'model_output'},'evidence_checks':{'no_unavailable_lookup_offer':True}}
         for answer in (
