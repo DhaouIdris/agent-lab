@@ -29,6 +29,7 @@ class NamedOriginTests(unittest.TestCase):
     def test_named_hotel_uses_catalogue_then_route_matrix_without_azure(self):
         question="Je suis à l'hôtel Sofitel, quel est le restaurant le plus proche ?"
         self.assertEqual(named_origin_request(question),'hôtel Sofitel')
+        self.assertEqual(named_origin_request('Depuis le Sofitel, quel restaurant est le plus proche ?'),'Sofitel')
         geocode=Mock()
         result=ask(self.client,self.db,[],question,matrix_service=self.matrix,geocode_service=geocode)
         self.assertFalse(result['output']['abstain'])
@@ -40,6 +41,9 @@ class NamedOriginTests(unittest.TestCase):
         self.assertEqual([t['tool'] for t in result['trace']],['resolve_origin','rank_nearby'])
         self.client.chat.assert_not_called();geocode.assert_not_called()
         self.matrix.assert_called_once()
+        again=ask(self.client,self.db,[],'Depuis le Sofitel, quel restaurant est le plus proche ?',
+                  matrix_service=self.matrix,geocode_service=geocode)
+        self.assertEqual(again['output']['place_ids'],['node/11'])
 
     def test_ambiguous_origin_stops_before_routing(self):
         con=sqlite3.connect(self.db)

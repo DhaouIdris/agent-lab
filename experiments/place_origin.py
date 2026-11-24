@@ -11,7 +11,7 @@ from experiments.injection_guard import normalize
 from experiments.route_service import valid_coordinates
 
 GEOCODER='https://api.heigit.org/pelias/v1/search'
-_ORIGIN=re.compile(r'\b(?:je suis|je me trouve|je loge)\s+(?:à|a|au|aux|chez|dans)\s+(.+?)(?:[,;?]|\.\s|\s+et\s+)',re.I)
+_ORIGIN=re.compile(r'\b(?:(?:je suis|je me trouve|je loge)\s+(?:à|a|au|aux|chez|dans)|je pars\s+(?:de|du|de la)|depuis)\s+(.+?)(?:[,;?]|\.\s|\s+et\s+)',re.I)
 _TYPE=re.compile(r'\b(?:restaurants?|restos?|cafés?|hotels?|hôtels?|bars?|glaciers?|fast[ -]?foods?)\b',re.I)
 _NEAR=re.compile(r'\b(?:plus proche|près|pres|à côté|a cote|pas loin|autour)\b',re.I)
 
@@ -46,6 +46,9 @@ def local_origin(db_path, name):
     rows=[row for row in rows if valid_coordinates((row['latitude'],row['longitude']))]
     exact=[row for row in rows if normalize(row['name'])==term]
     if exact:rows=exact
+    else:
+        prefix=[row for row in rows if normalize(row['name']).startswith(term+' ')]
+        if prefix:rows=prefix
     if len(rows)>1:return {'status':'ambiguous','choices':[{'name':r['name'],'district':r['district']} for r in rows[:4]]}
     if not rows:return {'status':'not_found'}
     row=rows[0]
