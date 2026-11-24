@@ -45,6 +45,18 @@ class NamedOriginTests(unittest.TestCase):
                   matrix_service=self.matrix,geocode_service=geocode)
         self.assertEqual(again['output']['place_ids'],['node/11'])
 
+    def test_a_few_seconds_are_never_displayed_as_zero_minutes(self):
+        self.matrix.return_value={'status':'ok','distances_m':[5.99,800],
+                                  'durations_s':[4.31,610],'source':'ORS'}
+        result=ask(self.client,self.db,[],
+                   "Je suis à l'hôtel Sofitel, quel est le restaurant le plus proche ?",
+                   matrix_service=self.matrix)
+        answer=result['output']['answer']
+        self.assertIn('Restaurant près du Sofitel',answer)
+        self.assertIn('6 m, moins d’une minute',answer)
+        self.assertNotIn('0 min',answer)
+        self.assertNotIn('Distances et durées estimées',answer)
+
     def test_ambiguous_origin_stops_before_routing(self):
         con=sqlite3.connect(self.db)
         con.execute('INSERT INTO places VALUES (?,?,?,?,?,?,?,?)',

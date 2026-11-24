@@ -130,6 +130,10 @@ def format_route_distance(distance_m):
     return f'{distance_m:.0f} m' if distance_m<1000 else f'{distance_m/1000:.2f} km'
 
 
+def format_route_duration(duration_s):
+    return 'moins d’une minute' if duration_s<60 else f'environ {duration_s/60:.0f} min'
+
+
 def nearby_answer(db,question,origin,timeout,matrix_service,origin_label=None):
     q=normalize(question)
     category=next((name for pattern,name in _NEARBY_CATEGORIES if pattern.search(q)),None)
@@ -167,14 +171,15 @@ def nearby_answer(db,question,origin,timeout,matrix_service,origin_label=None):
         link=osm_place_url(place['source_id'])
         name=f"[{place['name']}]({link})" if link else place['name']
         locality=f" ({place['district']})" if place.get('district') else ''
-        lines.append(f'{name}{locality} : {format_route_distance(distance)}, environ {duration/60:.0f} min')
+        lines.append(f'{name}{locality} : environ {format_route_distance(distance)}, {format_route_duration(duration)}')
     if origin_label:
-        intro=(f'Depuis {origin_label}, le {place_type} le plus proche {label} parmi ceux trouvés est :' if len(selected)==1
+        intro=(f'Depuis {origin_label}, le {place_type} le plus proche que j’ai trouvé {label} est' if len(selected)==1
                else f'Depuis {origin_label}, voici des {place_type}s accessibles {label} :')
     else:
-        intro='Voici des lieux accessibles '+label+' :'
-    text=intro+'\n'+'\n'.join(f'- {line}' for line in lines)
-    text+='\nDistances et durées estimées à partir des lieux trouvés.'
+        intro=(f'Le {place_type} le plus proche que j’ai trouvé {label} est' if len(selected)==1
+               else 'Voici des lieux accessibles '+label+' :')
+    text=(intro+' '+lines[0]+'.' if len(selected)==1
+          else intro+'\n'+'\n'.join(f'- {line}' for line in lines))
     trace[0]['result']['ranked']=[{'source_id':p['source_id'],'name':p['name'],'distance_m':distance,'duration_s':duration} for distance,_,p,duration in selected]
     return {'output':{'answer':text,'document_ids':[],'place_ids':[p['source_id'] for _,_,p,_ in selected],
                       'abstain':False},'trace':trace,'response_origin':'route_service'}
