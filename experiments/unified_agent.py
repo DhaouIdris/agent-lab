@@ -162,7 +162,7 @@ def nearby_answer(db,question,origin,timeout,matrix_service,origin_label=None):
     if not ranked:
         return {'output':{'answer':'Aucun itinéraire n’a pu être calculé vers les lieux trouvés.',
                           'document_ids':[],'place_ids':[],'abstain':True},'trace':trace,'response_origin':'route_service'}
-    selected=ranked[:1 if re.search(r'\b(?:le|la) plus proche\b',q) else 3]
+    selected=ranked[:1 if re.search(r'\b(?:le|la) plus (?:proche|pres)\b',q) else 3]
     label='en voiture' if mode=='car' else 'à pied'
     place_type={'restaurant':'restaurant','cafe':'café','hotel':'hôtel','bar':'bar',
                 'fast_food':'fast-food','ice_cream':'glacier'}[category]
