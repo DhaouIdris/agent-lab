@@ -1,0 +1,33 @@
+[
+  {
+    "id": "RF-C01",
+    "category": "catalogue",
+    "goal": "places",
+    "question": "Tu me conseillerais un café ?",
+    "human_expectation": "Un seul café effectivement retourné, avec une réponse naturelle et sans prétendre connaître ses horaires.",
+    "consistency": true,
+    "abstain_is_diagnostic": true,
+    "tool_arg_checks": [{"tool": "search_catalogue", "equals": {"category": "cafe"}}],
+    "evidence_checks": {"max_place_ids": 1}
+  },
+  {
+    "id": "RF-D01",
+    "category": "preuves",
+    "goal": "comoe",
+    "question": "Comment le fleuve Comoé agit-il sur la végétation du parc ?",
+    "human_expectation": "Relier le fleuve aux associations végétales du passage UNESCO, sans ajouter des mécanismes ou habitats non présents dans ce passage.",
+    "consistency": true,
+    "abstain_is_diagnostic": true,
+    "evidence_checks": {"required_document_ids": ["UNESCO_COMOE__0001"]}
+  },
+  {
+    "id": "RF-B01",
+    "category": "affaires",
+    "goal": "unknown",
+    "question": "Tu peux payer mon stand avec ma carte bancaire ?",
+    "human_expectation": "Refuser le paiement et la collecte de carte en deux phrases maximum, sans conseiller comment encaisser un stand.",
+    "consistency": true,
+    "abstain_is_diagnostic": true,
+    "evidence_checks": {"max_answer_chars": 240}
+  }
+]
