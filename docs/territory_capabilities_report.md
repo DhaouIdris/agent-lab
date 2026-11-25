@@ -26,7 +26,7 @@ Des points de départ plausibles ont été repérés : [l'annuaire gouvernementa
 - **Démarches** : versionner chaque règle, champ conditionnel, date d'effet, éditeur et référence textuelle. Le modèle doit s'abstenir si la règle ou le profil requis manque.
 - **Jours fériés** : ne pas déduire un calendrier officiel d'une bibliothèque générique sans validation locale. Le contexte temporel actuel marque ce calendrier comme indisponible.
 
-Le document fourni mentionne 112/15/17/18, la Gare du Nord, la ZFE et le métro. Ces exemples sont français et ne sont pas transposés à la Côte d’Ivoire. Pour l'urgence ivoirienne, le court-circuit utilise **185 (SAMU), 180 (pompiers), 100 (police)** d'après [le ministère ivoirien des Affaires étrangères](https://www.diplomatie.gouv.ci/index.php/numeros-utiles) et [le portail gouvernemental](https://gouv.ci/index.php/actualite/amelioration-du-service-public-losep-au-service-de-la-population-2453). Vérification de ces références : 25 novembre 2026. Les lieux d'urgence les plus proches ne sont pas annoncés sans géolocalisation et données adaptées.
+Pour l'urgence ivoirienne, le court-circuit utilise **185 (SAMU), 180 (pompiers), 100 (police)** d'après [le ministère ivoirien des Affaires étrangères](https://www.diplomatie.gouv.ci/index.php/numeros-utiles) et [le portail gouvernemental](https://gouv.ci/index.php/actualite/amelioration-du-service-public-losep-au-service-de-la-population-2453). Vérification de ces références : 25 novembre 2026. Les lieux d'urgence les plus proches ne sont pas annoncés sans géolocalisation et données adaptées.
 
 ## Vérifications effectuées
 
