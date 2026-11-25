@@ -45,6 +45,19 @@ def prepare(rows, revision):
     return sorted(result, key=lambda x: x["id"])
 
 
+def preserve_review(prepared, prior):
+    by_id = {row["id"]: row for row in prepared}
+    if len(by_id) != len(prepared):
+        raise ValueError("Duplicate prepared ID")
+    for old in prior:
+        new = by_id.get(old["id"])
+        if new is None or any(new[key] != old[key] for key in ("source", "revision", "language", "question")):
+            raise ValueError(f"Prior review does not match source revision and text: {old['id']}")
+        new["label"] = old["label"]
+        new["review_note"] = old.get("review_note", "")
+    return prepared
+
+
 def load_metadata(path):
     with Path(path).open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -53,7 +66,7 @@ def load_metadata(path):
         return list(reader)
 
 
-def read_review(path):
+def read_review(path, expected_source=DATASET):
     with Path(path).open(encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
     if not rows or not all(set(("id", "source", "revision", "language", "question", "label")) <= row.keys() for row in rows):
@@ -62,13 +75,13 @@ def read_review(path):
         raise ValueError("Duplicate IDs")
     if any(row["label"] not in ("emergency", "benign", "exclude") for row in rows):
         raise ValueError("Review every row: emergency, benign, or exclude")
-    if (any(row["source"] != DATASET or not row["revision"] or not row["question"].strip() for row in rows)
+    if (any(row["source"] != expected_source or not row["revision"] or not row["question"].strip() for row in rows)
             or len({row["revision"] for row in rows}) != 1):
         raise ValueError("Missing source, revision, or text")
     return rows
 
 
-def score(rows, train_path):
+def score(rows, train_path, source=DATASET, expected_cases=77):
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import LogisticRegression
     from sklearn.pipeline import make_pipeline
@@ -77,8 +90,8 @@ def score(rows, train_path):
 
     train = json.loads(Path(train_path).read_text(encoding="utf-8"))
     evaluated = [row for row in rows if row["label"] != "exclude"]
-    if not evaluated or len({row["label"] for row in evaluated}) < 2:
-        raise ValueError("Review must contain both emergency and benign cases")
+    if not evaluated:
+        raise ValueError("Review must contain evaluated cases")
     model = make_pipeline(TfidfVectorizer(analyzer="char", ngram_range=(2, 5)),
                           LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42))
     model.fit([x["question"] for x in train], [x["label"] == "emergency" for x in train])
@@ -97,10 +110,14 @@ def score(rows, train_path):
             "fp": sum(x["label"] == "benign" and x[method] for x in results),
             "tn": sum(x["label"] == "benign" and not x[method] for x in results),
         }
-    return {"kind": "human_reviewed_external_emergency_calls", "source": DATASET,
+    return {"kind": "human_reviewed_external_emergency_cases", "source": source,
             "revision": evaluated[0]["revision"], "threshold": SEMANTIC_THRESHOLD,
-            "excluded": len(rows) - len(evaluated), "metrics": metrics, "results": results,
-            "caveat": "Simulated French emergency-service calls, not Côte d'Ivoire assistant queries; labels require human review; this does not establish operational safety."}
+            "source_expected_cases": expected_cases, "reviewed_rows": len(rows),
+            "campaign_complete": len(rows) == expected_cases,
+            "excluded": len(rows) - len(evaluated), "evaluated_emergencies": sum(x["label"] == "emergency" for x in evaluated),
+            "evaluated_benign": sum(x["label"] == "benign" for x in evaluated),
+            "metrics": metrics, "results": results,
+            "caveat": "Source distribution differs from Côte d'Ivoire assistant queries; labels require human review; this does not establish operational safety."}
 
 
 def main():
@@ -108,28 +125,35 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     prepare_parser = sub.add_parser("prepare")
     prepare_parser.add_argument("--out", type=Path, required=True)
+    prepare_parser.add_argument("--prior-review", type=Path,
+                                help="Preserve existing reviewed rows while restoring the full source panel")
     score_parser = sub.add_parser("score")
     score_parser.add_argument("--review", type=Path, required=True)
     score_parser.add_argument("--out", type=Path, required=True)
     score_parser.add_argument("--train", type=Path, default=Path("data/territory_controls_dev.json"))
     args = parser.parse_args()
     if args.command == "prepare":
+        if args.out.exists():
+            raise SystemExit(f"Refusing to overwrite existing review CSV: {args.out}")
         try:
             from huggingface_hub import HfApi, hf_hub_download
         except ImportError as exc:
             raise SystemExit("Install optional dependency: python -m pip install huggingface_hub") from exc
         api = HfApi()
-        revision = api.dataset_info(DATASET).sha
+        prior = read_review(args.prior_review) if args.prior_review else None
+        revision = prior[0]["revision"] if prior else api.dataset_info(DATASET).sha
         filename = metadata_path(api.list_repo_files(DATASET, repo_type="dataset", revision=revision))
         metadata = hf_hub_download(repo_id=DATASET, repo_type="dataset", filename=filename,
                                    revision=revision)
         rows = prepare(load_metadata(metadata), revision)
+        if prior:
+            rows = preserve_review(rows, prior)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         with args.out.open("w", encoding="utf-8-sig", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
             writer.writeheader()
             writer.writerows(rows)
-        print(f"{len(rows)} rows; review labels in {args.out}")
+        print(f"{len(rows)} rows ({sum(row['label']=='pending' for row in rows)} pending); review labels in {args.out}")
     else:
         rows = read_review(args.review)
         report = score(rows, args.train)

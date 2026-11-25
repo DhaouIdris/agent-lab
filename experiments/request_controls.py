@@ -18,7 +18,10 @@ _URGENT = re.compile(r'\b(?:je (?:fais un malaise|ne respire plus|suis en train 
                      r'j.ai (?:une )?(?:douleur thoracique|douleur a la poitrine).{0,80}(?:evanouis|perds connaissance)|'
                      r'on me menace.{0,50}(?:arme|couteau|pistolet)|'
                      r'(?:my friend|someone).{0,80}(?:collapsed|will not wake up)|'
-                     r'(?:feu|incendie) (?:dans|chez) (?:mon|ma|notre) (?:appartement|maison|immeuble|domicile))\b')
+                     r'(?:feu|incendie) (?:dans|chez) (?:mon|ma|notre) (?:appartement|maison|immeuble|domicile)|'
+                     r'(?:fumee|smoke)(?: noire)? (?:qui )?(?:sort|sortent|s.echappe|coming out)\s+(?:de|des|du|par|from)\b.{0,100}(?:fenetres?|immeuble|batiment|salle|appartement)|'
+                     r'alarme incendie.{0,35}(?:declenche|retentit).{0,100}(?:fumee|smoke)|'
+                     r'(?:collision frontale|accident frontal).{0,65}(?:violente?|grave|bless|voitur))\b')
 
 
 def _luhn(number):
