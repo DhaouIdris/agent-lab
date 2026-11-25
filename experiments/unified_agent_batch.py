@@ -13,6 +13,7 @@ from pathlib import Path
 from ci_agentlab.providers import ChatClient, ProviderError
 from experiments.document_rag import load_corpus
 from experiments.unified_agent import ask, AgentDiagnosticError, fetch_route, fetch_matrix
+from experiments.request_controls import redact_pii
 from run_azure import load_config
 
 
@@ -84,7 +85,7 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
                 matched=any(t['tool']==check['tool'] and all(t['arguments'].get(k)==v for k,v in check['equals'].items()) for t in result['trace'])
                 arg_checks.append({'tool':check['tool'],'equals':check['equals'],'passed':matched})
             forbidden=sorted(set(case.get('forbidden_tools',[])) & set(used))
-            row={'id':case['id'],'question':case['question'],'human_expectation':case['human_expectation'],
+            row={'id':case['id'],'question':redact_pii(case['question']),'human_expectation':case['human_expectation'],
                  **({'review_guide':case['review_guide']} if 'review_guide' in case else {}),
                  'response_origin':result.get('response_origin','local' if guard else 'model'),'category':case.get('category'), 'argument_checks':arg_checks, 'forbidden_tools_used':forbidden,
                  'required_tools':case['required_tools'],'observed_tools':used,'output':result['output'],
@@ -108,7 +109,7 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
         except (ProviderError,ValueError) as exc:
             diagnostic = exc.code if isinstance(exc,AgentDiagnosticError) else None
             safe_trace = exc.trace if isinstance(exc,AgentDiagnosticError) else []
-            row={'id':case['id'],'category':case.get('category'),'question':case['question'],
+            row={'id':case['id'],'category':case.get('category'),'question':redact_pii(case['question']),
                  'human_expectation':case['human_expectation'],
                  **({'review_guide':case['review_guide']} if 'review_guide' in case else {}),
                  'status':'execution_error','tool_selection_match':None,

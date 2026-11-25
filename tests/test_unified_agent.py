@@ -40,6 +40,40 @@ class UnifiedTests(unittest.TestCase):
         self.assertEqual(result['output']['document_ids'],['WB_CIV_GDP_CURRENT_2025'])
         self.assertFalse(requires_document_search('Qu’est-ce que le PIB par habitant ?'))
         self.assertTrue(requires_document_search('PIB de 2025 : 99,77 milliards ?'))
+
+    def test_model_cannot_invent_an_origin_for_catalogue_middleware(self):
+        client=Mock()
+        client.chat.side_effect=[call('search_catalogue',{'category':'restaurant',
+                'origin_label':'Lieu inventé','target_datetime_iso':'2026-11-25T12:00:00+00:00'},1),
+            final(place_ids=['node/1'])]
+        matrix=Mock()
+        result=ask(client,self.db,self.docs,'Trouve un restaurant.',catalogue_search=self.catalogue,
+                   matrix_service=matrix)
+        self.assertEqual(result['trace'][0]['result']['origin_status'],'UNKNOWN_ORIGIN')
+        self.assertEqual(result['trace'][0]['result']['items'][0]['open_status'],'UNKNOWN')
+        matrix.assert_not_called()
+
+    def test_configured_catalogue_origin_is_ranked_without_exposing_coordinates(self):
+        from unittest.mock import patch
+        from experiments.territory_tools import TerritoryTools
+        client=Mock()
+        client.chat.side_effect=[call('search_catalogue',{'category':'restaurant',
+                'origin_label':'Sofitel','target_datetime_iso':None},1),final(place_ids=['node/1'])]
+        catalogue=Mock(return_value={'items':[{'source_id':'node/1','name':'Restaurant test',
+            'latitude':5.33,'longitude':-4.0,'map_url':'https://www.openstreetmap.org/node/1'}]})
+        matrix=Mock(return_value={'status':'ok','distances_m':[450],
+                                  'durations_s':[360],'source':'test'})
+        extensions=TerritoryTools({'get_official_alerts':lambda args,timeout:{
+            'status':'SERVICE_UNAVAILABLE'}})
+        with patch('experiments.unified_agent.local_origin',return_value={
+             'status':'ok','location':(5.34,-4.01),'name':'Sofitel','source':'catalogue'}):
+            result=ask(client,self.db,self.docs,'Restaurants avec origine Sofitel ?',catalogue_search=catalogue,
+                       matrix_service=matrix,territory_tools=extensions)
+        item=result['trace'][0]['result']['items'][0]
+        self.assertEqual(item['distance_m'],450)
+        self.assertEqual(item['walk_duration_min'],6)
+        self.assertNotIn('latitude',item)
+        self.assertNotIn('map_url',item)
     def test_unseen_ids_rejected(self):
         client=Mock();client.chat.return_value=final(place_ids=['invented'])
         result=ask(client,self.db,self.docs,'test',catalogue_search=self.catalogue)
