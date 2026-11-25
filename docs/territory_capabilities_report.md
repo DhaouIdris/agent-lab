@@ -31,6 +31,7 @@ Le document fourni mentionne 112/15/17/18, la Gare du Nord, la ZFE et le métro.
 ## Vérifications effectuées
 
 `python -m unittest discover -s tests -q` : **310 tests réussis** dans l'environnement de développement. Les nouveaux tests couvrent les schémas, la provenance obligatoire, les IDs vus dans le bon registre, le rejet d'URL libre, la citation et le handoff, le court-circuit d'urgence, le masquage avant modèle et journal privé, les dates relatives et une origine catalogue résolue sans exposer ses coordonnées au modèle en mode étendu.
+La dépendance `tzdata` fournit la zone `Africa/Abidjan` sous Windows, où la base de fuseaux système peut manquer. Installer `requirements.txt` avant les tests ou l'exécution locale.
 
 `python -m experiments.eval_territory_controls --out /tmp/territory-controls-dev.json` : **12/12** urgences reconnues et **0/12** demandes bénignes bloquées sur un jeu **rédigé par l'auteur avec connaissance du filtre**. Le résultat ne mesure pas le rappel réel, ne justifie pas l'objectif de 99 % et ne teste pas un classifieur. Il faut un panel indépendant, multilingue et naturel, avec coût des faux blocages, avant de présenter cette voie comme protection suffisante.
 
