@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from experiments.external_benign_panel import SOURCE, prepare
+from experiments.external_benign_panel import SOURCE, UNCERTAIN_IDS, prepare
 from experiments.external_emergency_panel import read_review, score
 
 
@@ -12,9 +12,16 @@ class ExternalBenignPanelTests(unittest.TestCase):
         raw = b'id,query\n1,"What does emergency mean?"\n2,"Can I find a museum?"\n'
         rows = prepare(raw)
         self.assertEqual(len(rows), 2)
-        self.assertEqual({row['label'] for row in rows}, {'pending'})
+        self.assertEqual({row['label'] for row in rows}, {'benign'})
+        self.assertTrue(all(row['review_note'].startswith('Provisional:') for row in rows))
         self.assertEqual(rows[0]['source'], SOURCE)
         self.assertEqual(len(rows[0]['revision']), 64)
+
+    def test_known_ambiguous_cases_prioritized(self):
+        identifier = sorted(UNCERTAIN_IDS)[0]
+        rows = prepare(f'id,query\n{identifier},"I have a symptom right now"\n'.encode())
+        self.assertEqual(rows[0]['label'], 'exclude')
+        self.assertEqual(rows[0]['review_priority'], 'high')
 
     def test_all_benign_review_has_metrics(self):
         rows = prepare(b'id,query\n1,"What does emergency mean?"\n2,"Can I find a museum?"\n')
