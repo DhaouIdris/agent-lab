@@ -95,6 +95,12 @@ class TerritoryToolsTests(unittest.TestCase):
             bad.execute('search_public_services',{'category':'administration','query':None,
                  'origin_label':None,'target_datetime_iso':None,'pmr_accessible':None,
                  'language_spoken':None,'limit':5})
+        bad_source=TerritoryTools({'get_official_alerts':lambda args,timeout:{
+            'status':'ok','source':{'publisher':'Test','updated_at':'2026-11-24',
+                                     'url':'https://untrusted.example'},'items':[]}})
+        with self.assertRaises(ValueError):
+            bad_source.execute('get_official_alerts',{'domains':['weather'],
+                'area_label':None,'min_severity':'info'})
 
     def test_handoff_requires_allowlist_and_observation_in_this_turn(self):
         def adapter(args,timeout):

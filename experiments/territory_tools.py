@@ -183,6 +183,8 @@ class TerritoryTools:
         result = adapter(args, min(3, max(.1, timeout)))
         if not isinstance(result,dict) or result.get('status') not in ('ok','SERVICE_UNAVAILABLE','UNKNOWN_ENTITY'):
             raise ValueError('Invalid adapter response')
+        if 'http://' in str(result).lower() or 'https://' in str(result).lower() or 'www.' in str(result).lower():
+            raise ValueError('Adapter must return handoff IDs, not raw URLs')
         if result['status']=='ok':
             if not isinstance(result.get('source'),dict) or not result['source'].get('publisher') or not result['source'].get('updated_at'):
                 raise ValueError('Successful result needs publisher and updated_at')
@@ -191,8 +193,6 @@ class TerritoryTools:
                 raise ValueError('Invalid items')
             if any({'latitude','longitude','coordinates','geometry'} & item.keys() for item in items):
                 raise ValueError('Coordinates stay in the application layer')
-            if any('http://' in str(item).lower() or 'https://' in str(item).lower() or 'www.' in str(item).lower() for item in items):
-                raise ValueError('Adapter must return handoff IDs, not raw URLs')
             registry={'search_public_services':'public_services','search_events_agenda':'events_agenda',
                       'get_entity_details':getattr(args,'source_registry',None)}.get(name)
             for item in items:
