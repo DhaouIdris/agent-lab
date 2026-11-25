@@ -10,7 +10,14 @@ import re
 from pathlib import Path
 
 DATASET = "SoumiaDermouche/multilingual-emergency-calls"
-METADATA_FILE = "metadata.csv"
+METADATA_NAME = "metadata.csv"
+
+
+def metadata_path(repo_files):
+    matches = [path for path in repo_files if path.rsplit("/", 1)[-1] == METADATA_NAME]
+    if len(matches) != 1:
+        raise ValueError(f"Expected one {METADATA_NAME} in dataset repository, found {len(matches)}")
+    return matches[0]
 
 
 def first_caller_turn(transcript):
@@ -111,8 +118,10 @@ def main():
             from huggingface_hub import HfApi, hf_hub_download
         except ImportError as exc:
             raise SystemExit("Install optional dependency: python -m pip install huggingface_hub") from exc
-        revision = HfApi().dataset_info(DATASET).sha
-        metadata = hf_hub_download(repo_id=DATASET, repo_type="dataset", filename=METADATA_FILE,
+        api = HfApi()
+        revision = api.dataset_info(DATASET).sha
+        filename = metadata_path(api.list_repo_files(DATASET, repo_type="dataset", revision=revision))
+        metadata = hf_hub_download(repo_id=DATASET, repo_type="dataset", filename=filename,
                                    revision=revision)
         rows = prepare(load_metadata(metadata), revision)
         args.out.parent.mkdir(parents=True, exist_ok=True)

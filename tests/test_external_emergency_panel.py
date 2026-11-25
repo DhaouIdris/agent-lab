@@ -3,10 +3,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from experiments.external_emergency_panel import first_caller_turn, load_metadata, prepare, read_review, score
+from experiments.external_emergency_panel import first_caller_turn, load_metadata, metadata_path, prepare, read_review, score
 
 
 class ExternalEmergencyPanelTests(unittest.TestCase):
+    def test_metadata_discovery_in_subdirectory(self):
+        self.assertEqual(metadata_path(["README.md", "test/metadata.csv", "test/audio/1.mp3"]), "test/metadata.csv")
+        with self.assertRaises(ValueError):
+            metadata_path(["metadata.csv", "test/metadata.csv"])
+
     def test_prepare_extracts_first_caller_turn_only(self):
         rows = prepare([{"call_id": "anglais_1.1", "language": "en",
                          "translation": "Operator: Bonjour\nCaller: Il y a un blessé.\nOperator: Où ?\nCaller: À la gare."}], "fixed-sha")
