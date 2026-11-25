@@ -19,6 +19,8 @@ class ReadableReviewTests(unittest.TestCase):
                  'automatic_checks_pass': False, 'quality_checks': {'required_document_ids': False},
                  'question': 'Décris la Comoé et <script>malicious</script>.',
                  'human_expectation': 'Parc national et citation.',
+                 'review_guide': {'supported':['Le fleuve traverse le parc.'],
+                                  'not_supported':['Des crues annuelles sont attestées.']},
                  'output': {'answer': '````\n# Titre trompeur\n````', 'abstain': False,
                             'document_ids': ['UNESCO_COMOE__0001'], 'place_ids': []},
                  'trace': [{'tool': 'search_documents', 'arguments': {'query': 'parc'},
@@ -42,6 +44,9 @@ class ReadableReviewTests(unittest.TestCase):
         self.assertIn('H-L08 / 2', rendered)
         self.assertIn('required_document_ids', rendered)
         self.assertIn('La végétation du parc.', rendered)
+        self.assertIn('Repères de fidélité', rendered)
+        self.assertIn('Des crues annuelles sont attestées.', rendered)
+        self.assertIn('pas nécessairement faux', rendered)
         self.assertIn('Passage retourné (cité)', rendered)
         self.assertIn('Le parc ouvre à 9 h.', rendered)
         self.assertIn('Lieu retourné (non mentionné)', rendered)

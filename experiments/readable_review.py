@@ -123,6 +123,15 @@ def review_markdown(data, case_ids=(), failed_only=False, all_sources=False):
                 lines += ['### Sortie du modèle rejetée (privée)', '',
                           short('Motif : ' + str(rejected.get('validation_error', '?')) + '\n'
                                 + str(rejected.get('rejected_model_content', '')))]
+        guide = row.get('review_guide')
+        if isinstance(guide, dict):
+            lines += ['### Repères de fidélité (annotations privées, jamais envoyées au modèle)', '',
+                      'Établi dans les passages du panel :',
+                      short('\n'.join(str(item) for item in guide.get('supported', []))),
+                      'Non établi dans ces passages (pas nécessairement faux) :',
+                      short('\n'.join(str(item) for item in guide.get('not_supported', []))),
+                      '- [ ] Chaque affirmation présentée comme documentée est étayée par un passage cité.',
+                      '- [ ] Les mécanismes ou détails absents sont signalés comme non documentés, sans les attribuer à la source.', '']
         lines += ['### Grille de relecture', '']
         lines.extend('- [ ] ' + dimension for dimension in DIMENSIONS)
         lines += ['', 'Notes :', '', '---', '']

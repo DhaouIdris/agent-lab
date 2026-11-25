@@ -213,6 +213,7 @@ def load_cases(path,consistency):
     for case in data:
         extra_outcome=case.get('outcome_checks',{}) if isinstance(case,dict) else None
         extra_evidence=case.get('evidence_checks',{}) if isinstance(case,dict) else None
+        guide=case.get('review_guide') if isinstance(case,dict) else None
         if (not isinstance(case,dict) or not all(isinstance(case.get(k),str) and case[k].strip()
                 for k in ('id','category','goal','question','human_expectation'))
                 or not re.fullmatch(r'[A-Za-z0-9_-]{1,48}',case['id']) or case['id'] in ids
@@ -229,7 +230,11 @@ def load_cases(path,consistency):
                 or ('max_place_ids' in extra_evidence and (type(extra_evidence['max_place_ids']) is not int or not 0<=extra_evidence['max_place_ids']<=10))
                 or any(not isinstance(extra_evidence.get(key),list) or not extra_evidence[key]
                        or any(not isinstance(item,str) or not item for item in extra_evidence[key])
-                       for key in ('required_document_ids','required_place_ids') if key in extra_evidence)):
+                       for key in ('required_document_ids','required_place_ids') if key in extra_evidence)
+                or (guide is not None and (not isinstance(guide,dict) or set(guide)!={'supported','not_supported'}
+                    or any(not isinstance(guide.get(k),list) or len(guide[k])>5
+                           or any(not isinstance(item,str) or not 1<=len(item.strip())<=300 for item in guide[k])
+                           for k in ('supported','not_supported')) or not guide['supported']))):
             raise ValueError('Invalid or duplicate scenario')
         ids.add(case['id'])
     selected=[scenario(case) for case in data if not consistency or case['consistency']]
