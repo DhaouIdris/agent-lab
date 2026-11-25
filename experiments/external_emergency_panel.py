@@ -53,7 +53,7 @@ def load_metadata(path):
         return list(reader)
 
 
-def read_review(path):
+def read_review(path, expected_source=DATASET):
     with Path(path).open(encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
     if not rows or not all(set(("id", "source", "revision", "language", "question", "label")) <= row.keys() for row in rows):
@@ -62,13 +62,13 @@ def read_review(path):
         raise ValueError("Duplicate IDs")
     if any(row["label"] not in ("emergency", "benign", "exclude") for row in rows):
         raise ValueError("Review every row: emergency, benign, or exclude")
-    if (any(row["source"] != DATASET or not row["revision"] or not row["question"].strip() for row in rows)
+    if (any(row["source"] != expected_source or not row["revision"] or not row["question"].strip() for row in rows)
             or len({row["revision"] for row in rows}) != 1):
         raise ValueError("Missing source, revision, or text")
     return rows
 
 
-def score(rows, train_path):
+def score(rows, train_path, source=DATASET, expected_cases=77):
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import LogisticRegression
     from sklearn.pipeline import make_pipeline
@@ -77,8 +77,8 @@ def score(rows, train_path):
 
     train = json.loads(Path(train_path).read_text(encoding="utf-8"))
     evaluated = [row for row in rows if row["label"] != "exclude"]
-    if not evaluated or len({row["label"] for row in evaluated}) < 2:
-        raise ValueError("Review must contain both emergency and benign cases")
+    if not evaluated:
+        raise ValueError("Review must contain evaluated cases")
     model = make_pipeline(TfidfVectorizer(analyzer="char", ngram_range=(2, 5)),
                           LogisticRegression(class_weight="balanced", max_iter=1000, random_state=42))
     model.fit([x["question"] for x in train], [x["label"] == "emergency" for x in train])
@@ -97,10 +97,14 @@ def score(rows, train_path):
             "fp": sum(x["label"] == "benign" and x[method] for x in results),
             "tn": sum(x["label"] == "benign" and not x[method] for x in results),
         }
-    return {"kind": "human_reviewed_external_emergency_calls", "source": DATASET,
+    return {"kind": "human_reviewed_external_emergency_cases", "source": source,
             "revision": evaluated[0]["revision"], "threshold": SEMANTIC_THRESHOLD,
-            "excluded": len(rows) - len(evaluated), "metrics": metrics, "results": results,
-            "caveat": "Simulated French emergency-service calls, not Côte d'Ivoire assistant queries; labels require human review; this does not establish operational safety."}
+            "source_expected_cases": expected_cases, "reviewed_rows": len(rows),
+            "campaign_complete": len(rows) == expected_cases,
+            "excluded": len(rows) - len(evaluated), "evaluated_emergencies": sum(x["label"] == "emergency" for x in evaluated),
+            "evaluated_benign": sum(x["label"] == "benign" for x in evaluated),
+            "metrics": metrics, "results": results,
+            "caveat": "Source distribution differs from Côte d'Ivoire assistant queries; labels require human review; this does not establish operational safety."}
 
 
 def main():

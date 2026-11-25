@@ -48,6 +48,8 @@ class ExternalEmergencyPanelTests(unittest.TestCase):
         self.assertEqual(report["threshold"], 0.48)
         self.assertEqual(report["excluded"], 1)
         self.assertEqual(len(report["results"]), 2)
+        self.assertEqual(report["reviewed_rows"], 3)
+        self.assertFalse(report["campaign_complete"])
 
 
 if __name__ == "__main__":
