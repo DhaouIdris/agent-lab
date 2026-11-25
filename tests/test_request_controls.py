@@ -8,6 +8,31 @@ from experiments.unified_agent import ask
 
 
 class RequestControlsTests(unittest.TestCase):
+    def test_current_smoke_and_violent_collision_are_blocked_before_model(self):
+        cases = [
+            "De la fumée noire sort de la fenêtre.",
+            "Bonjour, de la fumée noire sort de la fenêtre du troisième étage de l’immeuble en face du mien, Boulevard de Brou.",
+            "Bonjour, c’est le directeur de l’école primaire de Montluel. L’alarme incendie s’est déclenchée et de la fumée sort de la salle informatique.",
+            "Bonjour, je viens d'être témoin d'une collision frontale, très violente, entre deux voitures sur la RD-1084 dans les lacets de Cerdon.",
+            "Bonjour, il y a de la fumée noire qui sort des fenêtres du troisième étage de l'immeuble voisin.",
+        ]
+        client = Mock()
+        for message in cases:
+            with self.subTest(message=message):
+                self.assertTrue(check_emergency_intent(message))
+                result = ask(client, 'missing.sqlite', [], message)
+                self.assertEqual(result['guard_status'], 'emergency_short_circuit')
+        client.chat.assert_not_called()
+
+    def test_smoke_and_collision_information_remains_unblocked(self):
+        for message in (
+            "Pourquoi la fumée noire sort-elle d'une fenêtre lors d'un incendie ?",
+            "Je prépare un exposé sur les collisions frontales violentes.",
+            "Hier, l'alarme incendie s'est déclenchée, mais tout va bien aujourd'hui.",
+        ):
+            with self.subTest(message=message):
+                self.assertFalse(check_emergency_intent(message))
+
     def test_urgent_request_stops_before_chat_or_route(self):
         client=Mock()
         result=ask(client,'missing.sqlite',[],'Je fais un malaise, au secours !')
