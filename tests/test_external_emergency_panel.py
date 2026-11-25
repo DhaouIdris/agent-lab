@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from experiments.external_emergency_panel import first_caller_turn, prepare, read_review, score
+from experiments.external_emergency_panel import first_caller_turn, load_metadata, prepare, read_review, score
 
 
 class ExternalEmergencyPanelTests(unittest.TestCase):
@@ -12,6 +12,17 @@ class ExternalEmergencyPanelTests(unittest.TestCase):
                          "translation": "Operator: Bonjour\nCaller: Il y a un blessé.\nOperator: Où ?\nCaller: À la gare."}], "fixed-sha")
         self.assertEqual(rows[0]["question"], "Il y a un blessé.")
         self.assertEqual(rows[0]["label"], "pending")
+
+    def test_inline_transcript_and_metadata_without_audio(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "metadata.csv"
+            with path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["call_id", "language", "translation", "file_name"])
+                writer.writeheader()
+                writer.writerow({"call_id": "anglais_1.1", "language": "en", "file_name": "audio.mp3",
+                                 "translation": "Operator: Bonjour. Caller: Un feu se propage. Operator: Où ? Caller: Chez moi."})
+            rows = prepare(load_metadata(path), "fixed-sha")
+            self.assertEqual(rows[0]["question"], "Un feu se propage.")
 
     def test_labels_must_be_reviewed(self):
         with tempfile.TemporaryDirectory() as directory:

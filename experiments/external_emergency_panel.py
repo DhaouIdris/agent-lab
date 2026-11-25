@@ -1,6 +1,6 @@
 """Prepare a public emergency-call panel for human labels, then score a frozen guard.
 
-Requires `datasets` only for prepare. No provider calls or downloaded model weights.
+Reads only the dataset's metadata.csv. No audio, provider calls, or model weights.
 """
 import argparse
 import csv
@@ -10,13 +10,13 @@ import re
 from pathlib import Path
 
 DATASET = "SoumiaDermouche/multilingual-emergency-calls"
-SPLIT = "test"
+METADATA_FILE = "metadata.csv"
 
 
 def first_caller_turn(transcript):
     if not isinstance(transcript, str):
         raise ValueError("Missing transcript")
-    match = re.search(r"(?:^|\n)\s*Caller:\s*(.*?)(?=\n\s*(?:Operator|Caller):|\Z)",
+    match = re.search(r"\bCaller:\s*(.*?)(?=\s*\b(?:Operator|Caller):|\Z)",
                       transcript, re.IGNORECASE | re.DOTALL)
     if not match or not match.group(1).strip():
         raise ValueError("No first caller turn; inspect source format")
@@ -36,6 +36,14 @@ def prepare(rows, revision):
                        "question": first_caller_turn(row["translation"]),
                        "label": "pending", "review_note": ""})
     return sorted(result, key=lambda x: x["id"])
+
+
+def load_metadata(path):
+    with Path(path).open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if not reader.fieldnames or not {"call_id", "language", "translation"} <= set(reader.fieldnames):
+            raise ValueError("Metadata CSV missing call_id, language, or translation")
+        return list(reader)
 
 
 def read_review(path):
@@ -100,12 +108,13 @@ def main():
     args = parser.parse_args()
     if args.command == "prepare":
         try:
-            from datasets import load_dataset
-            from huggingface_hub import HfApi
+            from huggingface_hub import HfApi, hf_hub_download
         except ImportError as exc:
-            raise SystemExit("Install optional dependencies: python -m pip install datasets huggingface_hub") from exc
+            raise SystemExit("Install optional dependency: python -m pip install huggingface_hub") from exc
         revision = HfApi().dataset_info(DATASET).sha
-        rows = prepare(load_dataset(DATASET, split=SPLIT, revision=revision), revision)
+        metadata = hf_hub_download(repo_id=DATASET, repo_type="dataset", filename=METADATA_FILE,
+                                   revision=revision)
+        rows = prepare(load_metadata(metadata), revision)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         with args.out.open("w", encoding="utf-8-sig", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(rows[0]))

@@ -1,11 +1,11 @@
 # Panel externe : appels d'urgence simulés
 
-Source : [Multilingual Emergency Calls](https://huggingface.co/datasets/SoumiaDermouche/multilingual-emergency-calls), 77 appels simulés, Licence Ouverte 2.0. Le script extrait **le premier tour de l'appelant traduit en français**, sans le texte de l'opérateur. Ce sont des simulations situées en France, pas des questions adressées à notre agent ivoirien. Le téléchargement porte sur les données du jeu, pas sur des poids de modèle.
+Source : [Multilingual Emergency Calls](https://huggingface.co/datasets/SoumiaDermouche/multilingual-emergency-calls), 77 appels simulés, Licence Ouverte 2.0. Le script lit uniquement `metadata.csv` et extrait **le premier tour de l'appelant traduit en français**, sans le texte de l'opérateur. Ce sont des simulations situées en France, pas des questions adressées à notre agent ivoirien. Aucun fichier audio, poids de modèle ou dépendance PyTorch n'est nécessaire.
 
 Sous PowerShell, depuis la racine du dépôt sur la branche du pilote :
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install scikit-learn datasets huggingface_hub
+.\.venv\Scripts\python.exe -m pip install scikit-learn huggingface_hub
 .\.venv\Scripts\python.exe -m experiments.external_emergency_panel prepare --out runs\external_calls.review.csv
 ```
 
