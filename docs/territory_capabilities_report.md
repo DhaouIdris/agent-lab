@@ -17,6 +17,8 @@ Le prompt alternatif n'est activé que lorsqu'au moins un adaptateur territorial
 
 ## Pourquoi les flux restent désactivés
 
+Des points de départ plausibles ont été repérés : [l'annuaire gouvernemental](https://annuaire.gouv.ci/), [le portail des démarches](https://www.servicepublic.gouv.ci/) et [l'agenda du CICG](https://www.cicg.gouv.ci/accueil). Ce sont des pages consultables, **pas** des flux stables déjà licenciés, synchronisés ou validés pour l'application. Vérifier les conditions de réutilisation, les interfaces, la date et la couverture avant toute ingestion.
+
 - **Services publics, musées, santé** : sélectionner et licencier des enregistrements datés, avec identifiants stables, statut d'accessibilité attesté, horaires et, pour les pharmacies de garde, source de garde actualisée. Une fiche sans champ ne prouve ni ouverture ni fermeture.
 - **Agenda et fermetures** : définir une source maintenue et son identifiant d'événement, sa période, sa zone, ses conditions de gratuité et la fréquence de synchronisation.
 - **Transport** : trouver des flux GTFS autorisés et documenter la couverture réelle des réseaux ivoiriens. GTFS planifié ne prouve ni circulation en temps réel ni accessibilité PMR effective.
