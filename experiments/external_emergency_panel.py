@@ -45,6 +45,19 @@ def prepare(rows, revision):
     return sorted(result, key=lambda x: x["id"])
 
 
+def preserve_review(prepared, prior):
+    by_id = {row["id"]: row for row in prepared}
+    if len(by_id) != len(prepared):
+        raise ValueError("Duplicate prepared ID")
+    for old in prior:
+        new = by_id.get(old["id"])
+        if new is None or any(new[key] != old[key] for key in ("source", "revision", "language", "question")):
+            raise ValueError(f"Prior review does not match source revision and text: {old['id']}")
+        new["label"] = old["label"]
+        new["review_note"] = old.get("review_note", "")
+    return prepared
+
+
 def load_metadata(path):
     with Path(path).open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -112,28 +125,35 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     prepare_parser = sub.add_parser("prepare")
     prepare_parser.add_argument("--out", type=Path, required=True)
+    prepare_parser.add_argument("--prior-review", type=Path,
+                                help="Preserve existing reviewed rows while restoring the full source panel")
     score_parser = sub.add_parser("score")
     score_parser.add_argument("--review", type=Path, required=True)
     score_parser.add_argument("--out", type=Path, required=True)
     score_parser.add_argument("--train", type=Path, default=Path("data/territory_controls_dev.json"))
     args = parser.parse_args()
     if args.command == "prepare":
+        if args.out.exists():
+            raise SystemExit(f"Refusing to overwrite existing review CSV: {args.out}")
         try:
             from huggingface_hub import HfApi, hf_hub_download
         except ImportError as exc:
             raise SystemExit("Install optional dependency: python -m pip install huggingface_hub") from exc
         api = HfApi()
-        revision = api.dataset_info(DATASET).sha
+        prior = read_review(args.prior_review) if args.prior_review else None
+        revision = prior[0]["revision"] if prior else api.dataset_info(DATASET).sha
         filename = metadata_path(api.list_repo_files(DATASET, repo_type="dataset", revision=revision))
         metadata = hf_hub_download(repo_id=DATASET, repo_type="dataset", filename=filename,
                                    revision=revision)
         rows = prepare(load_metadata(metadata), revision)
+        if prior:
+            rows = preserve_review(rows, prior)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         with args.out.open("w", encoding="utf-8-sig", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
             writer.writeheader()
             writer.writerows(rows)
-        print(f"{len(rows)} rows; review labels in {args.out}")
+        print(f"{len(rows)} rows ({sum(row['label']=='pending' for row in rows)} pending); review labels in {args.out}")
     else:
         rows = read_review(args.review)
         report = score(rows, args.train)

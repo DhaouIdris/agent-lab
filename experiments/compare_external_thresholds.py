@@ -7,15 +7,19 @@ from pathlib import Path
 
 from experiments.external_benign_panel import SOURCE as BENIGN_SOURCE
 from experiments.external_emergency_panel import DATASET as CALLS_SOURCE, read_review
+from experiments.french_benign_panel import EXPECTED as FRENCH_EXPECTED, SOURCE as FRENCH_SOURCE
 from experiments.request_controls import check_emergency_intent
 
 DEFAULT_THRESHOLDS = (0.40, 0.45, 0.48, 0.50, 0.52, 0.55, 0.60, 0.65)
 FIELDS = ("case_id", "source", "revision", "language", "question", "label", "review_priority", "review_note")
 
 
-def merge(calls, benign):
+def merge(calls, benign, french=None):
     result = []
-    for prefix, source, rows in (("calls", CALLS_SOURCE, calls), ("benign", BENIGN_SOURCE, benign)):
+    groups = (("calls", CALLS_SOURCE, calls), ("benign", BENIGN_SOURCE, benign))
+    if french is not None:
+        groups += (("french", FRENCH_SOURCE, french),)
+    for prefix, source, rows in groups:
         for row in rows:
             if row["source"] != source:
                 raise ValueError("Unexpected source in review CSV")
@@ -59,7 +63,7 @@ def compare(merged, train_path, thresholds=DEFAULT_THRESHOLDS):
         semantic = [bool(p >= threshold) for p in probabilities]
         combined = [s or l for s, l in zip(semantic, lexical)]
         by_source = {}
-        for source in (CALLS_SOURCE, BENIGN_SOURCE):
+        for source in sorted({row["source"] for row in merged}):
             positions = [i for i, row in enumerate(rows) if row["source"] == source]
             by_source[source] = confusion([rows[i] for i in positions], [combined[i] for i in positions])
         output.append({"threshold": threshold, "semantic": confusion(rows, semantic),
@@ -80,6 +84,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--calls", type=Path, required=True)
     parser.add_argument("--benign", type=Path, required=True)
+    parser.add_argument("--french", type=Path, help="Optional French domain benign review CSV")
     parser.add_argument("--merged-csv", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--train", type=Path, default=Path("data/territory_controls_dev.json"))
@@ -91,14 +96,21 @@ def main():
         raise SystemExit(f"Refusing to overwrite merged CSV: {args.merged_csv}")
     calls = read_review(args.calls, CALLS_SOURCE)
     benign = read_review(args.benign, BENIGN_SOURCE)
-    merged = merge(calls, benign)
+    french = read_review(args.french, FRENCH_SOURCE) if args.french else None
+    merged = merge(calls, benign, french)
     report = compare(merged, args.train, args.thresholds)
     report["source_rows"] = {CALLS_SOURCE: len(calls), BENIGN_SOURCE: len(benign)}
     report["source_expected"] = {CALLS_SOURCE: 77, BENIGN_SOURCE: 50}
-    report["campaign_complete"] = len(calls) == 77 and len(benign) == 50
+    if french is not None:
+        report["source_rows"][FRENCH_SOURCE] = len(french)
+        report["source_expected"][FRENCH_SOURCE] = FRENCH_EXPECTED
+    report["campaign_complete"] = all(report["source_rows"][source] == count
+                                      for source, count in report["source_expected"].items())
     report["labels_reviewed"] = args.labels_reviewed
     report["input_sha256"] = {"calls": hashlib.sha256(args.calls.read_bytes()).hexdigest(),
                               "benign": hashlib.sha256(args.benign.read_bytes()).hexdigest()}
+    if args.french:
+        report["input_sha256"]["french"] = hashlib.sha256(args.french.read_bytes()).hexdigest()
     report["training_sha256"] = hashlib.sha256(args.train.read_bytes()).hexdigest()
     if not args.labels_reviewed:
         report["caveat"] += " Input labels have not been confirmed by the reviewer."

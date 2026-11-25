@@ -4,6 +4,7 @@ from pathlib import Path
 from experiments.compare_external_thresholds import compare, merge
 from experiments.external_benign_panel import SOURCE as BENIGN_SOURCE
 from experiments.external_emergency_panel import DATASET as CALLS_SOURCE
+from experiments.french_benign_panel import SOURCE as FRENCH_SOURCE
 
 
 class ExternalThresholdTests(unittest.TestCase):
@@ -32,6 +33,18 @@ class ExternalThresholdTests(unittest.TestCase):
                  "label": "emergency"}]
         with self.assertRaisesRegex(ValueError, "overlap"):
             compare(rows, Path("data/territory_controls_dev.json"), (0.48,))
+
+    def test_third_source_kept_separate(self):
+        calls = [{"id": "1", "source": CALLS_SOURCE, "revision": "a", "language": "fr",
+                  "question": "Une épaisse fumée sort de l'immeuble.", "label": "emergency"}]
+        benign = [{"id": "2", "source": BENIGN_SOURCE, "revision": "b", "language": "en",
+                   "question": "Where is the museum?", "label": "benign"}]
+        french = [{"id": "3", "source": FRENCH_SOURCE, "revision": "c", "language": "fr",
+                   "question": "Quels sont les hôtels à Abidjan ?", "label": "benign"}]
+        merged = merge(calls, benign, french)
+        report = compare(merged, Path("data/territory_controls_dev.json"), (0.48,))
+        self.assertEqual(set(report["thresholds"][0]["combined_by_source"]),
+                         {CALLS_SOURCE, BENIGN_SOURCE, FRENCH_SOURCE})
 
 
 if __name__ == "__main__":

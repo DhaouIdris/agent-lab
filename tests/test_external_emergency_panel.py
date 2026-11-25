@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from experiments.external_emergency_panel import first_caller_turn, load_metadata, metadata_path, prepare, read_review, score
+from experiments.external_emergency_panel import first_caller_turn, load_metadata, metadata_path, prepare, preserve_review, read_review, score
 
 
 class ExternalEmergencyPanelTests(unittest.TestCase):
@@ -17,6 +17,15 @@ class ExternalEmergencyPanelTests(unittest.TestCase):
                          "translation": "Operator: Bonjour\nCaller: Il y a un blessé.\nOperator: Où ?\nCaller: À la gare."}], "fixed-sha")
         self.assertEqual(rows[0]["question"], "Il y a un blessé.")
         self.assertEqual(rows[0]["label"], "pending")
+
+    def test_partial_review_is_preserved_without_relabeling_missing_rows(self):
+        prepared = prepare([{"call_id": "a", "language": "en", "translation": "Caller: Fire now."},
+                            {"call_id": "b", "language": "en", "translation": "Caller: A question."}], "rev")
+        old = dict(prepared[0], label="emergency", review_note="checked")
+        merged = preserve_review(prepared, [old])
+        self.assertEqual([row["label"] for row in merged], ["emergency", "pending"])
+        with self.assertRaises(ValueError):
+            preserve_review(prepared, [dict(old, question="Changed")])
 
     def test_inline_transcript_and_metadata_without_audio(self):
         with tempfile.TemporaryDirectory() as directory:
