@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock
 from ci_agentlab.providers import ProviderError
 from experiments.document_rag import load_corpus
-from experiments.unified_agent import ask, unverified_amounts_or_hours
+from experiments.unified_agent import ask, requires_document_search, unverified_amounts_or_hours
 
 
 def call(name,args,idx):
@@ -26,6 +26,20 @@ class UnifiedTests(unittest.TestCase):
         result=ask(client,self.db,self.docs,'Un café et l’histoire de Grand-Bassam',catalogue_search=self.catalogue)
         self.assertEqual([x['tool'] for x in result['trace']],['search_catalogue','search_documents'])
         self.assertEqual(result['output']['place_ids'],['node/1'])
+
+    def test_specific_gdp_amount_requires_document_lookup_before_answer(self):
+        client=Mock()
+        client.chat.side_effect=[call('search_documents',{'query':'PIB Côte d’Ivoire 2025'},1),
+                                 final(answer='Non, ce montant désigne le PIB total.',
+                                       document_ids=['WB_CIV_GDP_CURRENT_2025'])]
+        result=ask(client,self.db,self.docs,'99,77 milliards, c’est le PIB par habitant ?')
+        self.assertEqual(result['trace'][0]['tool'],'search_documents')
+        first=client.chat.call_args_list[0].kwargs
+        self.assertEqual(first['tool_choice']['function']['name'],'search_documents')
+        self.assertEqual([x['function']['name'] for x in first['tools_override']],['search_documents'])
+        self.assertEqual(result['output']['document_ids'],['WB_CIV_GDP_CURRENT_2025'])
+        self.assertFalse(requires_document_search('Qu’est-ce que le PIB par habitant ?'))
+        self.assertTrue(requires_document_search('PIB de 2025 : 99,77 milliards ?'))
     def test_unseen_ids_rejected(self):
         client=Mock();client.chat.return_value=final(place_ids=['invented'])
         result=ask(client,self.db,self.docs,'test',catalogue_search=self.catalogue)
