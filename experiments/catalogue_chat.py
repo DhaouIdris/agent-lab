@@ -12,7 +12,8 @@ from ci_agentlab.providers import ChatClient,ProviderError
 from experiments.input_guard import inspect_user_input
 from experiments.injection_guard import inspect_passages
 from experiments.place_catalog import search
-from run_azure import load_config
+from experiments.model_config import load_model_config
+from experiments.model_credentials import model_key
 
 class SearchInput(BaseModel):
     model_config=ConfigDict(extra='forbid',strict=True)
@@ -81,11 +82,11 @@ def ask(client,db,question,max_rounds=4,timeout=180):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--db',required=True);p.add_argument('--config',default='azure.json');p.add_argument('--question',required=True)
-    a=p.parse_args();c=load_config(a.config)
+    p.add_argument('--db',required=True);p.add_argument('--config',default='model.json');p.add_argument('--question',required=True)
+    a=p.parse_args();c=load_model_config(a.config)
     if not Path(a.db).is_file():p.error('Catalogue database missing')
-    key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure (saisie masquée) : ')
-    if not key:p.error('Clé absente')
+    try:key=model_key(c)
+    except ValueError as exc:p.error(str(exc))
     client=ChatClient(c['base_url'],c['deployment'],api_key=key,api_version=c.get('api_version'),
         max_output_tokens=c['max_output_tokens'],max_calls=8,auth_header=c['auth_header'],
         token_parameter=c['token_parameter'],min_interval_seconds=c['min_interval_seconds'])

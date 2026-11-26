@@ -13,7 +13,7 @@ Copy-Item model.example.json model.json
 Copy-Item .env.example .env
 ```
 
-Éditer `model.json` : `base_url` est la racine de l'API Chat Completions, **sans** `/chat/completions` ; `deployment` est l'identifiant exact du modèle ou du déploiement. Pour Azure Foundry, copier plutôt `azure.example.json` vers `model.json`, puis renseigner l'URL `https://<resource>.openai.azure.com/openai/v1` et le nom de déploiement. Pour un autre fournisseur OpenAI compatible, garder `auth_header: bearer` et ajuster `token_parameter` (`max_tokens` ou `max_completion_tokens`) selon le modèle. Pour un serveur local : URL `http://localhost:<port>/v1`, `AGENTLAB_API_KEY` vide. Les appels d'outils, les messages `tool` et le JSON de sortie doivent être compatibles ; le format d'API seul ne suffit pas.
+Éditer `model.json` : `base_url` est la racine de l'API Chat Completions, **sans** `/chat/completions` ; `deployment` est l'identifiant exact du modèle fourni par **son propre service**. Azure n'est pas nécessaire. Pour une API distante compatible OpenAI, garder `auth_header: bearer` et ajuster `token_parameter` (`max_tokens` ou `max_completion_tokens`) selon le modèle. Pour un serveur local : URL `http://localhost:<port>/v1`, `AGENTLAB_API_KEY` vide. Un serveur local exige des ressources matérielles suffisantes ; sur un PC léger, utiliser une API distante. Les appels d'outils, les messages `tool` et le JSON de sortie doivent être compatibles ; le format d'API seul ne suffit pas.
 
 Mettre **sa propre** clé du modèle dans `.env` sous `AGENTLAB_API_KEY` (ou laisser vide et saisir la clé lorsqu'elle est demandée). Pour le calcul d'itinéraire et la recherche d'adresse via openrouteservice, ajouter **sa propre** clé `ORS_API_KEY` ; sans elle, ces fonctions renvoient indisponible. Le serveur LLM et openrouteservice reçoivent les requêtes correspondantes. `.env`, `model.json`, `local_data/` et `runs/` sont ignorés par Git. Ne jamais publier ces fichiers, ni partager les rapports de revue privée bruts.
 
@@ -34,11 +34,12 @@ L'import échoue si `lieux.sqlite` existe déjà ; conserver la base existante o
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -q
 .\.venv\Scripts\python.exe -m ci_agentlab validate
-.\.venv\Scripts\python.exe -c "from run_azure import load_config; load_config('model.json',allow_compatible=True); print('Configuration valide')"
+.\.venv\Scripts\python.exe -c "from experiments.model_config import load_model_config; load_model_config('model.json'); print('Configuration valide')"
 .\.venv\Scripts\python.exe -m experiments.unified_agent --config model.json --db local_data/lieux.sqlite --corpus data/rag_integrated_dev.json --question "Que dit l'UNESCO sur la forêt de Taï ?"
 .\.venv\Scripts\python.exe -m experiments.unified_agent_batch --config model.json --db local_data/lieux.sqlite --case UA02 --private-review
+.\.venv\Scripts\python.exe -m experiments.audit_campaign --live --config model.json --db local_data/lieux.sqlite --case CATALOGUE-01 --private-review
 ```
 
-Les trois premières commandes n'appellent aucun LLM. Les deux dernières utilisent le fournisseur choisi et peuvent être facturées. Le rapport du lot va dans `runs/` : lire `report.json` puis, pour l'examen humain, `review.private.json` avec `python -m experiments.readable_review <chemin-vers-review.private.json>`. Élargir ensuite les cas ou les campagnes documentées dans `docs/`. Les scores automatiques ne jugent pas seuls la qualité des réponses. Aucun test n'effectue une réservation ou un paiement.
+Les trois premières commandes n'appellent aucun LLM. Les suivantes utilisent le fournisseur choisi et peuvent être facturées. Vérifier les identifiants du panel choisi dans `data/audit_campaign_60.json` avant de lancer `--case`; sans `--case`, la campagne complète envoie davantage de requêtes. Le rapport va dans `runs/` : lire `report.json` puis, pour l'examen humain, `review.private.json` avec `python -m experiments.readable_review <chemin-vers-review.private.json>`. Élargir ensuite les cas ou les campagnes documentées dans `docs/`. Les scores automatiques ne jugent pas seuls la qualité des réponses. Aucun test n'effectue une réservation ou un paiement.
 
-Le lanceur historique `run_azure.py` et son `check/preflight` restent réservés à Azure ; les commandes de l'agent intégré ci-dessus acceptent les autres API compatibles. Les clés et quotas ne sont jamais inclus dans cette branche.
+Le lanceur historique `run_azure.py` et son `check/preflight` restent réservés à Azure ; **les commandes de l'agent intégré n'importent pas ce lanceur** et acceptent les autres API compatibles. Les clés et quotas ne sont jamais inclus dans cette branche.

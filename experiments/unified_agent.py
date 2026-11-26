@@ -15,7 +15,7 @@ from experiments.document_rag import load_corpus, retrieve
 from experiments.injection_guard import inspect_passages, normalize
 from experiments.input_guard import inspect_user_input
 from experiments.place_catalog import search
-from run_azure import load_config
+from experiments.model_config import load_model_config
 from experiments.model_credentials import model_key
 from experiments.route_service import route, load_route_key, valid_coordinates
 from experiments.route_service import matrix
@@ -518,7 +518,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--db',required=True);p.add_argument('--corpus',required=True)
-    p.add_argument('--question',required=True);p.add_argument('--config',default='azure.json')
+    p.add_argument('--question',required=True);p.add_argument('--config',default='model.json')
     p.add_argument('--user-location',nargs=2,type=float,metavar=('LAT','LON'),help='Known user position for nearby place ranking')
     a=p.parse_args()
     docs=load_corpus(a.corpus)
@@ -526,7 +526,7 @@ def main():
     client=None
     timeout=180
     if not inspect_user_input(a.question) and not named_origin_request(a.question) and not (a.user_location and _NEARBY_USER.search(normalize(a.question))) and (not routing or other):
-        cfg=load_config(a.config,allow_compatible=True)
+        cfg=load_model_config(a.config)
         timeout=cfg['turn_timeout_seconds']
         try:key=model_key(cfg)
         except ValueError as exc:p.error(str(exc))

@@ -17,7 +17,8 @@ from experiments.unified_agent import fetch_route, fetch_matrix, _NEARBY_USER
 from experiments.injection_guard import normalize
 from experiments.route_service import valid_coordinates
 from experiments.unified_agent_batch import run
-from run_azure import load_config
+from experiments.model_config import load_model_config
+from experiments.model_credentials import model_key
 
 CASES=Path('data/audit_campaign_60.json')
 CORPUS=Path('data/rag_integrated_dev.json')
@@ -164,9 +165,7 @@ def add_consistency(report,cases,repetitions):
 
 
 def provider(config,budget):
-    key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure : ')
-    if not key:
-        raise ValueError('Clé Azure absente')
+    key=model_key(config)
     return ChatClient(config['base_url'],config['deployment'],api_key=key,api_version=config.get('api_version'),
                       max_calls=budget,max_output_tokens=config['max_output_tokens'],auth_header=config['auth_header'],
                       token_parameter=config['token_parameter'],min_interval_seconds=config['min_interval_seconds'])
@@ -296,7 +295,7 @@ def main():
     p.add_argument('--consistency',action='store_true',help='Repeat cases marked consistency=true three times')
     p.add_argument('--cases',type=Path,default=CASES,help='Frozen panel or a separately authored private panel')
     p.add_argument('--db',type=Path,default=Path('local_data/lieux.sqlite'))
-    p.add_argument('--config',default='azure.json')
+    p.add_argument('--config',default='model.json')
     p.add_argument('--private-review',action='store_true')
     p.add_argument('--out',type=Path)
     p.add_argument('--adjudicate',type=Path)
@@ -326,7 +325,7 @@ def main():
         cases=failed_cases(cases,a.failed_from)
     repeat=3 if a.consistency else 1
     planned=len(cases)*repeat
-    config=load_config(a.config) if a.live else {}
+    config=load_model_config(a.config) if a.live else {}
     if a.live and not a.db.is_file():
         p.error('Catalogue SQLite introuvable')
     client=provider(config,planned*5) if a.live else NoChat()
@@ -336,7 +335,7 @@ def main():
     out.mkdir(parents=True,exist_ok=False)
     metadata={'run_id':stamp,'abstention_policy':{c['id']:'diagnostic' if c.get('abstain_is_diagnostic') else 'scored' for c in cases},'selected_case_ids':[c['id'] for c in cases],'repetitions':repeat,'cases_sha256':digest(a.cases),'corpus_sha256':digest(CORPUS),
               'catalogue_sha256_start':digest(a.db) if a.db.is_file() else None,
-              'model':config.get('underlying_model'),'model_version':config.get('model_version'),
+              'model':config.get('underlying_model',config.get('deployment')),'model_version':config.get('model_version'),
               'max_provider_calls':planned*5 if a.live else 0,
               'code_sha256':{p.name:digest(p) for p in [Path(__file__),Path('ci_agentlab/providers.py'),
                           *(Path('experiments')/(m+'.py') for m in ('input_guard','injection_guard','unified_agent','route_service',

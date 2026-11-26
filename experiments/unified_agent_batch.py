@@ -14,7 +14,7 @@ from ci_agentlab.providers import ChatClient, ProviderError
 from experiments.document_rag import load_corpus
 from experiments.unified_agent import ask, AgentDiagnosticError, fetch_route, fetch_matrix
 from experiments.request_controls import redact_pii
-from run_azure import load_config
+from experiments.model_config import load_model_config
 from experiments.model_credentials import model_key
 
 
@@ -152,7 +152,7 @@ def run(client,db,docs,cases,on_progress=None,timeout=180,route_service=fetch_ro
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--private-review',action='store_true');p.add_argument('--db',required=True);p.add_argument('--corpus',default='data/rag_integrated_dev.json');p.add_argument('--cases',default='data/unified_agent_dev_cases.json');p.add_argument('--config',default='azure.json');p.add_argument('--out');p.add_argument('--case',action='append',help='Repeat to select specific case IDs')
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--private-review',action='store_true');p.add_argument('--db',required=True);p.add_argument('--corpus',default='data/rag_integrated_dev.json');p.add_argument('--cases',default='data/unified_agent_dev_cases.json');p.add_argument('--config',default='model.json');p.add_argument('--out');p.add_argument('--case',action='append',help='Repeat to select specific case IDs')
     a=p.parse_args();db=Path(a.db);corpus=Path(a.corpus);casefile=Path(a.cases)
     if not db.is_file():p.error('Catalogue database missing')
     docs=load_corpus(corpus);cases=json.loads(casefile.read_text(encoding='utf8'))
@@ -168,7 +168,7 @@ def main():
         cases=[c for c in cases if c['id'] in selected]
     out=Path(a.out) if a.out else Path('runs')/('unified_'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
     if out.exists():p.error('Result directory exists')
-    cfg=load_config(a.config,allow_compatible=True)
+    cfg=load_model_config(a.config)
     try:key=model_key(cfg)
     except ValueError as exc:p.error(str(exc))
     client=ChatClient(cfg['base_url'],cfg['deployment'],api_key=key,api_version=cfg.get('api_version'),max_output_tokens=cfg['max_output_tokens'],max_calls=5*len(cases),auth_header=cfg['auth_header'],token_parameter=cfg['token_parameter'],min_interval_seconds=cfg['min_interval_seconds'])
@@ -176,7 +176,7 @@ def main():
     def checkpoint(rows):
         save_report(out,{'kind':'partial','campaign_complete':False,'results':rows},a.private_review)
     report=run(client,db,docs,cases,on_progress=checkpoint,timeout=cfg['turn_timeout_seconds'],capture_rejected=a.private_review)
-    report['config']={'model':cfg['underlying_model'],'model_version':cfg['model_version'],'max_provider_calls':5*len(cases),
+    report['config']={'model':cfg.get('underlying_model',cfg['deployment']),'model_version':cfg.get('model_version'),'max_provider_calls':5*len(cases),
        'corpus_sha256':hashlib.sha256(corpus.read_bytes()).hexdigest(),'cases_sha256':hashlib.sha256(casefile.read_bytes()).hexdigest()}
     save_report(out,report,a.private_review)
     print(json.dumps(report['summary'],ensure_ascii=False,indent=2));print('Rapport :',out/'report.json')

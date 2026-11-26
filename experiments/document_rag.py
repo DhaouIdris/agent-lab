@@ -106,7 +106,7 @@ def main():
     for name in ('retrieve','ask'):
         a=s.add_parser(name);a.add_argument('--question',required=True);a.add_argument('--k',type=int,default=3);a.add_argument('--corpus',default=str(CORPUS))
         if name=='ask':
-            a.add_argument('--config',default='azure.json')
+            a.add_argument('--config',default='model.json')
             a.add_argument('--prompt-shield-endpoint', help='Opt-in Content Safety resource endpoint; key via AGENTLAB_SHIELD_KEY')
     a=s.add_parser('eval');a.add_argument('--k',type=int,default=3);a.add_argument('--corpus',default=str(CORPUS))
     a=p.parse_args();docs=load_corpus(a.corpus)
@@ -117,10 +117,11 @@ def main():
         elif not hits:result=generate(None,a.question,hits)
         else:
             from ci_agentlab.providers import ChatClient
-            from run_azure import load_config
-            cfg=load_config(a.config)
-            key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure (saisie masquée) : ')
-            if not key:p.error('Clé absente')
+            from experiments.model_config import load_model_config
+            from experiments.model_credentials import model_key
+            cfg=load_model_config(a.config)
+            try:key=model_key(cfg)
+            except ValueError as exc:p.error(str(exc))
             client=ChatClient(cfg['base_url'],cfg['deployment'],api_key=key,api_version=cfg.get('api_version'),max_output_tokens=cfg['max_output_tokens'],
                 max_calls=3,auth_header=cfg['auth_header'],token_parameter=cfg['token_parameter'],min_interval_seconds=cfg['min_interval_seconds'])
             shield=None

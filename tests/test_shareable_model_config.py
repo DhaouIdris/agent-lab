@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from experiments.model_credentials import model_key
-from run_azure import load_config
+from experiments.model_config import load_model_config
 
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -18,11 +18,11 @@ class ShareableModelConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             file=Path(directory)/'model.json'
             file.write_text(json.dumps(data),encoding='utf-8')
-            return load_config(file,allow_compatible=True)
+            return load_model_config(file)
 
     def test_remote_and_local_model(self):
         self.assertEqual(self.load()['auth_header'],'bearer')
-        self.assertEqual(self.load(base_url='http://localhost:11434/v1')['deployment_type'],None)
+        self.assertEqual(self.load(base_url='http://localhost:11434/v1')['token_parameter'],'max_tokens')
 
     def test_rejects_unsafe_endpoints_and_embedded_secret(self):
         for url in ('http://public.example/v1','https://user:pass@example.org/v1',
