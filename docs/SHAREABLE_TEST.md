@@ -1,0 +1,44 @@
+# Tester l'agent avec son propre modèle
+
+Cette branche contient le banc historique `ci_agentlab`, l'agent intégré `experiments.unified_agent`, les gardes en amont, le corpus documentaire, le catalogue importable et les expériences. Elle ne contient ni clé, ni CSV téléchargé, ni SQLite locale, ni poids de modèle. Python 3.11 ou 3.12 suffit pour le code de l'agent ; les poids sont hébergés par le fournisseur choisi.
+
+## Démarrage sous Windows PowerShell
+
+```powershell
+git clone --branch test/shareable-agent https://github.com/DhaouIdris/agent-lab.git
+cd agent-lab
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Copy-Item model.example.json model.json
+Copy-Item .env.example .env
+```
+
+Éditer `model.json` : `base_url` est la racine de l'API Chat Completions, **sans** `/chat/completions` ; `deployment` est l'identifiant exact du modèle ou du déploiement. Pour Azure Foundry, copier plutôt `azure.example.json` vers `model.json`, puis renseigner l'URL `https://<resource>.openai.azure.com/openai/v1` et le nom de déploiement. Pour un autre fournisseur OpenAI compatible, garder `auth_header: bearer` et ajuster `token_parameter` (`max_tokens` ou `max_completion_tokens`) selon le modèle. Pour un serveur local : URL `http://localhost:<port>/v1`, `AGENTLAB_API_KEY` vide. Les appels d'outils, les messages `tool` et le JSON de sortie doivent être compatibles ; le format d'API seul ne suffit pas.
+
+Mettre **sa propre** clé du modèle dans `.env` sous `AGENTLAB_API_KEY` (ou laisser vide et saisir la clé lorsqu'elle est demandée). Pour le calcul d'itinéraire et la recherche d'adresse via openrouteservice, ajouter **sa propre** clé `ORS_API_KEY` ; sans elle, ces fonctions renvoient indisponible. Le serveur LLM et openrouteservice reçoivent les requêtes correspondantes. `.env`, `model.json`, `local_data/` et `runs/` sont ignorés par Git. Ne jamais publier ces fichiers, ni partager les rapports de revue privée bruts.
+
+## Catalogue local
+
+Le CSV public n'est pas redistribué dans Git. Télécharger et convertir le Parquet selon [le guide du catalogue](EXPERIMENTAL_PLACE_CATALOG.md), ou fournir un CSV déjà obtenu avec les colonnes attendues. En partant du fichier `local_data/lieux.csv` :
+
+```powershell
+New-Item -ItemType Directory -Force local_data
+.\.venv\Scripts\python.exe -m experiments.place_catalog audit-csv --csv local_data/lieux.csv
+.\.venv\Scripts\python.exe -m experiments.place_catalog import-csv --csv local_data/lieux.csv --db local_data/lieux.sqlite
+```
+
+L'import échoue si `lieux.sqlite` existe déjà ; conserver la base existante ou utiliser un nouveau nom. La recherche de lieux repose sur cet inventaire historique ; les adresses postales, horaires et prix actuels ne sont pas fournis par le CSV. Le corpus `data/rag_integrated_dev.json` est inclus dans Git.
+
+## Vérifier et essayer
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -q
+.\.venv\Scripts\python.exe -m ci_agentlab validate
+.\.venv\Scripts\python.exe -c "from run_azure import load_config; load_config('model.json',allow_compatible=True); print('Configuration valide')"
+.\.venv\Scripts\python.exe -m experiments.unified_agent --config model.json --db local_data/lieux.sqlite --corpus data/rag_integrated_dev.json --question "Que dit l'UNESCO sur la forêt de Taï ?"
+.\.venv\Scripts\python.exe -m experiments.unified_agent_batch --config model.json --db local_data/lieux.sqlite --case UA02 --private-review
+```
+
+Les trois premières commandes n'appellent aucun LLM. Les deux dernières utilisent le fournisseur choisi et peuvent être facturées. Le rapport du lot va dans `runs/` : lire `report.json` puis, pour l'examen humain, `review.private.json` avec `python -m experiments.readable_review <chemin-vers-review.private.json>`. Élargir ensuite les cas ou les campagnes documentées dans `docs/`. Les scores automatiques ne jugent pas seuls la qualité des réponses. Aucun test n'effectue une réservation ou un paiement.
+
+Le lanceur historique `run_azure.py` et son `check/preflight` restent réservés à Azure ; les commandes de l'agent intégré ci-dessus acceptent les autres API compatibles. Les clés et quotas ne sont jamais inclus dans cette branche.

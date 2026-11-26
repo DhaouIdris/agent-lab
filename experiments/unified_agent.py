@@ -16,6 +16,7 @@ from experiments.injection_guard import inspect_passages, normalize
 from experiments.input_guard import inspect_user_input
 from experiments.place_catalog import search
 from run_azure import load_config
+from experiments.model_credentials import model_key
 from experiments.route_service import route, load_route_key, valid_coordinates
 from experiments.route_service import matrix
 from experiments.nearby_places import candidates, MAX_CANDIDATES, RADIUS_KM
@@ -525,10 +526,10 @@ def main():
     client=None
     timeout=180
     if not inspect_user_input(a.question) and not named_origin_request(a.question) and not (a.user_location and _NEARBY_USER.search(normalize(a.question))) and (not routing or other):
-        cfg=load_config(a.config)
+        cfg=load_config(a.config,allow_compatible=True)
         timeout=cfg['turn_timeout_seconds']
-        key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure (saisie masquée) : ')
-        if not key:p.error('Clé absente')
+        try:key=model_key(cfg)
+        except ValueError as exc:p.error(str(exc))
         client=ChatClient(cfg['base_url'],cfg['deployment'],api_key=key,api_version=cfg.get('api_version'),
             max_output_tokens=cfg['max_output_tokens'],max_calls=5,auth_header=cfg['auth_header'],
             token_parameter=cfg['token_parameter'],min_interval_seconds=cfg['min_interval_seconds'])

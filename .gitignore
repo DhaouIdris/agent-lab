@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 azure.json
+model.json
 runs/
 *.egg-info/
 

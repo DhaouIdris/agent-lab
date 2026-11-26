@@ -1,0 +1,17 @@
+{
+  "base_url": "https://example.org/v1",
+  "deployment": "REPLACE_WITH_MODEL_ID",
+  "auth_header": "bearer",
+  "api_version": null,
+  "token_parameter": "max_tokens",
+  "max_output_tokens": 1200,
+  "min_interval_seconds": 1,
+  "turn_timeout_seconds": 180,
+  "input_price_per_million": null,
+  "output_price_per_million": null,
+  "currency": "USD",
+  "deployment_type": null,
+  "underlying_model": "REPLACE_WITH_MODEL_ID",
+  "model_version": "unknown",
+  "region": "unknown"
+}

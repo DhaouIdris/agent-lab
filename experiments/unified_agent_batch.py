@@ -15,6 +15,7 @@ from experiments.document_rag import load_corpus
 from experiments.unified_agent import ask, AgentDiagnosticError, fetch_route, fetch_matrix
 from experiments.request_controls import redact_pii
 from run_azure import load_config
+from experiments.model_credentials import model_key
 
 
 def score_response(row,case):
@@ -167,8 +168,9 @@ def main():
         cases=[c for c in cases if c['id'] in selected]
     out=Path(a.out) if a.out else Path('runs')/('unified_'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
     if out.exists():p.error('Result directory exists')
-    cfg=load_config(a.config);key=os.getenv('AGENTLAB_API_KEY') or getpass.getpass('Clé Azure (saisie masquée) : ')
-    if not key:p.error('Clé absente')
+    cfg=load_config(a.config,allow_compatible=True)
+    try:key=model_key(cfg)
+    except ValueError as exc:p.error(str(exc))
     client=ChatClient(cfg['base_url'],cfg['deployment'],api_key=key,api_version=cfg.get('api_version'),max_output_tokens=cfg['max_output_tokens'],max_calls=5*len(cases),auth_header=cfg['auth_header'],token_parameter=cfg['token_parameter'],min_interval_seconds=cfg['min_interval_seconds'])
     out.mkdir(parents=True,exist_ok=False)
     def checkpoint(rows):

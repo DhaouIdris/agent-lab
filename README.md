@@ -1,5 +1,7 @@
 # Côte d'Ivoire AgentLab — v0.2.0
 
+**Pour essayer l'agent intégré avec son propre modèle et ses propres clés : [guide de la branche de test](docs/SHAREABLE_TEST.md).**
+
 Un laboratoire Python pour construire et évaluer un agent à outils tourisme/business.
 **Le premier lot fonctionne hors ligne et ne fait aucune réservation réelle.**
 

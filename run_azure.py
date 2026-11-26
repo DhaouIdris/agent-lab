@@ -19,7 +19,7 @@ from ci_agentlab.providers import ChatClient, ProviderError
 load_dotenv()
 ROOT=Path(__file__).parent
 
-def load_config(path):
+def load_config(path, allow_compatible=False):
     c=json.loads(Path(path).read_text(encoding="utf-8-sig"))
     if not isinstance(c,dict):raise ValueError("Configuration must be a JSON object")
     allowed=set(json.loads((ROOT/"azure.example.json").read_text(encoding="utf-8")))
@@ -30,12 +30,16 @@ def load_config(path):
     for k in ("base_url","deployment"):
         if not isinstance(c.get(k),str) or not c[k].strip():raise ValueError("Missing "+k)
     u=urlsplit(c["base_url"])
-    if u.scheme!="https" or not u.hostname or u.username or u.password or u.query or u.fragment:
-        raise ValueError("Azure requires a plain HTTPS base URL, no credentials/query/fragment")
-    if "YOUR-RESOURCE" in c["base_url"]:raise ValueError("Replace the example base_url with the deployment inference URL")
-    if not u.path.rstrip("/").endswith("/openai/v1"):
+    if u.username or u.password or u.query or u.fragment or not u.hostname or u.scheme not in ("http","https"):
+        raise ValueError("Use a plain base URL without credentials/query/fragment")
+    if u.scheme=="http" and (not allow_compatible or u.hostname not in ("localhost","127.0.0.1","::1")):
+        raise ValueError("Non-local endpoints require HTTPS")
+    if "YOUR-RESOURCE" in c["base_url"]:raise ValueError("Replace the example base_url with the inference URL")
+    if u.path.rstrip("/").endswith("/chat/completions"):
+        raise ValueError("Provide a base URL, without /chat/completions")
+    if not allow_compatible and not u.path.rstrip("/").endswith("/openai/v1"):
         raise ValueError("This starter targets the /openai/v1 base URL, not the Foundry project URL or /chat/completions")
-    if c.get("deployment_type") not in ("GlobalStandard","DataZoneStandard","Standard"):
+    if not allow_compatible and c.get("deployment_type") not in ("GlobalStandard","DataZoneStandard","Standard"):
         raise ValueError("Starter expects a pay-per-token Standard deployment; no provisioned or dedicated GPU profile")
     if type(c.get("max_output_tokens")) is not int or not 100<=c["max_output_tokens"]<=4096:raise ValueError("Output cap must be 100..4096")
     if not isinstance(c.get("min_interval_seconds"),(int,float)) or not 0<=c["min_interval_seconds"]<=60:raise ValueError("Request spacing must be 0..60 seconds")
