@@ -53,7 +53,9 @@ def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input,
             diagnostic=diagnostic_line(result)
             if diagnostic:writer(diagnostic)
             # Keep only safe, short context. Each new answer must fetch its own evidence.
-            if result.get('guard_status') is None and not result['output'].get('abstain') and not inspect_passages([{'id':'answer','text':answer}]):
+            remember=(result.get('guard_status')=='ambiguous_origin' or
+                      (result.get('guard_status') is None and not result['output'].get('abstain')))
+            if remember and not inspect_passages([{'id':'answer','text':answer}]):
                 history.append({'user':redact_pii(question)[:1000],
                                 'assistant':redact_pii(answer)[:500]})
                 del history[:-MAX_HISTORY]

@@ -21,6 +21,23 @@ class UnifiedTests(unittest.TestCase):
         self.db=Path(self.tmp.name)/'test.sqlite';self.db.touch()
         self.docs=load_corpus('data/rag_integrated_dev.json')
         self.catalogue=Mock(return_value={'items':[{'source_id':'node/1','name':'Café Test'}], 'current_status_verified':False, 'warning':'2022 historical'})
+    def test_one_format_retry_preserves_tool_evidence_boundary(self):
+        client=Mock()
+        client.chat.side_effect=[{'content':'{"response":"Café inventé"}'},
+                                 call('search_catalogue',{'category':'cafe'},1),
+                                 final(answer='Café Test.',place_ids=['node/1'])]
+        result=ask(client,self.db,self.docs,'Un café ?',catalogue_search=self.catalogue)
+        self.assertEqual(result['output']['place_ids'],['node/1'])
+        self.assertEqual(client.chat.call_count,3)
+        second_messages=client.chat.call_args_list[1].args[0]
+        self.assertNotIn('Café inventé',str(second_messages))
+
+    def test_vague_station_clarifies_before_provider(self):
+        client=Mock()
+        result=ask(client,self.db,self.docs,'Quel café proche de la gare ?')
+        self.assertEqual(result['guard_status'],'ambiguous_origin')
+        self.assertIn('quelle gare',result['output']['answer'])
+        client.chat.assert_not_called()
     def test_model_uses_both_tools_and_ids_are_traced(self):
         client=Mock();client.chat.side_effect=[call('search_catalogue',{'category':'cafe'},1),call('search_documents',{'query':'Grand Bassam'},2),final(place_ids=['node/1'],document_ids=['UNESCO_BASSAM__0001'])]
         result=ask(client,self.db,self.docs,'Un café et l’histoire de Grand-Bassam',catalogue_search=self.catalogue)

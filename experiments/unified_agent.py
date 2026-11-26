@@ -274,6 +274,11 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
         return local_response('La demande a été interrompue car elle contient une instruction suspecte.', 'blocked_suspected_injection')
     if user_location is not None and not valid_coordinates(user_location):
         return local_response('Coordonnées invalides. Vérifiez latitude et longitude.', 'invalid_coordinates')
+    if (re.search(r'\bgare\s*(?:[?.!,]|$)',normalize(question))
+            and re.search(r'\b(?:cafe|restaurant|hotel|bar|proche|pres de)\b',normalize(question))
+            and not any(re.search(r'\bgare\s+(?:de|du|d\x27)\s+\w+',normalize(pair['user']))
+                        for pair in (history or []) if isinstance(pair,dict) and isinstance(pair.get('user'),str))):
+        return local_response('De quelle gare et de quelle ville parles-tu ?', 'ambiguous_origin')
     origin_name=named_origin_request(question)
     if origin_name:
         resolved=local_origin(db,origin_name)
@@ -340,7 +345,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
             messages.extend(({'role':'user','content':pair['user']},
                              {'role':'assistant','content':pair['assistant']}))
     messages.append({'role':'user','content':question})
-    observed_documents=set();observed_places=set();trace=[];document_queries=set();force_final=False
+    observed_documents=set();observed_places=set();trace=[];document_queries=set();force_final=False;format_repairs=0
     evidence_texts={};evidence_metadata={};observed_handoffs=set();tool_calls_total=0
     for turn in range(max_rounds):
         remaining=deadline-time.monotonic()
@@ -364,6 +369,12 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
         calls=reply.get('tool_calls') or []
         if not calls:
             result,error=validate_final(reply.get('content'),observed_documents,observed_places)
+            if error in ('invalid_json','invalid_object','invalid_answer_or_abstain','invalid_document_ids','invalid_place_ids') and format_repairs==0 and turn<max_rounds-1:
+                # Retry once without echoing the rejected content into the prompt.
+                # Evidence and citation checks still apply to the new response.
+                format_repairs+=1
+                messages[0]['content']+='\nThe last response failed the output contract. Return exactly one JSON object with non-empty string answer, boolean abstain, and arrays of strings document_ids and place_ids. Search with tools when evidence is needed; only cite IDs observed in this turn. Do not reuse the rejected response.'
+                continue
             rejected_facts=[]
             if not error:
                 cited_texts=[doc['text'] for doc in docs if doc['id'] in result['document_ids']]

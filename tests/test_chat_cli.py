@@ -9,6 +9,16 @@ from experiments.unified_agent import ask
 
 
 class ChatCLITests(unittest.TestCase):
+    def test_clarification_is_kept_for_the_next_turn(self):
+        questions=iter(['Quel café proche de la gare ?', 'Gare de Treichville', '/quit'])
+        seen=[]
+        def agent(client,db,docs,question,**kwargs):
+            seen.append(kwargs['history'].copy())
+            if not seen[-1]:
+                return {'guard_status':'ambiguous_origin','output':{'answer':'De quelle gare ?', 'abstain':True}}
+            return {'output':{'answer':'Je cherche près de cette gare.', 'abstain':False}}
+        run_chat(None,'unused',[],reader=lambda _:next(questions),writer=lambda _:None,agent=agent)
+        self.assertEqual(seen[1][0]['user'],'Quel café proche de la gare ?')
     def test_fallback_shows_safe_diagnostic_without_model_content(self):
         output=[]
         questions=iter(['Question', '/quit'])
