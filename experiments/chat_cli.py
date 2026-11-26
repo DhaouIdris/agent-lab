@@ -10,6 +10,26 @@ from experiments.request_controls import redact_pii
 from experiments.unified_agent import ask, AgentDiagnosticError
 
 MAX_HISTORY=4
+DIAGNOSTICS={
+    'invalid_json':'Le modèle n’a pas renvoyé un objet JSON valide.',
+    'invalid_object':'Le modèle a renvoyé un JSON qui n’est pas un objet.',
+    'invalid_answer_or_abstain':'Champs answer ou abstain absents ou invalides.',
+    'invalid_document_ids':'Le champ document_ids est absent ou invalide.',
+    'invalid_place_ids':'Le champ place_ids est absent ou invalide.',
+    'unobserved_document_ids':'La réponse cite un document non obtenu pendant ce tour.',
+    'unobserved_place_ids':'La réponse cite un lieu non obtenu pendant ce tour.',
+    'unsupported_price_or_time':'Un prix ou horaire affirmé n’est pas étayé.',
+    'output_reference_guard':'Les références de la réponse ne passent pas le contrôle.',
+}
+
+
+def diagnostic_line(result):
+    if result.get('guard_status')!='fallback_invalid_response':return None
+    code=result.get('diagnostic_code') or 'unknown'
+    details=result.get('diagnostic_metadata') or {}
+    length=details.get('content_length')
+    suffix=f' ({length} caractères reçus)' if type(length) is int else ''
+    return 'Diagnostic : '+code+' — '+DIAGNOSTICS.get(code,'Réponse rejetée par le validateur.')+suffix
 
 
 def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input, writer=print, agent=ask):
@@ -30,6 +50,8 @@ def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input,
             result=agent(client,db,docs,question,timeout=timeout,user_location=user_location,history=history)
             answer=result['output']['answer']
             writer('Agent : '+answer)
+            diagnostic=diagnostic_line(result)
+            if diagnostic:writer(diagnostic)
             # Keep only safe, short context. Each new answer must fetch its own evidence.
             if result.get('guard_status') is None and not result['output'].get('abstain') and not inspect_passages([{'id':'answer','text':answer}]):
                 history.append({'user':redact_pii(question)[:1000],
