@@ -17,13 +17,17 @@ _ORIGIN=re.compile(
     r'(.+?)(?:,\s*(?=(?:quel|quelle|où|ou|tu|je cherche|y a)\b)|[;?]|\.\s+|\s+et\s+(?=(?:quel|quelle|où|ou|tu|je)\b))',re.I)
 _TYPE=re.compile(r'\b(?:restaurants?|restos?|cafés?|hotels?|hôtels?|bars?|glaciers?|fast[ -]?foods?)\b',re.I)
 _NEAR=re.compile(r'\b(?:plus proche|près|pres|à côté|a cote|pas loin|autour)\b',re.I)
+_NEAR_ORIGIN=re.compile(r"\b(?:près|pres|proche)\s+(?:de|du|des|d['’])\s+(?:la\s+|le\s+|l['’])?(.+?)(?:\s*[?!.;]|$)",re.I)
 
 
 def named_origin_request(question):
-    """Only accept a clear first-person origin and an explicit nearby place type."""
+    """Accept an explicit named origin next to a nearby place request."""
     m=_ORIGIN.search(question)
     if not m or not _TYPE.search(question[m.end():]) or not _NEAR.search(question[m.end():]):
-        return None
+        m=_NEAR_ORIGIN.search(question)
+        if (not m or not _TYPE.search(question[:m.start()]) or
+                not re.match(r"gare\s+(?:de|du|d['’])\s+",m.group(1),re.I)):
+            return None
     name=m.group(1).strip(' .\u00a0')
     name=re.sub(r"^(?:l['’]\s*|le\s+|la\s+)", '', name,flags=re.I)
     if not 4<=len(name)<=120 or re.search(r'[\r\n<>]',name):

@@ -38,6 +38,18 @@ class UnifiedTests(unittest.TestCase):
         self.assertEqual(result['guard_status'],'ambiguous_origin')
         self.assertIn('quelle gare',result['output']['answer'])
         client.chat.assert_not_called()
+    def test_named_station_is_resolved_before_model_name_search(self):
+        from unittest.mock import patch
+        from experiments.place_origin import named_origin_request
+        question='Donne-moi un café près de la gare de Riviera 1 ?'
+        self.assertEqual(named_origin_request(question),'gare de Riviera 1')
+        client=Mock()
+        geocode=Mock(return_value={'status':'not_found','reason':'no_confident_match'})
+        with patch('experiments.unified_agent.local_origin',return_value={'status':'not_found'}):
+            result=ask(client,self.db,self.docs,question,geocode_service=geocode)
+        geocode.assert_called_once()
+        self.assertEqual(result['guard_status'],'origin_not_found')
+        client.chat.assert_not_called()
     def test_model_uses_both_tools_and_ids_are_traced(self):
         client=Mock();client.chat.side_effect=[call('search_catalogue',{'category':'cafe'},1),call('search_documents',{'query':'Grand Bassam'},2),final(place_ids=['node/1'],document_ids=['UNESCO_BASSAM__0001'])]
         result=ask(client,self.db,self.docs,'Un café et l’histoire de Grand-Bassam',catalogue_search=self.catalogue)
