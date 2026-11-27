@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock
 from ci_agentlab.providers import ProviderError
 from experiments.document_rag import load_corpus
-from experiments.unified_agent import ask, requires_document_search, unverified_amounts_or_hours, AgentDiagnosticError
+from experiments.unified_agent import ask, requires_document_search, unverified_amounts_or_hours, AgentDiagnosticError, trip_preferences
 
 
 def call(name,args,idx):
@@ -16,6 +16,28 @@ def final(**kwargs):
     return {'content':json.dumps(x)}
 
 class UnifiedTests(unittest.TestCase):
+    def test_budget_and_preference_followup_never_invent_prices(self):
+        history=[{'user':'Je veux une journée culturelle, que visiter ?',
+                  'assistant':'Je propose Grand-Bassam.'}]
+        client=Mock()
+        result=ask(client,'unused',load_corpus('data/rag_integrated_dev.json'),
+                   "J'ai 15 000 FCFA, je préfère l'architecture et l'art",history=history)
+        answer=result['output']['answer']
+        self.assertIn('15 000 FCFA',answer)
+        self.assertIn('Grand-Bassam',answer)
+        self.assertIn('pas de galerie',answer)
+        self.assertIn('ne peux pas garantir',answer)
+        client.chat.assert_not_called()
+
+    def test_nature_preference_does_not_offer_bassam_as_nearby(self):
+        history=[{'user':'Je veux une journée culturelle, que visiter ?',
+                  'assistant':'Je propose Grand-Bassam.'}]
+        result=ask(Mock(),'unused',load_corpus('data/rag_integrated_dev.json'),
+                   "Je préfère la nature, budget 20 000 FCFA",history=history)
+        self.assertNotIn('Grand-Bassam',result['output']['answer'])
+        self.assertIn('Taï',result['output']['answer'])
+        self.assertTrue(result['output']['abstain'])
+        self.assertEqual(trip_preferences('Budget 25 000 FCFA, j’aime la nature')[0],25000)
     def test_cultural_day_must_search_heritage_evidence(self):
         client=Mock()
         result=ask(client,self.db,self.docs,'Je veux une journée culturelle, que visiter ?')
