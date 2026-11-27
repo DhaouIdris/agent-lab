@@ -114,6 +114,18 @@ class AzureConfiguration(unittest.TestCase):
             self.assertNotIn(config()['base_url'],r.stdout)
 
 class AzureProtocol(unittest.TestCase):
+    def test_stream_assembles_content_and_tool_arguments_before_return(self):
+        def event(data):return b'data: '+json.dumps(data).encode()+b'\n\n'
+        chunks=[{'choices':[{'delta':{'tool_calls':[{'index':0,'id':'call_1','function':{'name':'echo_','arguments':'{"id":'}}]},'finish_reason':None}]},
+                {'choices':[{'delta':{'tool_calls':[{'index':0,'function':{'name':'probe','arguments':'"P1"}'}}]},'finish_reason':'tool_calls'}]}]
+        c=client([]);c.stream=True
+        ticks=[];c.on_stream_chunk=lambda:ticks.append(1)
+        c.opener.open.side_effect=[io.BytesIO(b''.join(map(event,chunks))+b'data: [DONE]\n\n')]
+        result=c.chat([{'role':'user','content':'test'}],tools_override=[])
+        self.assertEqual(result['tool_calls'][0]['function'],{'name':'echo_probe','arguments':'{"id":"P1"}'})
+        self.assertEqual(len(ticks),2)
+        self.assertTrue(json.loads(c.opener.open.call_args.args[0].data)['stream'])
+
     def test_content_filter_is_distinct_from_agent_refusal(self):
         from ci_agentlab.evaluation import aggregate
         cases=json.loads((ROOT/'data/scenarios.json').read_text(encoding='utf-8'))

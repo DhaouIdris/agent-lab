@@ -100,6 +100,8 @@ class ChatClient:
         self.model=model;self.api_key=api_key;self.max_output_tokens=max_output_tokens
         self.input_price=input_price;self.output_price=output_price;self.reasoning_effort=reasoning_effort
         self.calls=[]
+        self.stream=False
+        self.on_stream_chunk=None
         self.max_calls=max_calls
         self.attempts=0
         if auth_header not in ("bearer","api-key"):raise ValueError("Unknown authentication header mode")
@@ -147,6 +149,7 @@ class ChatClient:
             body["tools"]=selected_tools;body["tool_choice"]=tool_choice
         if response_format:body["response_format"]=response_format
         if self.reasoning_effort:body["reasoning_effort"]=self.reasoning_effort
+        if self.stream:body['stream']=True
         headers={"Content-Type":"application/json"}
         if self.api_key:
             if self.auth_header=="api-key":headers["api-key"]=self.api_key
@@ -159,9 +162,12 @@ class ChatClient:
             # Each HTTP attempt has its own limit, separate from the total
             # retry/turn budget passed to chat(). Spacing was already deducted.
             with self.opener.open(req,timeout=max(.1,min(60,timeout))) as response:
-                raw=response.read(2000001)
-            if len(raw)>2000000:raise ProviderError("Model response exceeded 2 MB")
-            data=json.loads(raw)
+                if self.stream:
+                    data=self._read_stream(response)
+                else:
+                    raw=response.read(2000001)
+                    if len(raw)>2000000:raise ProviderError("Model response exceeded 2 MB")
+                    data=json.loads(raw)
             message=data["choices"][0]["message"]
             usage=data.get("usage",{})
             if not isinstance(message,dict) or not isinstance(usage,dict):
@@ -201,6 +207,37 @@ class ChatClient:
         if finish_reason in ('stop','length','tool_calls','content_filter','function_call'):
             entry['finish_reason']=finish_reason
         return message
+
+    def _read_stream(self,response):
+        """Assemble SSE deltas before any output validation or display."""
+        parts=[];calls={};usage={};finish=None;size=0;complete=False
+        for line in response:
+            size+=len(line)
+            if size>2000000:raise ProviderError('Model response exceeded 2 MB')
+            if not line.startswith(b'data:'):continue
+            payload=line[5:].strip()
+            if payload==b'[DONE]':complete=True;break
+            event=json.loads(payload)
+            if isinstance(event.get('usage'),dict):usage=event['usage']
+            choices=event.get('choices') or []
+            if not choices:continue
+            choice=choices[0];delta=choice.get('delta') or {}
+            if choice.get('finish_reason'):finish=choice['finish_reason']
+            if isinstance(delta.get('content'),str):
+                parts.append(delta['content'])
+                if self.on_stream_chunk:self.on_stream_chunk()
+            for item in delta.get('tool_calls') or []:
+                index=item['index']
+                call=calls.setdefault(index,{'id':'','type':'function','function':{'name':'','arguments':''}})
+                if item.get('id'):call['id']+=item['id']
+                function=item.get('function') or {}
+                for key in ('name','arguments'):
+                    if isinstance(function.get(key),str):call['function'][key]+=function[key]
+                if self.on_stream_chunk:self.on_stream_chunk()
+        if not complete or finish is None:raise ValueError('Incomplete model stream')
+        message={'content':''.join(parts)}
+        if calls:message['tool_calls']=[calls[i] for i in sorted(calls)]
+        return {'choices':[{'message':message,'finish_reason':finish}],'usage':usage}
 
     def cost(self):
         if self.input_price is None or self.output_price is None:return None

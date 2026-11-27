@@ -275,6 +275,37 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
         return local_response('La demande a été interrompue car elle contient une instruction suspecte.', 'blocked_suspected_injection')
     if user_location is not None and not valid_coordinates(user_location):
         return local_response('Coordonnées invalides. Vérifiez latitude et longitude.', 'invalid_coordinates')
+    # Only user-authored named places can become a conversational origin. Resolve
+    # them anew on every turn; an earlier assistant answer is never evidence.
+    remembered_origin=None
+    for pair in reversed(history or []):
+        if not isinstance(pair,dict) or not isinstance(pair.get('user'),str):continue
+        prior=pair['user']
+        route_pair=named_route_request(prior)
+        candidate=route_pair[0] if route_pair else named_origin_request(prior)
+        if candidate:
+            remembered_origin=candidate
+            break
+    q_normal=normalize(question)
+    activity_request=bool(re.search(r'\b(?:activites?|sorties?|que faire)\b',q_normal))
+    followup_origin=bool(re.search(r'\b(?:hotel|lieu)\b.*\b(?:cite|mentionne|dit)\b',q_normal))
+    pending_activity=any(isinstance(pair,dict) and isinstance(pair.get('user'),str)
+                         and re.search(r'\b(?:activites?|sorties?|que faire)\b',normalize(pair['user']))
+                         for pair in (history or [])[-2:])
+    if remembered_origin and (activity_request and _NEARBY_USER.search(q_normal) or
+                              followup_origin and pending_activity):
+        resolved=local_origin(db,remembered_origin)
+        if resolved['status']=='not_found':resolved=geocode_service(remembered_origin,min(8,timeout))
+        if resolved['status']!='ok':
+            return local_response('Peux-tu préciser le nom de ton hôtel ?', 'origin_not_found')
+        if inspect_passages([{'id':'origin','text':resolved['name']}]):
+            return local_response('Le point de départ contient une instruction suspecte.', 'blocked_suspected_injection')
+        return local_response(f'Depuis {resolved["name"]}, tu cherches plutôt des restaurants, cafés, bars ou glaciers, ou des idées de visites ?', 'activity_clarification')
+    if remembered_origin and history and 'tu cherches plutôt' in history[-1].get('assistant','') and any(
+            pattern.search(q_normal) for pattern,_ in _NEARBY_CATEGORIES):
+        resolved=local_origin(db,remembered_origin)
+        if resolved['status']=='ok' and not inspect_passages([{'id':'origin','text':resolved['name']}]):
+            return nearby_answer(db,question,resolved['location'],timeout,matrix_service,origin_label=resolved['name'])
     named_pair=named_route_request(question)
     if named_pair:
         q=normalize(question)

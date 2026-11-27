@@ -10,6 +10,20 @@ from experiments.unified_agent import ask
 
 
 class ChatCLITests(unittest.TestCase):
+    def test_activity_clarification_retained_and_reset(self):
+        questions=iter(['Je suis à l’hôtel Lorenzo, comment se rendre au restaurant Abbata ?',
+                        'Quelles activités proches de moi ?', "C'est l'hôtel que j'ai cité",
+                        '/reset','Des cafés','/quit'])
+        seen=[]
+        def agent(client,db,docs,question,**kwargs):
+            seen.append((question,list(kwargs['history'])))
+            if question.startswith('Quelles') or question.startswith("C'est"):
+                return {'guard_status':'activity_clarification','output':{'answer':'Depuis Lorenzo, tu cherches plutôt des cafés ou des visites ?', 'abstain':True}}
+            return {'output':{'answer':'OK','abstain':False}}
+        run_chat(None,'unused',[],reader=lambda _:next(questions),writer=lambda _:None,agent=agent)
+        self.assertEqual(len(seen[2][1]),2)
+        self.assertEqual(seen[2][1][0]['user'],'Je suis à l’hôtel Lorenzo, comment se rendre au restaurant Abbata ?')
+        self.assertEqual(seen[3][1],[])
     def test_provider_status_is_reported_without_endpoint_or_key(self):
         exc=AgentDiagnosticError('provider_error',[],{'http_status':429,
             'provider_error_code':'insufficient_quota','provider_error_param':'model'})

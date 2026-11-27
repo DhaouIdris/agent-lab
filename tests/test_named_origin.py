@@ -13,6 +13,23 @@ from experiments.unified_agent import ask
 
 
 class NamedOriginTests(unittest.TestCase):
+    def test_followup_activity_uses_user_named_hotel_and_clarifies(self):
+        from experiments.place_origin import named_route_request
+        first="Je suis à l'hôtel Sofitel, comment se rendre au restaurant Abbata ?"
+        self.assertIsNotNone(named_route_request(first))
+        history=[{'user':first,'assistant':'Voici le trajet.'}]
+        result=ask(Mock(),self.db,[],'Quelles activités proches de moi ?',history=history,
+                   geocode_service=Mock(side_effect=AssertionError('unexpected geocoding')))
+        self.assertEqual(result['guard_status'],'activity_clarification')
+        self.assertIn('Sofitel Abidjan',result['output']['answer'])
+        self.assertNotIn('position',result['output']['answer'])
+        history.append({'user':'Quelles activités proches de moi ?', 'assistant':result['output']['answer']})
+        again=ask(Mock(),self.db,[],"C'est l'hôtel que j'ai cité",history=history)
+        self.assertEqual(again['guard_status'],'activity_clarification')
+        history.append({'user':"C'est l'hôtel que j'ai cité",'assistant':again['output']['answer']})
+        nearby=ask(Mock(),self.db,[],'Des restaurants',history=history,matrix_service=self.matrix)
+        self.assertEqual(nearby['output']['place_ids'],['node/11','node/12'])
+
     def setUp(self):
         folder=tempfile.TemporaryDirectory();self.addCleanup(folder.cleanup)
         self.db=Path(folder.name)/'places.sqlite'
