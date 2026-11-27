@@ -29,9 +29,11 @@ def provider_diagnostic(exc):
     metadata=exc.metadata
     status=metadata.get('http_status')
     code=metadata.get('provider_error_code')
+    param=metadata.get('provider_error_param')
     if type(status) is int:
         detail=f'HTTP {status}'
         if code:detail+=' ; code='+code
+        if param:detail+=' ; param='+param
         detail+=' — '+HTTP_HINTS.get(status,'Erreur de l’API du modèle.')
         return 'Diagnostic : provider_error — '+detail
     kind=metadata.get('provider_error_kind')

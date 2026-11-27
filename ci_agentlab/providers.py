@@ -64,6 +64,24 @@ def safe_error_code(exc):
         return code if code in allowed else None
     except (ValueError,AttributeError,TypeError,OSError):return None
 
+def safe_error_metadata(exc):
+    """Whitelisted provider classifications, never the error message or response body."""
+    try:
+        raw=exc.read(65537)
+        if len(raw)>65536:return {}
+        error=json.loads(raw).get('error',{})
+        if not isinstance(error,dict):return {}
+        allowed_codes={'content_filter','content_policy_violation','ResponsibleAIPolicyViolation',
+                       'DeploymentNotFound','DeploymentNotReady','InvalidRequest','invalid_request_error',
+                       'rate_limit_exceeded','TooManyRequests','insufficient_quota','invalid_api_key','model_not_found'}
+        allowed_params={'model','messages','tools','tool_choice','response_format','max_tokens',
+                        'max_completion_tokens','reasoning_effort'}
+        details={}
+        if error.get('code') in allowed_codes:details['provider_error_code']=error['code']
+        if error.get('param') in allowed_params:details['provider_error_param']=error['param']
+        return details
+    except (ValueError,AttributeError,TypeError,OSError):return {}
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):
         raise ProviderError("Redirect refused to protect authorization headers")
@@ -149,9 +167,10 @@ class ChatClient:
             if not isinstance(message,dict) or not isinstance(usage,dict):
                 raise ValueError("Invalid message or usage object")
         except urllib.error.HTTPError as exc:
-            code=safe_error_code(exc)
+            details=safe_error_metadata(exc)
+            code=details.get('provider_error_code')
             entry.update(latency_seconds=time.monotonic()-start,error="http",http_status=exc.code)
-            if code:entry["provider_error_code"]=code
+            entry.update(details)
             try:
                 header=exc.headers.get("Retry-After",0)
                 try:retry_after=float(header)

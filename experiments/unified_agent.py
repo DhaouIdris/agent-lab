@@ -370,6 +370,8 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                     metadata['http_status']=last['http_status']
                 if isinstance(last.get('provider_error_code'),str):
                     metadata['provider_error_code']=last['provider_error_code']
+                if isinstance(last.get('provider_error_param'),str):
+                    metadata['provider_error_param']=last['provider_error_param']
             raise AgentDiagnosticError('provider_error',trace,metadata) from None
         calls=reply.get('tool_calls') or []
         if not calls:

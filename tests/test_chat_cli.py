@@ -12,9 +12,10 @@ from experiments.unified_agent import ask
 class ChatCLITests(unittest.TestCase):
     def test_provider_status_is_reported_without_endpoint_or_key(self):
         exc=AgentDiagnosticError('provider_error',[],{'http_status':429,
-            'provider_error_code':'insufficient_quota'})
+            'provider_error_code':'insufficient_quota','provider_error_param':'model'})
         message=provider_diagnostic(exc)
         self.assertIn('HTTP 429 ; code=insufficient_quota',message)
+        self.assertIn('param=model',message)
         self.assertNotIn('api.openai.com',message)
     def test_clarification_is_kept_for_the_next_turn(self):
         questions=iter(['Quel café proche de la gare ?', 'Gare de Treichville', '/quit'])

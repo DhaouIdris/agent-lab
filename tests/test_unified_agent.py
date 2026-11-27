@@ -20,12 +20,12 @@ class UnifiedTests(unittest.TestCase):
         client=Mock()
         client.calls=[]
         def failed_call(*args,**kwargs):
-            client.calls.append({'error':'http','http_status':401,'provider_error_code':'invalid_api_key'})
+            client.calls.append({'error':'http','http_status':401,'provider_error_code':'invalid_api_key','provider_error_param':'model'})
             raise ProviderError('Secret endpoint should not be exposed')
         client.chat.side_effect=failed_call
         with self.assertRaises(AgentDiagnosticError) as caught:
             ask(client,'unused',[],'qui es tu')
-        self.assertEqual(caught.exception.metadata,{'http_status':401,'provider_error_code':'invalid_api_key'})
+        self.assertEqual(caught.exception.metadata,{'http_status':401,'provider_error_code':'invalid_api_key','provider_error_param':'model'})
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.db=Path(self.tmp.name)/'test.sqlite';self.db.touch()

@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import run_azure
 from ci_agentlab.evaluation import run_case
 from ci_agentlab.preflight import check_endpoint
-from ci_agentlab.providers import ChatClient, ProviderError, ToolAgent
+from ci_agentlab.providers import ChatClient, ProviderError, ToolAgent, safe_error_metadata
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -34,6 +34,15 @@ def tool_call():
         'name':'get_entity_details','arguments':'{"entity_id":"P1"}'}}]}
 
 class AzureConfiguration(unittest.TestCase):
+    def test_safe_error_metadata_drops_server_text_and_unknown_parameter(self):
+        payload=json.dumps({'error':{'message':'secret URL and key','code':'invalid_request_error',
+                                     'param':'response_format'}}).encode()
+        error=urllib.error.HTTPError('https://example.org',400,'Bad Request',{},io.BytesIO(payload))
+        self.assertEqual(safe_error_metadata(error),{'provider_error_code':'invalid_request_error',
+                                                     'provider_error_param':'response_format'})
+        payload=json.dumps({'error':{'code':'custom-secret','param':'my_secret'}}).encode()
+        error=urllib.error.HTTPError('https://example.org',400,'Bad Request',{},io.BytesIO(payload))
+        self.assertEqual(safe_error_metadata(error),{})
     def test_report_and_metadata_omit_endpoint_and_local_path(self):
         import argparse
         from ci_agentlab.__main__ import report_config
