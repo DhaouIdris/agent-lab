@@ -46,3 +46,13 @@ L'import échoue si `lieux.sqlite` existe déjà ; conserver la base existante o
 Les trois premières commandes n'appellent aucun LLM. Les suivantes utilisent le fournisseur choisi et peuvent être facturées. Le chat terminal accepte plusieurs questions ; `/reset` efface son contexte, `/quit` le ferme. Il conserve quatre échanges au plus, sans sauvegarde entre lancements ; chaque réponse doit établir ses propres preuves avec les outils. Vérifier les identifiants du panel choisi dans `data/audit_campaign_60.json` avant de lancer `--case`; sans `--case`, la campagne complète envoie davantage de requêtes. Le rapport va dans `runs/` : lire `report.json` puis, pour l'examen humain, `review.private.json` avec `python -m experiments.readable_review <chemin-vers-review.private.json>`. Élargir ensuite les cas ou les campagnes documentées dans `docs/`. Les scores automatiques ne jugent pas seuls la qualité des réponses. Aucun test n'effectue une réservation ou un paiement.
 
 Le lanceur historique `run_azure.py` et son `check/preflight` restent réservés à Azure ; **les commandes de l'agent intégré n'importent pas ce lanceur** et acceptent les autres API compatibles. Les clés et quotas ne sont jamais inclus dans cette branche.
+
+
+## Pour lancer le chatbot sur OpenAI ou sur Azure
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.chat_cli --config model.json --db local_data/lieux.sqlite
+
+.\.venv\Scripts\python.exe -m experiments.chat_cli --config azure.json --db local_data/lieux.sqlite
+```
+Une erreur peut survenir si le paramètre max_output_token du model.json est trop faible. Il faudra le réaugmenter pour vérifier que cela fonctionne bien. L'API openrouteservice permet de trouver les adresses proches d'un lieu mais ne propose pas d'itinéraires. Plusieurs outils ne sont pas actifs car non reliés aux API nécessaires (paiement, réservation, itinéraire, etc.)
