@@ -1,5 +1,6 @@
 """Interactive terminal chat for the integrated agent; memory lives in this process only."""
 import argparse
+import re
 
 from ci_agentlab.providers import ChatClient, ProviderError
 from experiments.document_rag import load_corpus
@@ -55,7 +56,7 @@ def diagnostic_line(result):
     return 'Diagnostic : '+code+' — '+DIAGNOSTICS.get(code,'Réponse rejetée par le validateur.')+suffix
 
 
-def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input, writer=print, agent=ask, stream=False):
+def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input, writer=print, agent=ask, stream=False, write_chunk=None):
     history=[]
     writer('Chat prêt. /reset efface le contexte ; /quit termine la session.')
     while True:
@@ -73,7 +74,11 @@ def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input,
             if stream:writer('Recherche en cours…')
             result=agent(client,db,docs,question,timeout=timeout,user_location=user_location,history=history)
             answer=result['output']['answer']
-            writer('Agent : '+answer)
+            if stream and write_chunk is not None:
+                write_chunk('Agent : ')
+                for chunk in re.findall(r'\S+\s*|\s+',answer):write_chunk(chunk)
+                write_chunk('\n')
+            else:writer('Agent : '+answer)
             diagnostic=diagnostic_line(result)
             if diagnostic:writer(diagnostic)
             # Keep only safe, short context. Each new answer must fetch its own evidence.
@@ -101,7 +106,7 @@ def main():
     parser.add_argument('--corpus',default='data/rag_integrated_dev.json')
     parser.add_argument('--config',default='model.json')
     parser.add_argument('--user-location',nargs=2,type=float,metavar=('LAT','LON'))
-    parser.add_argument('--stream',action='store_true',help='Flux du modèle avec progression visible ; réponse affichée après validation')
+    parser.add_argument('--stream',action='store_true',help='Affichage progressif du texte après validation du flux du modèle')
     args=parser.parse_args()
     try:
         config=load_model_config(args.config)
@@ -113,8 +118,8 @@ def main():
                           min_interval_seconds=config['min_interval_seconds'])
         if args.stream:
             client.stream=True
-            client.on_stream_chunk=lambda: print('·',end='',flush=True)
-        run_chat(client,args.db,docs,timeout=config['turn_timeout_seconds'],user_location=args.user_location,stream=args.stream)
+        run_chat(client,args.db,docs,timeout=config['turn_timeout_seconds'],user_location=args.user_location,
+                 stream=args.stream,write_chunk=lambda part:print(part,end='',flush=True))
     except (OSError,ValueError) as exc:
         parser.exit(2,'Configuration ou données indisponibles : '+str(exc)+'\n')
 

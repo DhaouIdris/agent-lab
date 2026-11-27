@@ -10,6 +10,15 @@ from experiments.unified_agent import ask
 
 
 class ChatCLITests(unittest.TestCase):
+    def test_stream_renders_only_validated_answer_without_progress_dots(self):
+        chunks=[];lines=[]
+        questions=iter(['Que visiter ?', '/quit'])
+        agent=Mock(return_value={'output':{'answer':'Grand-Bassam est un site historique.',
+                                             'abstain':False}})
+        run_chat(None,'unused',[],reader=lambda _:next(questions),writer=lines.append,agent=agent,stream=True,
+                 write_chunk=chunks.append)
+        self.assertEqual(''.join(chunks),'Agent : Grand-Bassam est un site historique.\n')
+        self.assertIn('Recherche en cours…',lines)
     def test_activity_clarification_retained_and_reset(self):
         questions=iter(['Je suis à l’hôtel Lorenzo, comment se rendre au restaurant Abbata ?',
                         'Quelles activités proches de moi ?', "C'est l'hôtel que j'ai cité",

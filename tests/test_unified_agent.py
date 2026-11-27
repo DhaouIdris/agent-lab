@@ -16,6 +16,15 @@ def final(**kwargs):
     return {'content':json.dumps(x)}
 
 class UnifiedTests(unittest.TestCase):
+    def test_cultural_day_must_search_heritage_evidence(self):
+        client=Mock()
+        client.chat.side_effect=[call('search_documents',{'query':'Grand-Bassam patrimoine','limit':3},1),
+                                 final(answer='Visitez la ville historique de Grand-Bassam.',
+                                       document_ids=['UNESCO_BASSAM__0001'])]
+        result=ask(client,self.db,self.docs,'Je veux une journée culturelle, que visiter ?')
+        self.assertEqual(client.chat.call_args_list[0].kwargs['tool_choice']['function']['name'],'search_documents')
+        self.assertIn('UNESCO_BASSAM__0001',result['output']['document_ids'])
+        self.assertTrue(requires_document_search('Je veux une journée culturelle, que visiter ?'))
     def test_empty_completion_reports_token_limit_metadata(self):
         client=Mock();client.calls=[]
         def empty_completion(*args,**kwargs):

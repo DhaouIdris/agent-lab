@@ -30,6 +30,15 @@ class NamedOriginTests(unittest.TestCase):
         nearby=ask(Mock(),self.db,[],'Des restaurants',history=history,matrix_service=self.matrix)
         self.assertEqual(nearby['output']['place_ids'],['node/11','node/12'])
 
+    def test_my_hotel_nearby_reuses_named_origin_and_route_matrix(self):
+        history=[{'user':"Je suis à l'hôtel Sofitel, comment se rendre au restaurant Abbata ?",
+                  'assistant':'Voici le trajet.'}]
+        result=ask(self.client,self.db,[],'Donne-moi un restaurant près de mon hôtel',
+                   history=history,matrix_service=self.matrix)
+        self.assertEqual(result['output']['place_ids'],['node/11','node/12'])
+        self.assertIn('260 m',result['output']['answer'])
+        self.client.chat.assert_not_called()
+
     def setUp(self):
         folder=tempfile.TemporaryDirectory();self.addCleanup(folder.cleanup)
         self.db=Path(folder.name)/'places.sqlite'
