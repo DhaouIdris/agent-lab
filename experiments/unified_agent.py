@@ -331,7 +331,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
     if territory_tools is not None:territory_tools.seen.clear()
     instruction=(EXTENDED_SYSTEM+'\nOutils supplémentaires configurés : '+
                  ', '.join(spec['function']['name'] for spec in extension_specs) if extension_specs else SYSTEM)
-    messages=[{'role':'system','content':instruction+'\nTEMPORAL_CONTEXT (calendrier seulement ; ni horaires ni jours fériés vérifiés) : '+json.dumps(temporal,ensure_ascii=False)}]
+    messages=[{'role':'system','content':instruction+'\nCall at most four tools across the entire user turn, and at most four tools in one response. For broad requests, choose a few useful searches instead of enumerating every possible query. Do not retry a search without new evidence.\nTEMPORAL_CONTEXT (calendrier seulement ; ni horaires ni jours fériés vérifiés) : '+json.dumps(temporal,ensure_ascii=False)}]
     if history is not None:
         if not isinstance(history,list) or len(history)>4 or any(
             not isinstance(pair,dict) or set(pair)!={'user','assistant'} or
@@ -345,7 +345,7 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
             messages.extend(({'role':'user','content':pair['user']},
                              {'role':'assistant','content':pair['assistant']}))
     messages.append({'role':'user','content':question})
-    observed_documents=set();observed_places=set();trace=[];document_queries=set();force_final=False;format_repairs=0
+    observed_documents=set();observed_places=set();trace=[];document_queries=set();force_final=False;format_repairs=0;tool_count_repairs=0
     evidence_texts={};evidence_metadata={};observed_handoffs=set();tool_calls_total=0
     for turn in range(max_rounds):
         remaining=deadline-time.monotonic()
@@ -431,11 +431,17 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                 # A name from the question is not evidence for tonight's opening.
                 result['place_ids']=[]
             return {'output':result,'trace':trace,'caveat':'IDs checked against tool results only; prose, citation relevance and completeness require review.'}
-        if not isinstance(calls,list) or not 1<=len(calls)<=4:
-            raise AgentDiagnosticError('invalid_tool_call_count',trace)
+        if not isinstance(calls,list):
+            raise AgentDiagnosticError('invalid_tool_call_count',trace,{'tool_calls_kind':'non_list'})
+        remaining_tools=4-tool_calls_total
+        if len(calls)>remaining_tools:
+            code='invalid_tool_call_count' if len(calls)>4 else 'tool_budget_exceeded'
+            if tool_count_repairs==0 and turn<max_rounds-1 and not no_tools and remaining_tools>0:
+                tool_count_repairs+=1
+                messages[0]['content']+=f'\nThe previous batch was rejected before any of its tools ran. Replan with at most {remaining_tools} tool calls total for this turn. Do not assume any result from that rejected batch.'
+                continue
+            raise AgentDiagnosticError(code,trace,{'requested_tool_calls':len(calls),'remaining_tool_calls':remaining_tools})
         tool_calls_total+=len(calls)
-        if tool_calls_total>4:
-            raise AgentDiagnosticError('tool_budget_exceeded',trace)
         if no_tools:
             raise AgentDiagnosticError('tool_call_on_final_turn',trace)
         try:

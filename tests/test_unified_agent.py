@@ -16,6 +16,29 @@ def final(**kwargs):
     return {'content':json.dumps(x)}
 
 class UnifiedTests(unittest.TestCase):
+    def test_oversized_tool_batch_replans_without_executing_it(self):
+        client=Mock()
+        rejected={'content':None,'tool_calls':[call('search_catalogue',{'category':'cafe'},i)['tool_calls'][0]
+                                                 for i in range(5)]}
+        client.chat.side_effect=[rejected,call('search_catalogue',{'category':'cafe'},5),
+                                 final(answer='Café Test.',place_ids=['node/1'])]
+        with tempfile.TemporaryDirectory() as directory:
+            db=Path(directory)/'catalogue.sqlite';db.touch()
+            result=ask(client,db,[],'Trouve un café.',catalogue_search=self.catalogue)
+        self.assertEqual(self.catalogue.call_count,1)
+        self.assertEqual(result['output']['place_ids'],['node/1'])
+        self.assertEqual(client.chat.call_count,3)
+
+    def test_repeated_oversized_batch_fails_with_safe_count(self):
+        client=Mock()
+        rejected={'content':None,'tool_calls':[call('search_catalogue',{'category':'cafe'},i)['tool_calls'][0]
+                                                 for i in range(5)]}
+        client.chat.return_value=rejected
+        with self.assertRaises(AgentDiagnosticError) as caught:
+            ask(client,self.db,self.docs,'Trouve un café.',catalogue_search=self.catalogue)
+        self.assertEqual(caught.exception.code,'invalid_tool_call_count')
+        self.assertEqual(caught.exception.metadata['requested_tool_calls'],5)
+        self.catalogue.assert_not_called()
     def test_provider_http_diagnostic_contains_only_safe_codes(self):
         client=Mock()
         client.calls=[]

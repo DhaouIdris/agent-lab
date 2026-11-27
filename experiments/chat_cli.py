@@ -79,7 +79,13 @@ def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input,
         except (ValueError,ProviderError,AgentDiagnosticError) as exc:
             writer('Agent : Je ne peux pas répondre pour le moment. Cette question n’a pas été ajoutée au contexte.')
             if isinstance(exc,AgentDiagnosticError):
-                writer(provider_diagnostic(exc) if exc.code=='provider_error' else 'Diagnostic : '+exc.code)
+                if exc.code=='provider_error':writer(provider_diagnostic(exc))
+                elif exc.code in ('invalid_tool_call_count','tool_budget_exceeded'):
+                    count=exc.metadata.get('requested_tool_calls')
+                    remaining=exc.metadata.get('remaining_tool_calls')
+                    detail=(f' ({count} demandés ; {remaining} autorisés)' if type(count) is int and type(remaining) is int else '')
+                    writer('Diagnostic : '+exc.code+detail)
+                else:writer('Diagnostic : '+exc.code)
 
 
 def main():
