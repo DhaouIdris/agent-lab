@@ -15,9 +15,9 @@ Copy-Item .env.example .env
 
 Éditer `model.json` : `base_url` est la racine de l'API Chat Completions, **sans** `/chat/completions` ; `deployment` est l'identifiant exact du modèle fourni par **son propre service**. Azure n'est pas nécessaire. Pour une API distante compatible OpenAI, garder `auth_header: bearer` et ajuster `token_parameter` (`max_tokens` ou `max_completion_tokens`) selon le modèle. Pour un serveur local : URL `http://localhost:<port>/v1`, `AGENTLAB_API_KEY` vide. Un serveur local exige des ressources matérielles suffisantes ; sur un PC léger, utiliser une API distante. Les appels d'outils, les messages `tool` et le JSON de sortie doivent être compatibles ; le format d'API seul ne suffit pas.
 
-Mettre **sa propre** clé du modèle dans `.env` sous `AGENTLAB_API_KEY` (ou laisser vide et saisir la clé lorsqu'elle est demandée). Pour le calcul d'itinéraire et la recherche d'adresse via openrouteservice, ajouter **sa propre** clé `ORS_API_KEY` ; sans elle, ces fonctions renvoient indisponible. Le serveur LLM et openrouteservice reçoivent les requêtes correspondantes. `.env`, `model.json`, `local_data/` et `runs/` sont ignorés par Git. Ne jamais publier ces fichiers, ni partager les rapports de revue privée bruts.
+Mettre **sa propre** clé du modèle dans `.env` sous `AGENTLAB_API_KEY` (ou laisser vide et saisir la clé lorsqu'elle est demandée). Si Azure et OpenAI dans le même dépôt, mettre `"api_key_env": "OPENAI_API_KEY"` dans le `model.json` OpenAI et définis `OPENAI_API_KEY` dans `.env`. Une variable PowerShell existante garde la priorité sur `.env` ; utilise un nom distinct pour ne jamais envoyer la clé Azure à OpenAI. Pour le calcul d'itinéraire et la recherche d'adresse via openrouteservice, ajouter **sa propre** clé `ORS_API_KEY` ; sans elle, ces fonctions renvoient indisponible. Le serveur LLM et openrouteservice reçoivent les requêtes correspondantes. `.env`, `model.json`, `local_data/` et `runs/` sont ignorés par Git. Ne jamais publier ces fichiers, ni partager les rapports de revue privée bruts.
 
-Si tu utilises Azure et OpenAI dans le même dépôt, mets `"api_key_env": "OPENAI_API_KEY"` dans le `model.json` OpenAI et définis `OPENAI_API_KEY` dans `.env`. Une variable PowerShell existante garde la priorité sur `.env` ; utilise un nom distinct pour ne jamais envoyer la clé Azure à OpenAI.
+
 
 ## Catalogue local
 
