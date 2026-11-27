@@ -102,6 +102,7 @@ class ChatClient:
         self.calls=[]
         self.stream=False
         self.on_stream_chunk=None
+        self.on_stream_start=None
         self.max_calls=max_calls
         self.attempts=0
         if auth_header not in ("bearer","api-key"):raise ValueError("Unknown authentication header mode")
@@ -159,6 +160,7 @@ class ChatClient:
         entry={"latency_seconds":0,"usage":{}}
         self.calls.append(entry)
         try:
+            if self.stream and self.on_stream_start:self.on_stream_start()
             # Each HTTP attempt has its own limit, separate from the total
             # retry/turn budget passed to chat(). Spacing was already deducted.
             with self.opener.open(req,timeout=max(.1,min(60,timeout))) as response:
@@ -225,7 +227,7 @@ class ChatClient:
             if choice.get('finish_reason'):finish=choice['finish_reason']
             if isinstance(delta.get('content'),str):
                 parts.append(delta['content'])
-                if self.on_stream_chunk:self.on_stream_chunk()
+                if self.on_stream_chunk:self.on_stream_chunk(delta['content'])
             for item in delta.get('tool_calls') or []:
                 index=item['index']
                 call=calls.setdefault(index,{'id':'','type':'function','function':{'name':'','arguments':''}})
@@ -233,7 +235,6 @@ class ChatClient:
                 function=item.get('function') or {}
                 for key in ('name','arguments'):
                     if isinstance(function.get(key),str):call['function'][key]+=function[key]
-                if self.on_stream_chunk:self.on_stream_chunk()
         if not complete or finish is None:raise ValueError('Incomplete model stream')
         message={'content':''.join(parts)}
         if calls:message['tool_calls']=[calls[i] for i in sorted(calls)]

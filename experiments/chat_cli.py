@@ -1,5 +1,6 @@
 """Interactive terminal chat for the integrated agent; memory lives in this process only."""
 import argparse
+import json
 import re
 
 from ci_agentlab.providers import ChatClient, ProviderError
@@ -24,6 +25,36 @@ DIAGNOSTICS={
 }
 HTTP_HINTS={401:'Clé API non acceptée.',403:'Accès refusé pour ce projet ou modèle.',
             404:'Modèle ou endpoint introuvable.',429:'Quota, crédits ou limite de débit à vérifier.'}
+
+
+class AnswerStream:
+    """Render the leading JSON answer string as provisional text during SSE delivery."""
+    def __init__(self,write):
+        self.write=write;self.reset()
+
+    def reset(self):
+        self.raw='';self.shown='';self.started=False
+
+    def feed(self,delta):
+        self.raw+=delta
+        match=re.search(r'(?:^\s*\{|,)\s*"answer"\s*:\s*"',self.raw)
+        if not match:return
+        value=self.raw[match.end():]
+        end=0;escaped=False
+        for i,char in enumerate(value):
+            if escaped:escaped=False;end=i+1
+            elif char=='\\':escaped=True
+            elif char=='"':break
+            else:end=i+1
+        prefix=value[:end]
+        # A split Unicode escape must not be printed as a literal backslash.
+        incomplete=re.search(r'\\u[0-9a-fA-F]{0,3}$',prefix)
+        if incomplete:prefix=prefix[:incomplete.start()]
+        try:decoded=json.loads('"'+prefix+'"')
+        except ValueError:return
+        if decoded.startswith(self.shown) and len(decoded)>len(self.shown):
+            if not self.started:self.write('Agent (provisoire) : ');self.started=True
+            self.write(decoded[len(self.shown):]);self.shown=decoded
 
 
 def provider_diagnostic(exc):
@@ -58,6 +89,10 @@ def diagnostic_line(result):
 
 def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input, writer=print, agent=ask, stream=False, write_chunk=None):
     history=[]
+    live=AnswerStream(write_chunk) if stream and write_chunk is not None else None
+    if live is not None and client is not None:
+        client.on_stream_start=live.reset
+        client.on_stream_chunk=live.feed
     writer('Chat prêt. /reset efface le contexte ; /quit termine la session.')
     while True:
         try:question=reader('Vous : ')
@@ -71,13 +106,19 @@ def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input,
             history.clear();writer('Contexte effacé.');continue
         if not question.strip():continue
         try:
+            if live:live.reset()
             if stream:writer('Recherche en cours…')
             result=agent(client,db,docs,question,timeout=timeout,user_location=user_location,history=history)
             answer=result['output']['answer']
-            if stream and write_chunk is not None:
-                write_chunk('Agent : ')
-                for chunk in re.findall(r'\S+\s*|\s+',answer):write_chunk(chunk)
+            if live and live.started:
                 write_chunk('\n')
+                if result.get('guard_status')=='fallback_invalid_response':
+                    writer('Réponse provisoire rejetée par les vérifications.')
+                    writer('Agent : '+answer)
+                elif live.shown!=answer:writer('Agent (validé) : '+answer)
+                else:writer('Réponse validée.')
+            elif live:
+                write_chunk('Agent : '+answer+'\n')
             else:writer('Agent : '+answer)
             diagnostic=diagnostic_line(result)
             if diagnostic:writer(diagnostic)
@@ -89,6 +130,7 @@ def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input,
                                 'assistant':redact_pii(answer)[:500]})
                 del history[:-MAX_HISTORY]
         except (ValueError,ProviderError,AgentDiagnosticError) as exc:
+            if live and live.started:write_chunk('\n');writer('Réponse provisoire interrompue ; ne pas la considérer comme validée.')
             writer('Agent : Je ne peux pas répondre pour le moment. Cette question n’a pas été ajoutée au contexte.')
             if isinstance(exc,AgentDiagnosticError):
                 if exc.code=='provider_error':writer(provider_diagnostic(exc))
@@ -106,7 +148,7 @@ def main():
     parser.add_argument('--corpus',default='data/rag_integrated_dev.json')
     parser.add_argument('--config',default='model.json')
     parser.add_argument('--user-location',nargs=2,type=float,metavar=('LAT','LON'))
-    parser.add_argument('--stream',action='store_true',help='Affichage progressif du texte après validation du flux du modèle')
+    parser.add_argument('--stream',action='store_true',help='Afficher les fragments du modèle en direct (provisoires jusqu’à validation)')
     args=parser.parse_args()
     try:
         config=load_model_config(args.config)
@@ -116,8 +158,7 @@ def main():
                           max_output_tokens=config['max_output_tokens'],max_calls=200,
                           auth_header=config['auth_header'],token_parameter=config['token_parameter'],
                           min_interval_seconds=config['min_interval_seconds'])
-        if args.stream:
-            client.stream=True
+        if args.stream:client.stream=True
         run_chat(client,args.db,docs,timeout=config['turn_timeout_seconds'],user_location=args.user_location,
                  stream=args.stream,write_chunk=lambda part:print(part,end='',flush=True))
     except (OSError,ValueError) as exc:

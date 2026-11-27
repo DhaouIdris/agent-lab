@@ -3,13 +3,19 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 
-from experiments.chat_cli import run_chat, diagnostic_line, provider_diagnostic
+from experiments.chat_cli import run_chat, diagnostic_line, provider_diagnostic, AnswerStream
 from experiments.unified_agent import AgentDiagnosticError
 from experiments.document_rag import load_corpus
 from experiments.unified_agent import ask
 
 
 class ChatCLITests(unittest.TestCase):
+    def test_live_answer_stream_decodes_split_json_escapes(self):
+        chunks=[];live=AnswerStream(chunks.append)
+        for part in ['{"answer":"Grand-', 'Bassam et le caf\\', 'u00e9', ' local", "abstain":false}']:
+            live.feed(part)
+        self.assertEqual(''.join(chunks),'Agent (provisoire) : Grand-Bassam et le café local')
+
     def test_stream_renders_only_validated_answer_without_progress_dots(self):
         chunks=[];lines=[]
         questions=iter(['Que visiter ?', '/quit'])

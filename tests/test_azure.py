@@ -119,12 +119,21 @@ class AzureProtocol(unittest.TestCase):
         chunks=[{'choices':[{'delta':{'tool_calls':[{'index':0,'id':'call_1','function':{'name':'echo_','arguments':'{"id":'}}]},'finish_reason':None}]},
                 {'choices':[{'delta':{'tool_calls':[{'index':0,'function':{'name':'probe','arguments':'"P1"}'}}]},'finish_reason':'tool_calls'}]}]
         c=client([]);c.stream=True
-        ticks=[];c.on_stream_chunk=lambda:ticks.append(1)
+        ticks=[];c.on_stream_chunk=lambda delta:ticks.append(delta)
         c.opener.open.side_effect=[io.BytesIO(b''.join(map(event,chunks))+b'data: [DONE]\n\n')]
         result=c.chat([{'role':'user','content':'test'}],tools_override=[])
         self.assertEqual(result['tool_calls'][0]['function'],{'name':'echo_probe','arguments':'{"id":"P1"}'})
-        self.assertEqual(len(ticks),2)
+        self.assertEqual(ticks,[])  # Tool-call argument fragments are never displayed.
         self.assertTrue(json.loads(c.opener.open.call_args.args[0].data)['stream'])
+
+    def test_stream_delivers_content_fragments_as_they_arrive(self):
+        def event(part,finish=None):
+            return b'data: '+json.dumps({'choices':[{'delta':{'content':part},'finish_reason':finish}]}).encode()+b'\n\n'
+        c=client([]);c.stream=True;seen=[]
+        c.on_stream_chunk=seen.append
+        c.opener.open.side_effect=[io.BytesIO(event('{"answer":"Bon')+event('jour"}', 'stop')+b'data: [DONE]\n\n')]
+        self.assertEqual(c.chat([{'role':'user','content':'salut'}],tools_override=[])['content'],'{"answer":"Bonjour"}')
+        self.assertEqual(seen,['{"answer":"Bon','jour"}'])
 
     def test_content_filter_is_distinct_from_agent_refusal(self):
         from ci_agentlab.evaluation import aggregate
