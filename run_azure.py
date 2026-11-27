@@ -10,7 +10,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
-
 from dotenv import load_dotenv
 
 from ci_agentlab.preflight import check_endpoint
