@@ -144,6 +144,16 @@ Le planificateur vérifie l'ordre de visites fourni. Il ne cherche pas un ordre 
 
 La baseline à workflow fixe et le jeu de test indépendant ne sont pas inclus dans ce premier lot. Aucun score de modèle ou avantage agentique n'est revendiqué.
 
+## Tarifs expérimentaux
+
+`data/abidjan_price_offers_dev.json` contient quelques observations manuelles de prix publics (plats à Abidjan, une entrée gratuite pour un événement daté et billetterie à Grand-Bassam). Ce n'est ni un catalogue complet ni un devis. Les identités ne sont pas rattachées automatiquement aux lieux OSM : les homonymes et adresses doivent être contrôlés. La billetterie indexée mais inaccessible à la consultation directe est exclue par défaut. L'événement n'est renvoyé qu'à sa date annoncée.
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.price_offers --budget-fcfa 5000
+```
+
+Le filtre compare le budget à **une seule offre**, sans additionner livraison, déplacement ou autres dépenses. La date d'observation et l'URL de chaque établissement sont conservées. Les tarifs doivent être recontrôlés avant toute recommandation financière ; cette collection n'est pas encore une source du chatbot.
+
 ## Licence
 
 Le code original est sous licence MIT. Les données tierces conservent leurs droits propres : voir `data/NOTICE.md`. La licence du code ne change pas celle des sources.

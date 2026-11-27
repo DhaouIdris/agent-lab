@@ -1,0 +1,30 @@
+{
+  "kind": "manually_curated_price_observations",
+  "checked_at": "2026-11-27",
+  "currency": "XOF",
+  "scope": "Abidjan restaurants and a dated cultural event; one Grand-Bassam museum excursion",
+  "note": "Small, selected factual price observations, not a complete menu, a booking quote, or proof of current availability. No OSM catalogue identity has been matched.",
+  "sources": [
+    {"id": "AKADI", "name": "Akadi", "kind": "restaurant_delivery", "locality": "Angré, Abidjan", "url": "https://akadi.ci/produit", "publisher": "Akadi", "access": "direct_page", "source_updated_at": null, "catalogue_source_id": null},
+    {"id": "BDG", "name": "BDG", "kind": "restaurant_delivery", "locality": "Abidjan", "url": "https://take.app/bdg", "publisher": "BDG via Take App", "access": "direct_merchant_page", "source_updated_at": null, "catalogue_source_id": null},
+    {"id": "SGCI_ART", "name": "Maison de l’Art", "kind": "museum", "locality": "Grand-Bassam", "url": "https://art.societegenerale.ci/billetterie/", "publisher": "Fondation Société Générale Côte d’Ivoire", "access": "indexed_page_only_recheck_required", "source_updated_at": null, "catalogue_source_id": null},
+    {"id": "GOETHE_PLUME", "name": "Plume Libre – Freie Feder", "kind": "dated_cultural_event", "locality": "Goethe-Institut, Abidjan-Cocody", "url": "https://www.goethe.de/ins/ci/fr/ver.cfm?event_id=27361070", "publisher": "Goethe-Institut Côte d’Ivoire", "access": "official_event_page", "source_updated_at": null, "catalogue_source_id": null}
+  ],
+  "offers": [
+    {"id": "AKADI_CANTINE", "source_id": "AKADI", "label": "Pack Cantine", "amount_xof": 2000, "unit": "pack", "status": "published_price_unconfirmed_at_checkout"},
+    {"id": "AKADI_DEMI_POULET", "source_id": "AKADI", "label": "Demi poulet + 2 boules + 1 boisson", "amount_xof": 4000, "unit": "pack", "status": "published_price_unconfirmed_at_checkout"},
+    {"id": "AKADI_DEMI_FONIO", "source_id": "AKADI", "label": "Fonio curcuma + demi poulet fumé braisé à l’ail", "amount_xof": 7000, "unit": "plat", "status": "published_price_unconfirmed_at_checkout"},
+    {"id": "AKADI_PINTADE", "source_id": "AKADI", "label": "Demi pintade fumée sautée + riz soumbara", "amount_xof": 8000, "unit": "plat", "status": "published_price_unconfirmed_at_checkout"},
+    {"id": "BDG_PLACALI", "source_id": "BDG", "label": "Placali", "amount_xof": 1500, "unit": "plat", "status": "published_price_unconfirmed_at_checkout"},
+    {"id": "BDG_ATTIEKE_POISSON", "source_id": "BDG", "label": "Attiéké poisson grillé", "amount_xof": 2000, "unit": "plat", "status": "published_price_unconfirmed_at_checkout"},
+    {"id": "BDG_CREPE", "source_id": "BDG", "label": "Crêpe nature", "amount_xof": 2000, "unit": "dessert", "status": "published_price_unconfirmed_at_checkout"},
+    {"id": "SGCI_ART_RESIDENT", "source_id": "SGCI_ART", "label": "Entrée adulte résident Côte d’Ivoire", "amount_xof": 3000, "unit": "personne", "status": "indexed_price_recheck_required"},
+    {"id": "SGCI_ART_NONRESIDENT", "source_id": "SGCI_ART", "label": "Entrée adulte non-résident", "amount_xof": 5000, "unit": "personne", "status": "indexed_price_recheck_required"},
+    {"id": "SGCI_ART_CHILD", "source_id": "SGCI_ART", "label": "Entrée enfant de 8 à 17 ans", "amount_xof": 2000, "unit": "personne", "status": "indexed_price_recheck_required"},
+    {"id": "GOETHE_PLUME_ENTRY", "source_id": "GOETHE_PLUME", "label": "Entrée à la lecture du 28 novembre 2026 à 14h30", "amount_xof": 0, "unit": "personne", "status": "official_event_free_entry", "valid_on": "2026-11-28"}
+  ],
+  "excluded": [
+    {"name": "Musée des Civilisations de Côte d’Ivoire", "reason": "Conflicting third-party listings (free versus paid); no directly verified institutional tariff."},
+    {"name": "Chez Diego", "reason": "Site still displays an advance opening notice; avoid treating the menu as an available offer."}
+  ]
+}

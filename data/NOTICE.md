@@ -23,4 +23,8 @@ Seules des annotations factuelles minimales et reformulées sont incluses, pas l
 
 Les prix, stocks implicites du simulateur, horaires injectés dans les tests, temps de trajet, identités Alice/Bob, canaris de confidentialité et réservations sont entièrement fictifs et servent exclusivement à l'évaluation des mécanismes. Une valeur synthétique associée à l'ID d'un lieu réel ne décrit pas ce lieu dans le monde réel.
 
-Le corpus ne doit pas servir d'annuaire commercial ou de source de tarifs/disponibilités.
+Le corpus synthétique du benchmark ne doit pas servir d'annuaire commercial ou de source de tarifs/disponibilités.
+
+## Observations publiques de tarifs (expérimental)
+
+`abidjan_price_offers_dev.json` conserve de petites observations factuelles reformulées, sans copier les menus ou les pages. Sources des établissements : https://akadi.ci/produit et https://take.app/bdg ; la billetterie https://art.societegenerale.ci/billetterie/ n'a été visible que dans l'index et nécessite une nouvelle vérification directe. Une entrée gratuite datée du 28 novembre 2026 est annoncée par https://www.goethe.de/ins/ci/fr/ver.cfm?event_id=27361070 et filtrée hors de cette date. Consultations le 27 novembre 2026. Les pages, visuels et marques restent la propriété de leurs éditeurs ; aucune licence de republication de leurs contenus n'est présumée. Aucun rapprochement avec les identifiants OSM n'est attesté.
