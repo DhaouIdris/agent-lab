@@ -16,6 +16,17 @@ def final(**kwargs):
     return {'content':json.dumps(x)}
 
 class UnifiedTests(unittest.TestCase):
+    def test_empty_completion_reports_token_limit_metadata(self):
+        client=Mock();client.calls=[]
+        def empty_completion(*args,**kwargs):
+            client.calls.append({'finish_reason':'length','usage':{
+                'completion_tokens':1200,'completion_tokens_details':{'reasoning_tokens':1200}}})
+            return {'content':None}
+        client.chat.side_effect=empty_completion
+        result=ask(client,self.db,self.docs,'Que faire à la Riviera 1 ?')
+        self.assertEqual(result['diagnostic_code'],'invalid_json')
+        self.assertEqual(result['diagnostic_metadata']['finish_reason'],'length')
+        self.assertEqual(result['diagnostic_metadata']['reasoning_tokens'],1200)
     def test_oversized_tool_batch_replans_without_executing_it(self):
         client=Mock()
         rejected={'content':None,'tool_calls':[call('search_catalogue',{'category':'cafe'},i)['tool_calls'][0]

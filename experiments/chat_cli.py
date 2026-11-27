@@ -46,6 +46,12 @@ def diagnostic_line(result):
     details=result.get('diagnostic_metadata') or {}
     length=details.get('content_length')
     suffix=f' ({length} caractères reçus)' if type(length) is int else ''
+    if details.get('finish_reason') in ('stop','length','tool_calls','content_filter','function_call'):
+        suffix+=' ; fin='+details['finish_reason']
+    if type(details.get('completion_tokens')) is int:
+        suffix+=' ; tokens_sortie='+str(details['completion_tokens'])
+    if type(details.get('reasoning_tokens')) is int:
+        suffix+=' ; tokens_raisonnement='+str(details['reasoning_tokens'])
     return 'Diagnostic : '+code+' — '+DIAGNOSTICS.get(code,'Réponse rejetée par le validateur.')+suffix
 
 

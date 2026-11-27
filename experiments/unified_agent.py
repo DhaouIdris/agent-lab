@@ -402,6 +402,18 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
                 content=reply.get('content')
                 metadata={'content_kind':'empty' if content is None or content=='' else ('string' if isinstance(content,str) else 'non_string'),
                           'content_length':len(content) if isinstance(content,str) else None}
+                provider_calls=getattr(client,'calls',None)
+                last=(provider_calls[-1] if isinstance(provider_calls,list) and len(provider_calls)>before_calls
+                      and isinstance(provider_calls[-1],dict) else {})
+                if last.get('finish_reason') in ('stop','length','tool_calls','content_filter','function_call'):
+                    metadata['finish_reason']=last['finish_reason']
+                usage=last.get('usage',{})
+                if isinstance(usage,dict):
+                    completion=usage.get('completion_tokens')
+                    details=usage.get('completion_tokens_details',{})
+                    reasoning=details.get('reasoning_tokens') if isinstance(details,dict) else None
+                    if type(completion) is int and completion>=0:metadata['completion_tokens']=completion
+                    if type(reasoning) is int and reasoning>=0:metadata['reasoning_tokens']=reasoning
                 if error in ('unobserved_document_ids','unobserved_place_ids'):
                     parsed=json.loads(content)
                     field='document_ids' if error=='unobserved_document_ids' else 'place_ids'

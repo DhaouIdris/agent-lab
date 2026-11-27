@@ -22,7 +22,7 @@ class ShareableModelConfigTests(unittest.TestCase):
 
     def test_remote_and_local_model(self):
         self.assertEqual(self.load()['auth_header'],'bearer')
-        self.assertEqual(self.load(base_url='http://localhost:11434/v1')['token_parameter'],'max_tokens')
+        self.assertEqual(self.load(base_url='http://localhost:11434/v1',token_parameter='max_tokens')['token_parameter'],'max_tokens')
 
     def test_rejects_unsafe_endpoints_and_embedded_secret(self):
         for url in ('http://public.example/v1','https://user:pass@example.org/v1',
