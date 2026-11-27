@@ -2,6 +2,7 @@
 import argparse
 import getpass
 import json
+import math
 import os
 import re
 import sqlite3
@@ -21,7 +22,7 @@ from experiments.route_service import route, load_route_key, valid_coordinates
 from experiments.route_service import matrix
 from experiments.nearby_places import candidates, MAX_CANDIDATES, RADIUS_KM
 from experiments.place_links import osm_place_url
-from experiments.place_origin import named_origin_request, local_origin, geocode_origin
+from experiments.place_origin import named_origin_request, named_route_request, local_origin, geocode_origin
 from experiments.request_controls import check_emergency_intent, emergency_response, redact_pii, resolve_temporal_context
 from experiments.territory_tools import TerritoryTools, MODELS as TERRITORY_MODELS
 from experiments.response_controls import verify_and_render
@@ -274,6 +275,48 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
         return local_response('La demande a été interrompue car elle contient une instruction suspecte.', 'blocked_suspected_injection')
     if user_location is not None and not valid_coordinates(user_location):
         return local_response('Coordonnées invalides. Vérifiez latitude et longitude.', 'invalid_coordinates')
+    named_pair=named_route_request(question)
+    if named_pair:
+        q=normalize(question)
+        if re.search(r'\b(?:velo|bike|bus|transport en commun)\b',q):
+            return local_response('Je peux estimer ce trajet à pied ou en voiture.', 'unsupported_routing')
+        mode='car' if re.search(r'\b(?:voiture|auto|taxi)\b',q) else 'walk'
+        resolved=[];trace=[]
+        for label,name in zip(('origin','destination'),named_pair):
+            place=local_origin(db,name)
+            if place['status']=='not_found':place=geocode_service(name,min(8,timeout))
+            if place['status']=='ambiguous':
+                choices=' ; '.join(x['name']+(f" ({x['district']})" if x.get('district') else '') for x in place['choices'])
+                return local_response(f'Lequel de ces lieux veux-tu dire pour {label} : {choices} ?', 'ambiguous_origin')
+            if place['status']!='ok':
+                return local_response(f'Je ne peux pas situer avec certitude le {"départ" if label=="origin" else "lieu d’arrivée"}. Précise son nom ou son adresse.',
+                                      'origin_not_found' if label=='origin' else 'destination_not_found',place.get('reason'))
+            if inspect_passages([{'id':label,'text':place['name']}]):
+                return local_response('Un nom de lieu contient une instruction suspecte.', 'blocked_suspected_injection')
+            resolved.append(place)
+            trace.append({'tool':'resolve_'+label,'arguments':{'kind':'named_place'},
+                          'result':{'status':'ok','source':place['source']}})
+        trip=route_service(resolved[0]['location'],resolved[1]['location'],mode,min(12,timeout))
+        trace.append({'tool':'calculate_route','arguments':{'mode':mode},
+                      'result':{'status':trip.get('status'),'source':trip.get('source')}})
+        if trip.get('status')!='ok':
+            return {'output':{'answer':'Je ne peux pas calculer ce trajet pour le moment.',
+                              'document_ids':[],'place_ids':[],'abstain':True},'trace':trace,
+                    'response_origin':'route_service'}
+        if any(type(trip.get(k)) not in (int,float) or not math.isfinite(trip[k]) or trip[k]<0
+               for k in ('distance_m','duration_s')):
+            raise AgentDiagnosticError('invalid_route_result',trace)
+        links=[];ids=[]
+        for place in resolved:
+            link=osm_place_url(place.get('source_id'))
+            links.append(f"[{place['name']}]({link})" if link else place['name'])
+            if link:ids.append(place['source_id'])
+        label='en voiture' if mode=='car' else 'à pied'
+        answer=(f'De {links[0]} à {links[1]} {label} : environ '
+                f'{format_route_distance(trip["distance_m"])}, {format_route_duration(trip["duration_s"])}. '
+                'Je ne dispose pas des étapes de navigation.')
+        return {'output':{'answer':answer,'document_ids':[],'place_ids':list(dict.fromkeys(ids)),
+                          'abstain':False},'trace':trace,'response_origin':'route_service'}
     if (re.search(r'\bgare\s*(?:[?.!,]|$)',normalize(question))
             and re.search(r'\b(?:cafe|restaurant|hotel|bar|proche|pres de)\b',normalize(question))
             and not any(re.search(r'\bgare\s+(?:de|du|d\x27)\s+\w+',normalize(pair['user']))

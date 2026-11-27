@@ -18,6 +18,10 @@ _ORIGIN=re.compile(
 _TYPE=re.compile(r'\b(?:restaurants?|restos?|cafés?|hotels?|hôtels?|bars?|glaciers?|fast[ -]?foods?)\b',re.I)
 _NEAR=re.compile(r'\b(?:plus proche|près|pres|à côté|a cote|pas loin|autour)\b',re.I)
 _NEAR_ORIGIN=re.compile(r"\b(?:près|pres|proche)\s+(?:de|du|des|d['’])\s+(?:la\s+|le\s+|l['’])?(.+?)(?:\s*[?!.;]|$)",re.I)
+_NAMED_ROUTE=re.compile(
+    r"^\s*(?:je suis|je me trouve)\s+(?:à|a|au|dans)\s+(.+?)\s*,\s*"
+    r"(?:comment\s+(?:(?:me|se)\s+)?rendre|comment\s+aller|quel\s+(?:est\s+)?(?:le\s+)?(?:trajet|itinéraire))\s+"
+    r"(?:à|a|au|vers|jusqu['’]à|jusqu['’]a)\s+(.+?)\s*[?.!]?\s*$",re.I)
 
 
 def named_origin_request(question):
@@ -33,6 +37,19 @@ def named_origin_request(question):
     if not 4<=len(name)<=120 or re.search(r'[\r\n<>]',name):
         return None
     return name
+
+
+def named_route_request(question):
+    """Two explicitly named endpoints; do not infer a destination from free text."""
+    match=_NAMED_ROUTE.match(question)
+    if not match:return None
+    names=[]
+    for raw in match.groups():
+        name=raw.strip(' .?!\u00a0')
+        name=re.sub(r"^(?:l['’]\s*|le\s+|la\s+)",'',name,flags=re.I)
+        if not 4<=len(name)<=120 or re.search(r'[\r\n<>]',name):return None
+        names.append(name)
+    return tuple(names)
 
 
 def local_origin(db_path, name):
