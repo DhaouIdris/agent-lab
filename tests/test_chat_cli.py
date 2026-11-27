@@ -3,12 +3,19 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 
-from experiments.chat_cli import run_chat, diagnostic_line
+from experiments.chat_cli import run_chat, diagnostic_line, provider_diagnostic
+from experiments.unified_agent import AgentDiagnosticError
 from experiments.document_rag import load_corpus
 from experiments.unified_agent import ask
 
 
 class ChatCLITests(unittest.TestCase):
+    def test_provider_status_is_reported_without_endpoint_or_key(self):
+        exc=AgentDiagnosticError('provider_error',[],{'http_status':429,
+            'provider_error_code':'insufficient_quota'})
+        message=provider_diagnostic(exc)
+        self.assertIn('HTTP 429 ; code=insufficient_quota',message)
+        self.assertNotIn('api.openai.com',message)
     def test_clarification_is_kept_for_the_next_turn(self):
         questions=iter(['Quel café proche de la gare ?', 'Gare de Treichville', '/quit'])
         seen=[]

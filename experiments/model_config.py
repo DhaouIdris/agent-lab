@@ -1,12 +1,14 @@
 """Provider-neutral configuration for the integrated agent."""
 import json
 import math
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
 DEFAULTS={
     'auth_header':'bearer', 'api_version':None, 'token_parameter':'max_tokens',
     'max_output_tokens':1200, 'min_interval_seconds':0, 'turn_timeout_seconds':180,
+    'api_key_env':'AGENTLAB_API_KEY',
 }
 OPTIONAL_METADATA={'underlying_model','model_version','region','deployment_type',
                    'input_price_per_million','output_price_per_million','currency'}
@@ -31,6 +33,8 @@ def load_model_config(path):
         raise ValueError('Provide a base URL without /chat/completions')
     if config['auth_header'] not in ('bearer','api-key') or config['token_parameter'] not in ('max_tokens','max_completion_tokens'):
         raise ValueError('Invalid authentication or token parameter')
+    if not isinstance(config['api_key_env'],str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{1,63}',config['api_key_env']):
+        raise ValueError('Invalid API key environment variable name')
     if config['api_version'] is not None and (not isinstance(config['api_version'],str) or not config['api_version']):
         raise ValueError('Invalid api_version')
     if type(config['max_output_tokens']) is not int or not 100<=config['max_output_tokens']<=4096:

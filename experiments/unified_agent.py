@@ -365,6 +365,11 @@ def ask(client, db, docs, question, max_rounds=5, timeout=180, catalogue_search=
             last=calls[-1] if isinstance(calls,list) and len(calls)>before_calls else {}
             kind=last.get('error_kind') if isinstance(last,dict) else None
             metadata={'provider_error_kind':kind} if kind in ('timeout','transport','response_json','response_schema') else {}
+            if isinstance(last,dict) and last.get('error')=='http':
+                if type(last.get('http_status')) is int:
+                    metadata['http_status']=last['http_status']
+                if isinstance(last.get('provider_error_code'),str):
+                    metadata['provider_error_code']=last['provider_error_code']
             raise AgentDiagnosticError('provider_error',trace,metadata) from None
         calls=reply.get('tool_calls') or []
         if not calls:

@@ -36,3 +36,6 @@ class ShareableModelConfigTests(unittest.TestCase):
             with self.assertRaises(ValueError):model_key({'base_url':'https://example.org/v1'},prompt=False)
         with patch.dict('os.environ',{'AGENTLAB_API_KEY':'test-key'}),patch('experiments.model_credentials.load_dotenv'):
             self.assertEqual(model_key({'base_url':'https://example.org/v1'},prompt=False),'test-key')
+        with patch.dict('os.environ',{'AGENTLAB_API_KEY':'azure-key','OPENAI_API_KEY':'openai-key'}),patch('experiments.model_credentials.load_dotenv'):
+            self.assertEqual(model_key({'base_url':'https://api.openai.com/v1','api_key_env':'OPENAI_API_KEY'},prompt=False),'openai-key')
+        with self.assertRaises(ValueError):self.load(api_key_env='BAD-VAR')

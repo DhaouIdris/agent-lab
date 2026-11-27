@@ -21,6 +21,21 @@ DIAGNOSTICS={
     'unsupported_price_or_time':'Un prix ou horaire affirmé n’est pas étayé.',
     'output_reference_guard':'Les références de la réponse ne passent pas le contrôle.',
 }
+HTTP_HINTS={401:'Clé API non acceptée.',403:'Accès refusé pour ce projet ou modèle.',
+            404:'Modèle ou endpoint introuvable.',429:'Quota, crédits ou limite de débit à vérifier.'}
+
+
+def provider_diagnostic(exc):
+    metadata=exc.metadata
+    status=metadata.get('http_status')
+    code=metadata.get('provider_error_code')
+    if type(status) is int:
+        detail=f'HTTP {status}'
+        if code:detail+=' ; code='+code
+        detail+=' — '+HTTP_HINTS.get(status,'Erreur de l’API du modèle.')
+        return 'Diagnostic : provider_error — '+detail
+    kind=metadata.get('provider_error_kind')
+    return 'Diagnostic : provider_error'+(' — '+kind if kind else ' — appel interrompu avant une réponse exploitable')
 
 
 def diagnostic_line(result):
@@ -62,7 +77,7 @@ def run_chat(client, db, docs, *, timeout=180, user_location=None, reader=input,
         except (ValueError,ProviderError,AgentDiagnosticError) as exc:
             writer('Agent : Je ne peux pas répondre pour le moment. Cette question n’a pas été ajoutée au contexte.')
             if isinstance(exc,AgentDiagnosticError):
-                writer('Diagnostic : '+exc.code)
+                writer(provider_diagnostic(exc) if exc.code=='provider_error' else 'Diagnostic : '+exc.code)
 
 
 def main():

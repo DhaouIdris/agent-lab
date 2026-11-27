@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock
 from ci_agentlab.providers import ProviderError
 from experiments.document_rag import load_corpus
-from experiments.unified_agent import ask, requires_document_search, unverified_amounts_or_hours
+from experiments.unified_agent import ask, requires_document_search, unverified_amounts_or_hours, AgentDiagnosticError
 
 
 def call(name,args,idx):
@@ -16,6 +16,16 @@ def final(**kwargs):
     return {'content':json.dumps(x)}
 
 class UnifiedTests(unittest.TestCase):
+    def test_provider_http_diagnostic_contains_only_safe_codes(self):
+        client=Mock()
+        client.calls=[]
+        def failed_call(*args,**kwargs):
+            client.calls.append({'error':'http','http_status':401,'provider_error_code':'invalid_api_key'})
+            raise ProviderError('Secret endpoint should not be exposed')
+        client.chat.side_effect=failed_call
+        with self.assertRaises(AgentDiagnosticError) as caught:
+            ask(client,'unused',[],'qui es tu')
+        self.assertEqual(caught.exception.metadata,{'http_status':401,'provider_error_code':'invalid_api_key'})
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.db=Path(self.tmp.name)/'test.sqlite';self.db.touch()

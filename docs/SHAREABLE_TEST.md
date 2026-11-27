@@ -17,6 +17,8 @@ Copy-Item .env.example .env
 
 Mettre **sa propre** clé du modèle dans `.env` sous `AGENTLAB_API_KEY` (ou laisser vide et saisir la clé lorsqu'elle est demandée). Pour le calcul d'itinéraire et la recherche d'adresse via openrouteservice, ajouter **sa propre** clé `ORS_API_KEY` ; sans elle, ces fonctions renvoient indisponible. Le serveur LLM et openrouteservice reçoivent les requêtes correspondantes. `.env`, `model.json`, `local_data/` et `runs/` sont ignorés par Git. Ne jamais publier ces fichiers, ni partager les rapports de revue privée bruts.
 
+Si tu utilises Azure et OpenAI dans le même dépôt, mets `"api_key_env": "OPENAI_API_KEY"` dans le `model.json` OpenAI et définis `OPENAI_API_KEY` dans `.env`. Une variable PowerShell existante garde la priorité sur `.env` ; utilise un nom distinct pour ne jamais envoyer la clé Azure à OpenAI.
+
 ## Catalogue local
 
 Le CSV public n'est pas redistribué dans Git. Télécharger et convertir le Parquet selon [le guide du catalogue](EXPERIMENTAL_PLACE_CATALOG.md), ou fournir un CSV déjà obtenu avec les colonnes attendues. En partant du fichier `local_data/lieux.csv` :

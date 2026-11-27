@@ -60,7 +60,7 @@ def safe_error_code(exc):
         if len(raw)>65536:return None
         error=json.loads(raw).get("error",{})
         code=error.get("code")
-        allowed={"content_filter","content_policy_violation","ResponsibleAIPolicyViolation","DeploymentNotFound","DeploymentNotReady","InvalidRequest","invalid_request_error","rate_limit_exceeded","TooManyRequests"}
+        allowed={"content_filter","content_policy_violation","ResponsibleAIPolicyViolation","DeploymentNotFound","DeploymentNotReady","InvalidRequest","invalid_request_error","rate_limit_exceeded","TooManyRequests","insufficient_quota","invalid_api_key","model_not_found"}
         return code if code in allowed else None
     except (ValueError,AttributeError,TypeError,OSError):return None
 
